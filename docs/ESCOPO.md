@@ -346,18 +346,28 @@ O **`packages/core`** é a joia da coroa: TypeScript puro, sem dependência de p
 7. Cadastro de imóveis pelo corretor (mínimo para abastecer o catálogo)
 
 ### V1 — Inteligência e gestão do corretor
-8. Painel do corretor: leads + timeline + **termômetro** 🔥
-9. **Coringa** (motor de estratégias) — usa `core`
-10. Funil de vendas + métricas (CAC, conversão)
-11. Controle financeiro e de pagamentos (entrada %, semestrais, intervalados, balões)
-12. Visão de **Imobiliária/Gestor**: distribuição de leads, metas, relatórios consolidados
+8. ✅ Painel do corretor: leads + timeline + **termômetro** 🔥
+9. ✅ **Coringa** (motor de estratégias) — usa `core`
+10. ✅ Visão de **Imobiliária/Gestor**: dashboard consolidado + distribuição de leads
+11. ⏳ **Ferramenta comercial completa / CRM** (ver §9.1) — funil de negócios, conversão, atividades
+12. Controle financeiro e de pagamentos (entrada %, semestrais, intervalados, balões)
 
-### V2 — Escala
-13. Integrações (portais, bancos/Caixa, CRMs externos)
-14. Relatórios avançados / BI
-15. Notificações push e automações de relacionamento
+### 9.1 Ferramenta comercial completa (CRM) — prioridade da V1
+O produto precisa ser uma **ferramenta comercial completa**, não só captura de leads. Núcleo:
+- **Funil / pipeline de negócios** (Negócio/Deal): etapas (novo → contato → visita → proposta → fechamento; ganho/perdido), valor do negócio, ligado a cliente/imóvel/lead.
+- **Atividades e follow-up**: notas, ligações, e-mails, visitas, mudanças de etapa — timeline por negócio; tarefas/lembretes.
+- **Métricas de conversão** por etapa e por corretor; **CAC** quando houver dados de custo.
+- **Contato do lead/cliente** (nome, telefone, e-mail) para o corretor atuar (ver §12 — decisão 6 / LGPD).
+- Conversão de **lead → negócio** com um clique.
 
-> Multi-tenant e suporte às múltiplas modalidades nascem na Fase 0; o que evolui por fase é a **profundidade** de cada uma, não a sua existência.
+### V2 — Escala e crescimento
+13. **Chatbot** (atendimento/qualificação automatizada; usa o motor e o catálogo).
+14. **Comunidade / feed social**: tirar dúvidas, postar vídeos, recomendações entre corretores/clientes.
+15. **Ranking de corretores** que mais vendem (gamificação; usa o funil/negócios).
+16. **Newsletter / automações de relacionamento** (e-mail, régua de nutrição de leads).
+17. Integrações (portais, bancos/Caixa, CRMs externos), relatórios avançados / BI, push.
+
+> Multi-tenant e suporte às múltiplas modalidades nascem na Fase 0; o que evolui por fase é a **profundidade** de cada uma, não a sua existência. A arquitetura (monorepo + `core` compartilhado + base multi-tenant) já suporta as fases V2 sem retrabalho.
 
 ---
 

@@ -29,6 +29,9 @@ export default async function PainelCorretor() {
           <Link href="/corretor/leads" className={classesBotao("secundario", "md")}>
             Leads
           </Link>
+          <Link href="/corretor/negocios" className={classesBotao("secundario", "md")}>
+            Negócios
+          </Link>
           {(perfil?.papel === "gestor" || perfil?.papel === "admin") && (
             <Link href="/corretor/equipe" className={classesBotao("secundario", "md")}>
               Equipe

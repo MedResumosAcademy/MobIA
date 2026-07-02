@@ -8,6 +8,8 @@ import { notFound } from "next/navigation";
 import { formatarReais } from "@imobia/core";
 import { obterLead } from "@/lib/dados/leads";
 import { listarCorretoresDaOrg, obterPapelEOrg } from "@/lib/dados/gestor";
+import { Botao } from "@/components/ui/Botao";
+import { converterLeadEmNegocioAction } from "../../negocios/acoes";
 import { ChipTermometro } from "../termometro";
 import { tempoRelativo } from "../tempo";
 import { ReatribuirLead } from "./reatribuir";
@@ -50,6 +52,13 @@ export default async function PaginaLead({
           <ChipTermometro temperatura={lead.temperatura} />
         </div>
         <p className="mt-2 text-muted">{lead.imovelTitulo}</p>
+
+        <form action={converterLeadEmNegocioAction} className="mt-4">
+          <input type="hidden" name="leadId" value={lead.id} />
+          <Botao type="submit" variante="primario" tamanho="sm">
+            Converter em negócio
+          </Botao>
+        </form>
 
         <section className="mt-8 rounded-2xl border border-border bg-surface-card p-6 shadow-[var(--shadow-soft)]">
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">

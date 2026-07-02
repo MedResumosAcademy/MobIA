@@ -7,8 +7,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building2, Users, Flame, UserRound } from "lucide-react";
-import type { Temperatura } from "@imobia/domain";
+import { Building2, Users, Flame, UserRound, Handshake, Trophy, XCircle } from "lucide-react";
+import { formatarReais } from "@imobia/core";
+import { ETAPAS_NEGOCIO, type EtapaNegocio, type Temperatura } from "@imobia/domain";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import {
   desempenhoPorCorretor,
@@ -17,10 +18,20 @@ import {
   type DesempenhoCorretor,
   type ResumoOrg,
 } from "@/lib/dados/gestor";
+import { resumoFunilDaOrg, type ResumoFunil } from "@/lib/dados/negocios";
 import { tempoRelativo } from "../leads/tempo";
 
 export const metadata: Metadata = { title: "Equipe — ImobIA" };
 export const dynamic = "force-dynamic";
+
+// Rótulos das etapas do funil (o domínio guarda só as chaves; UI define texto).
+const ROTULOS_ETAPA: Record<EtapaNegocio, string> = {
+  novo: "Novo",
+  contato: "Contato",
+  visita: "Visita",
+  proposta: "Proposta",
+  fechamento: "Fechamento",
+};
 
 // Rótulos/chamas/cores das barras de temperatura (mesma escala do termômetro).
 const TEMPERATURAS: {
@@ -51,10 +62,11 @@ export default async function PaginaEquipe() {
     redirect("/corretor?aviso=area-restrita-gestor");
   }
 
-  const [resumo, desempenho, nomeOrg] = await Promise.all([
+  const [resumo, desempenho, nomeOrg, funil] = await Promise.all([
     resumoDaOrg(),
     desempenhoPorCorretor(),
     obterNomeOrg(),
+    resumoFunilDaOrg(),
   ]);
 
   return (
@@ -121,6 +133,17 @@ export default async function PaginaEquipe() {
             Como estão distribuídos os {resumo.leadsTotal} lead(s) consentido(s).
           </p>
           <DistribuicaoTemperatura resumo={resumo} />
+        </section>
+
+        {/* Funil de negócios */}
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold text-foreground">
+            Funil de negócios
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            Como os negócios avançam pelas etapas — e quanto se converte em vendas.
+          </p>
+          <FunilNegocios funil={funil} />
         </section>
 
         {/* Desempenho por corretor */}
@@ -206,6 +229,126 @@ function DistribuicaoTemperatura({ resumo }: { resumo: ResumoOrg }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// —— Funil de negócios ————————————————————————————————————————————————————
+function FunilNegocios({ funil }: { funil: ResumoFunil }) {
+  const totalNegocios = funil.abertos + funil.ganhos + funil.perdidos;
+  if (totalNegocios === 0) {
+    return (
+      <p className="mt-4 rounded-2xl border border-dashed border-border-strong bg-surface-card p-8 text-center text-subtle">
+        Nenhum negócio registrado ainda.
+      </p>
+    );
+  }
+
+  // Base para as barras: a maior quantidade de etapa (mini-funil proporcional).
+  const maxEtapa = Math.max(
+    1,
+    ...ETAPAS_NEGOCIO.map((e) => funil.porEtapa[e].quantidade),
+  );
+  const pctConversao = Math.round(funil.taxaConversao * 100);
+
+  return (
+    <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      {/* Mini-funil por etapa */}
+      <div className="rounded-2xl border border-border bg-surface-card p-6 shadow-[var(--shadow-soft)] lg:col-span-2">
+        <div className="flex flex-col gap-3">
+          {ETAPAS_NEGOCIO.map((etapa) => {
+            const { quantidade, valor } = funil.porEtapa[etapa];
+            const pct = Math.round((quantidade / maxEtapa) * 100);
+            return (
+              <div key={etapa}>
+                <div className="flex items-baseline justify-between text-sm">
+                  <span className="font-medium text-foreground">
+                    {ROTULOS_ETAPA[etapa]}
+                  </span>
+                  <span className="tabular-nums text-subtle">
+                    {quantidade} · {formatarReais(valor)}
+                  </span>
+                </div>
+                <div className="mt-1.5 h-3 w-full overflow-hidden rounded-full bg-surface">
+                  <div
+                    className="h-full rounded-full bg-brand"
+                    style={{ width: `${Math.max(pct, quantidade > 0 ? 6 : 0)}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Coluna de indicadores: aberto, ganho/perdido e conversão */}
+      <div className="flex flex-col gap-4">
+        {/* Taxa de conversão em destaque */}
+        <div className="rounded-2xl border border-brand/30 bg-brand-soft p-5 shadow-[var(--shadow-soft)]">
+          <div className="flex items-center gap-2 text-brand-strong">
+            <Trophy className="h-5 w-5" aria-hidden />
+            <span className="text-xs font-medium uppercase tracking-[0.08em]">
+              Taxa de conversão
+            </span>
+          </div>
+          <p className="mt-3 text-4xl font-semibold tabular-nums text-brand-strong">
+            {pctConversao}%
+          </p>
+          <p className="mt-1 text-xs text-brand-strong/80">
+            {funil.ganhos} ganho(s) de {funil.ganhos + funil.perdidos} fechado(s)
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1">
+          <MiniIndicador
+            icone={<Handshake className="h-4 w-4" aria-hidden />}
+            rotulo="Em aberto"
+            valor={funil.abertos}
+            detalhe={formatarReais(funil.valorEmAberto)}
+          />
+          <MiniIndicador
+            icone={<Trophy className="h-4 w-4" aria-hidden />}
+            rotulo="Ganhos"
+            valor={funil.ganhos}
+            detalhe={formatarReais(funil.valorGanho)}
+            destaque
+          />
+          <MiniIndicador
+            icone={<XCircle className="h-4 w-4" aria-hidden />}
+            rotulo="Perdidos"
+            valor={funil.perdidos}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniIndicador({
+  icone,
+  rotulo,
+  valor,
+  detalhe,
+  destaque = false,
+}: {
+  icone: React.ReactNode;
+  rotulo: string;
+  valor: number;
+  detalhe?: string;
+  destaque?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1 rounded-xl border border-border bg-surface-card p-4 shadow-[var(--shadow-soft)]">
+      <div
+        className={`flex items-center gap-1.5 text-xs font-medium uppercase tracking-[0.08em] ${
+          destaque ? "text-brand-strong" : "text-subtle"
+        }`}
+      >
+        {icone}
+        <span>{rotulo}</span>
+      </div>
+      <p className="text-2xl font-semibold tabular-nums text-foreground">{valor}</p>
+      {detalhe && <p className="text-xs text-subtle tabular-nums">{detalhe}</p>}
     </div>
   );
 }

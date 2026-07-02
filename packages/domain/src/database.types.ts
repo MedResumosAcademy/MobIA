@@ -400,6 +400,164 @@ export type Database = {
           },
         ]
       }
+      negocio_atividades: {
+        Row: {
+          autor_id: string | null
+          criado_em: string
+          descricao: string
+          id: string
+          negocio_id: string
+          org_id: string
+          tipo: string
+        }
+        Insert: {
+          autor_id?: string | null
+          criado_em?: string
+          descricao: string
+          id?: string
+          negocio_id: string
+          org_id: string
+          tipo: string
+        }
+        Update: {
+          autor_id?: string | null
+          criado_em?: string
+          descricao?: string
+          id?: string
+          negocio_id?: string
+          org_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "negocio_atividades_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negocio_atividades_negocio_id_fkey"
+            columns: ["negocio_id"]
+            isOneToOne: false
+            referencedRelation: "negocios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negocio_atividades_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      negocios: {
+        Row: {
+          atualizado_em: string | null
+          cliente_id: string | null
+          corretor_id: string
+          criado_em: string
+          email_contato: string | null
+          etapa: string
+          fechado_em: string | null
+          id: string
+          imovel_id: string | null
+          lead_id: string | null
+          motivo_perda: string | null
+          nome_contato: string
+          org_id: string
+          origem: string | null
+          resultado: string | null
+          telefone_contato: string | null
+          unidade_id: string | null
+          valor: number | null
+        }
+        Insert: {
+          atualizado_em?: string | null
+          cliente_id?: string | null
+          corretor_id: string
+          criado_em?: string
+          email_contato?: string | null
+          etapa?: string
+          fechado_em?: string | null
+          id?: string
+          imovel_id?: string | null
+          lead_id?: string | null
+          motivo_perda?: string | null
+          nome_contato: string
+          org_id: string
+          origem?: string | null
+          resultado?: string | null
+          telefone_contato?: string | null
+          unidade_id?: string | null
+          valor?: number | null
+        }
+        Update: {
+          atualizado_em?: string | null
+          cliente_id?: string | null
+          corretor_id?: string
+          criado_em?: string
+          email_contato?: string | null
+          etapa?: string
+          fechado_em?: string | null
+          id?: string
+          imovel_id?: string | null
+          lead_id?: string | null
+          motivo_perda?: string | null
+          nome_contato?: string
+          org_id?: string
+          origem?: string | null
+          resultado?: string | null
+          telefone_contato?: string | null
+          unidade_id?: string | null
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "negocios_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negocios_corretor_id_fkey"
+            columns: ["corretor_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negocios_imovel_id_fkey"
+            columns: ["imovel_id"]
+            isOneToOne: false
+            referencedRelation: "imoveis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negocios_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negocios_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negocios_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizacoes: {
         Row: {
           assentos: number

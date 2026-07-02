@@ -15,4 +15,5 @@ export * from "./lead";
 export * from "./favorito";
 export * from "./parametros";
 export * from "./coringa";
+export * from "./negocio";
 export type { Database, Json } from "./database.types";
