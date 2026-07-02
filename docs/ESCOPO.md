@@ -10,8 +10,12 @@
 | 2 | Cliente pagante | **Corretor autônomo + Imobiliária desde o início** | Papéis e permissões multi-tenant no MVP (§3) |
 | 3 | Foco do MVP | **Experiência do cliente** | Catálogo, simulador, plano visual e Sonhômetro primeiro (§9) |
 | 4 | Modalidades | **Múltiplas desde o início** | Motor financeiro genérico e parametrizável (§6) |
+| 5 | Unidade reservada na ficha | **Esconder** (só disponíveis) | RLS pública de unidades mantida como está (§5.5) |
+| 6 | Visibilidade do lead p/ corretor (V1) | **Cliente identificado** (nome/contato + comportamento) | Painel de leads mostra quem é o cliente; **exige fluxo de consentimento LGPD** (ver §12) |
 
 > ⚠️ **Nota de escopo:** as escolhas 1, 2 e 4 são abrangentes e ampliam significativamente o MVP. A arquitetura abaixo foi desenhada para suportar essa amplitude sem retrabalho — concentrando a complexidade no **motor financeiro compartilhado** e em uma **base multi-tenant** desde o dia 1. Mesmo assim, recomenda-se lançar primeiro para um conjunto reduzido de cidades/empreendimentos para validar antes de escalar.
+
+> ⚖️ **Consequência da decisão 6 (LGPD):** expor identidade + intenção de compra do cliente ao corretor é dado pessoal sensível de comportamento. Antes de ligar o painel de leads em produção, é obrigatório: (a) consentimento explícito do cliente no cadastro/onboarding; (b) política de privacidade cobrindo o compartilhamento com corretores/imobiliárias; (c) base legal e finalidade registradas. A RLS atual já permite o corretor/gestor ver favoritos/eventos da própria org — falta a camada de consentimento.
 
 ---
 
