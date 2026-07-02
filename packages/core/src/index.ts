@@ -9,3 +9,4 @@ export * from "./sonhometro";
 export * from "./termometro";
 export * from "./coringa";
 export * from "./funil";
+export * from "./metricas";

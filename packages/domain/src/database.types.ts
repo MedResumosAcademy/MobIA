@@ -452,6 +452,67 @@ export type Database = {
           },
         ]
       }
+      negocio_tarefas: {
+        Row: {
+          concluida: boolean
+          concluida_em: string | null
+          corretor_id: string
+          criado_em: string
+          descricao: string | null
+          id: string
+          negocio_id: string
+          org_id: string
+          titulo: string
+          vence_em: string | null
+        }
+        Insert: {
+          concluida?: boolean
+          concluida_em?: string | null
+          corretor_id: string
+          criado_em?: string
+          descricao?: string | null
+          id?: string
+          negocio_id: string
+          org_id: string
+          titulo: string
+          vence_em?: string | null
+        }
+        Update: {
+          concluida?: boolean
+          concluida_em?: string | null
+          corretor_id?: string
+          criado_em?: string
+          descricao?: string | null
+          id?: string
+          negocio_id?: string
+          org_id?: string
+          titulo?: string
+          vence_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "negocio_tarefas_corretor_id_fkey"
+            columns: ["corretor_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negocio_tarefas_negocio_id_fkey"
+            columns: ["negocio_id"]
+            isOneToOne: false
+            referencedRelation: "negocios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negocio_tarefas_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       negocios: {
         Row: {
           atualizado_em: string | null

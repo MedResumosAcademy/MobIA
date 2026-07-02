@@ -21,3 +21,6 @@ coverage/
 
 # arquivos de teste transitórios
 /tmp/mobia-*.log
+
+# scripts de workflow (artefato de ferramenta)
+.claude/wf/

@@ -6,12 +6,27 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Mail, MessageCircle, Phone } from "lucide-react";
 import { formatarReais } from "@imobia/core";
 import { obterNegocio } from "@/lib/dados/negocios";
+import { listarTarefasDoNegocio } from "@/lib/dados/tarefas";
+import { classesBotao } from "@/components/ui/Botao";
 import { ChipTermometro } from "../../leads/termometro";
 import { tempoRelativo } from "../../leads/tempo";
+import { BotaoConcluir } from "../../tarefas/BotaoConcluir";
+import { formatarVencimento } from "../../tarefas/data";
+import { AdicionarTarefa } from "./AdicionarTarefa";
 import { ControlesNegocio } from "./Controles";
 import { ROTULO_ATIVIDADE, ROTULO_ETAPA, ROTULO_RESULTADO } from "../rotulos";
+
+/** Só dígitos, para montar links tel:/wa.me. Vazio → null. */
+function apenasDigitos(valor: string | null): string | null {
+  if (!valor) {
+    return null;
+  }
+  const digitos = valor.replace(/\D/g, "");
+  return digitos === "" ? null : digitos;
+}
 
 export const metadata: Metadata = { title: "Negócio — ImobIA" };
 export const dynamic = "force-dynamic";
@@ -28,6 +43,9 @@ export default async function PaginaNegocio({
   }
   const { negocio, timeline, clienteNome } = detalhe;
   const fechado = negocio.resultado !== null;
+  const tarefas = await listarTarefasDoNegocio(id);
+
+  const telDigitos = apenasDigitos(negocio.telefoneContato);
 
   return (
     <div className="flex flex-1 flex-col items-center bg-background px-6 py-16 font-sans">
@@ -74,11 +92,87 @@ export default async function PaginaNegocio({
               <span className="text-subtle">Motivo da perda:</span> {negocio.motivoPerda}
             </p>
           )}
+
+          {(telDigitos || negocio.emailContato) && (
+            <div className="mt-5 flex flex-wrap gap-3 border-t border-border pt-5">
+              {telDigitos && (
+                <a
+                  href={`tel:${telDigitos}`}
+                  className={classesBotao("secundario", "sm")}
+                >
+                  <Phone className="h-4 w-4" aria-hidden />
+                  Ligar
+                </a>
+              )}
+              {telDigitos && (
+                <a
+                  href={`https://wa.me/${telDigitos}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={classesBotao("secundario", "sm")}
+                >
+                  <MessageCircle className="h-4 w-4" aria-hidden />
+                  WhatsApp
+                </a>
+              )}
+              {negocio.emailContato && (
+                <a
+                  href={`mailto:${negocio.emailContato}`}
+                  className={classesBotao("secundario", "sm")}
+                >
+                  <Mail className="h-4 w-4" aria-hidden />
+                  E-mail
+                </a>
+              )}
+            </div>
+          )}
         </section>
 
         <div className="mt-8">
           <ControlesNegocio id={negocio.id} etapaAtual={negocio.etapa} fechado={fechado} />
         </div>
+
+        <section className="mt-8 rounded-2xl border border-border bg-surface-card p-6 shadow-[var(--shadow-soft)]">
+          <h2 className="text-lg font-semibold text-foreground">Tarefas</h2>
+          {tarefas.length === 0 ? (
+            <p className="mt-3 text-sm text-subtle">
+              Nenhuma tarefa para este negócio. Adicione um próximo passo abaixo.
+            </p>
+          ) : (
+            <ul className="mt-4 flex flex-col gap-2">
+              {tarefas.map((t) => (
+                <li
+                  key={t.id}
+                  className={`flex items-start gap-3 rounded-xl border p-3 ${
+                    t.atrasada
+                      ? "border-brand/40 bg-brand-soft"
+                      : "border-border bg-surface-card"
+                  }`}
+                >
+                  <BotaoConcluir id={t.id} negocioId={t.negocioId} concluida={t.concluida} />
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={`text-sm font-medium ${
+                        t.concluida
+                          ? "text-subtle line-through"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {t.titulo}
+                    </p>
+                    <p className="mt-0.5 text-xs text-subtle">
+                      {t.atrasada && (
+                        <span className="font-semibold text-brand-strong">Atrasada · </span>
+                      )}
+                      {formatarVencimento(t.venceEm)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <AdicionarTarefa negocioId={negocio.id} />
+        </section>
 
         <section className="mt-8">
           <h2 className="text-lg font-semibold text-foreground">Histórico</h2>
