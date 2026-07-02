@@ -1,14 +1,28 @@
 // Prova do DoD de H-01 no mobile: apps/mobile importa @mobia/core e roda a
 // MESMA simulação da web (imóvel de R$ 320.000, entrada de R$ 30.000).
+// H-04: autenticação mínima via Supabase — sem sessão mostra login;
+// com sessão mostra a prova do motor com "Logado como <email>" e "Sair".
 
+import { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import type { Session } from "@supabase/supabase-js";
 import { formatarReais, obterParametrosAtuais, recalcularPlano } from "@mobia/core";
 import type {
   EsquemaPagamento,
   ParametrosFinanceiros,
   PlanoPagamentoCalculado,
 } from "@mobia/domain";
+import { supabase } from "./lib/supabase";
 
 // Cenário de demonstração — valores de negócio (taxa, prazo, sistema) vêm dos
 // parâmetros vigentes (obterParametrosAtuais — ponto único de acesso, H-05);
@@ -49,7 +63,76 @@ function valorDaParcelaMensal(plano: PlanoPagamentoCalculado): number {
   return plano.cronograma.find((item) => item.tipo === "parcela")?.valor ?? 0;
 }
 
-export default function App() {
+function TelaLogin() {
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+  const [entrando, setEntrando] = useState(false);
+
+  async function entrar() {
+    setErro(null);
+    setEntrando(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: senha,
+    });
+    if (error) {
+      setErro("Não foi possível entrar. Verifique e-mail e senha e tente novamente.");
+    }
+    setEntrando(false);
+  }
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <Text style={styles.titulo}>MobIA</Text>
+      <Text style={styles.frase}>Entre para montar sua própria compra.</Text>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitulo}>Entrar</Text>
+
+        <Text style={styles.campoRotulo}>E-mail</Text>
+        <TextInput
+          style={styles.campo}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          autoComplete="email"
+          keyboardType="email-address"
+          placeholder="voce@exemplo.com.br"
+          placeholderTextColor="#a1a1aa"
+        />
+
+        <Text style={styles.campoRotulo}>Senha</Text>
+        <TextInput
+          style={styles.campo}
+          value={senha}
+          onChangeText={setSenha}
+          secureTextEntry
+          autoComplete="password"
+          placeholder="Sua senha"
+          placeholderTextColor="#a1a1aa"
+        />
+
+        {erro ? <Text style={styles.erro}>{erro}</Text> : null}
+
+        <Pressable
+          style={[styles.botao, entrando && styles.botaoDesabilitado]}
+          onPress={entrar}
+          disabled={entrando}
+        >
+          <Text style={styles.botaoTexto}>{entrando ? "Entrando…" : "Entrar"}</Text>
+        </Pressable>
+      </View>
+
+      <StatusBar style="auto" />
+    </KeyboardAvoidingView>
+  );
+}
+
+function TelaProvaDoMotor({ sessao }: { sessao: Session }) {
   const parametros = obterParametrosAtuais();
   const plano = simularProvaDoMotor(parametros);
   const pos = plano.financiamentoPosChaves;
@@ -94,9 +177,55 @@ export default function App() {
         </Text>
       </View>
 
+      <View style={styles.sessaoBarra}>
+        <Text style={styles.sessaoTexto}>
+          Logado como {sessao.user.email ?? "usuário sem e-mail"}
+        </Text>
+        <Pressable style={styles.sairBotao} onPress={() => supabase.auth.signOut()}>
+          <Text style={styles.sairTexto}>Sair</Text>
+        </Pressable>
+      </View>
+
       <StatusBar style="auto" />
     </View>
   );
+}
+
+export default function App() {
+  const [sessao, setSessao] = useState<Session | null>(null);
+  const [sessaoCarregada, setSessaoCarregada] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSessao(data.session);
+      setSessaoCarregada(true);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_evento, novaSessao) => {
+      setSessao(novaSessao);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  if (!sessaoCarregada) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator color="#18181b" />
+        <StatusBar style="auto" />
+      </View>
+    );
+  }
+
+  if (!sessao) {
+    return <TelaLogin />;
+  }
+
+  return <TelaProvaDoMotor sessao={sessao} />;
 }
 
 const styles = StyleSheet.create({
@@ -166,5 +295,69 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
     color: "#a1a1aa",
+  },
+  campoRotulo: {
+    marginTop: 12,
+    marginBottom: 4,
+    fontSize: 13,
+    color: "#71717a",
+  },
+  campo: {
+    width: "100%",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e4e4e7",
+    backgroundColor: "#fafafa",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: "#18181b",
+  },
+  erro: {
+    marginTop: 12,
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#dc2626",
+  },
+  botao: {
+    marginTop: 16,
+    borderRadius: 10,
+    backgroundColor: "#18181b",
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  botaoDesabilitado: {
+    opacity: 0.6,
+  },
+  botaoTexto: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#ffffff",
+  },
+  sessaoBarra: {
+    marginTop: 16,
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+  },
+  sessaoTexto: {
+    flexShrink: 1,
+    fontSize: 13,
+    color: "#71717a",
+  },
+  sairBotao: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e4e4e7",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  sairTexto: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#18181b",
   },
 });

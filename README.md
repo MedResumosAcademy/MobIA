@@ -21,7 +21,10 @@ MobIA é um sistema imobiliário com duas faces:
 - ✅ Escopo e histórias do MVP ([docs/MVP-HISTORIAS.md](docs/MVP-HISTORIAS.md))
 - ✅ Monorepo Turborepo: `packages/core`, `packages/domain`, `apps/web` (Next.js 16), `apps/mobile` (Expo 57)
 - ✅ Motor financeiro (`@mobia/core`): Price/SAC, plano de pagamento, Sonhômetro, modalidades parametrizadas — 134 testes, ~96% de cobertura
-- ⏭️ Próximo: E0.2 — auth multi-tenant (organização, papéis)
+- ✅ E0.2/E0.3: Supabase (projeto "MobIA - Dev", sa-east-1) — 11 tabelas multi-tenant com RLS, isolamento provado com 2 orgs (matriz 22/22), auth web (Next 16 + @supabase/ssr) e mobile (Expo), parâmetros financeiros no banco (H-05: muda sem deploy)
+- ⏭️ Próximo: MVP — catálogo + ficha do imóvel (E1/E2) e cadastro de imóveis (E8)
+
+> Convites de corretor/gestor: signup público sempre nasce `cliente`; promoção só via `privado.convites` (server-side). Seed de dev: `supabase/seed-dev.sql` (usuários @teste.mobia, senha `MobIA!teste1`).
 
 ## Desenvolvimento
 

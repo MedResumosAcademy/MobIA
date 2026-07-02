@@ -1,13 +1,18 @@
 // Landing mínima do MobIA (H-01): prova o DoD de que apps/web importa
 // @mobia/core — a simulação do card roda no SERVIDOR (Server Component).
 
-import { formatarReais, obterParametrosAtuais, recalcularPlano } from "@mobia/core";
+import { formatarReais, recalcularPlano } from "@mobia/core";
 import type { EsquemaPagamento, ParametrosFinanceiros } from "@mobia/domain";
+import { obterParametrosVigentesDoBanco } from "@/lib/parametros";
+
+// H-05: parâmetros vêm do banco a cada request — alterar a tabela reflete na
+// próxima simulação sem rebuild.
+export const dynamic = "force-dynamic";
 
 // Cenário de demonstração: imóvel de R$ 320.000 com entrada de R$ 30.000.
 // Valores de negócio (taxa, prazo, sistema) vêm dos parâmetros vigentes
-// (obterParametrosAtuais — ponto único de acesso, H-05); o esquema abaixo é
-// apenas o exemplo de empreendimento da prova.
+// (obterParametrosVigentesDoBanco — banco com fallback para o seed do core,
+// H-05); o esquema abaixo é apenas o exemplo de empreendimento da prova.
 const VALOR_IMOVEL = 32_000_000; // R$ 320.000,00 em centavos
 const ENTRADA = 3_000_000; // R$ 30.000,00 em centavos
 
@@ -40,8 +45,8 @@ function simularProvaDoMotor(parametros: ParametrosFinanceiros) {
   return resultado.plano;
 }
 
-export default function Home() {
-  const parametros = obterParametrosAtuais();
+export default async function Home() {
+  const parametros = await obterParametrosVigentesDoBanco();
   const plano = simularProvaDoMotor(parametros);
   const { financiamentoPosChaves } = plano;
 
