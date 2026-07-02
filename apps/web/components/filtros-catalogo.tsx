@@ -19,10 +19,10 @@ const ROTULOS_CATEGORIA: Record<(typeof CATEGORIAS_IMOVEL)[number], string> = {
 const OPCOES_QUARTOS = [1, 2, 3, 4];
 
 const CLASSE_ROTULO =
-  "flex flex-col gap-1 text-xs font-medium text-muted";
+  "flex flex-col gap-1.5 text-[0.7rem] font-medium uppercase tracking-[0.1em] text-subtle";
 
 const CLASSE_CAMPO =
-  "rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-brand";
+  "rounded-xl border border-border-strong bg-surface-card px-3.5 py-2.5 text-sm text-foreground outline-none transition-all duration-200 hover:border-gold/60 focus:border-brand focus:ring-2 focus:ring-brand/20";
 
 export function FiltrosCatalogo() {
   const router = useRouter();
@@ -149,9 +149,9 @@ export function FiltrosCatalogo() {
         <button
           type="button"
           onClick={limpar}
-          className="rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
+          className="rounded-full px-3.5 py-2.5 text-sm font-medium text-muted underline-offset-4 outline-none transition-colors hover:text-gold-strong hover:underline focus:ring-2 focus:ring-brand/20"
         >
-          Limpar
+          Limpar filtros
         </button>
       )}
     </form>

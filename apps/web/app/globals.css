@@ -1,50 +1,67 @@
 @import "tailwindcss";
 
 /*
- * MobIA design tokens — tema CLARO por padrão (portal imobiliário).
- * Paleta: marca = EMERALD (aprovação/dinheiro); neutros = SLATE.
- * Superfícies claras, texto slate, foco emerald acessível.
+ * MobIA design tokens — "Claro & Editorial" (revista de arquitetura / alto padrão).
+ * Superfícies em marfim/areia; marca = VERDE PROFUNDO #0F6B4F (aprovação/confiança);
+ * acento DOURADO/champanhe #B8894B em detalhes (selos, hairlines) — parcimonioso.
+ * Texto em grafite. Tipografia serifada (Fraunces) em títulos/preços.
+ * Nomes de tokens preservados do design anterior — telas herdam os novos valores.
  */
 :root {
   color-scheme: light;
 
-  /* Superfícies */
-  --background: #ffffff; /* fundo base */
-  --surface: #ffffff; /* cards, header */
-  --surface-muted: #f8fafc; /* slate-50 — seções alternadas */
-  --border: #e2e8f0; /* slate-200 */
-  --border-strong: #cbd5e1; /* slate-300 */
+  /* Superfícies — marfim/areia */
+  --background: #faf8f3; /* marfim base — fundo padrão */
+  --surface: #f3efe7; /* areia/cartão */
+  --surface-card: #ffffff; /* branco puro p/ cards que precisam destacar */
+  --surface-strong: #ece6da; /* areia mais densa — seções/realces */
+  --surface-muted: #f3efe7; /* alias de compatibilidade (seções alternadas) */
+  --border: #e5dfd3; /* hairline */
+  --border-strong: #d8d0c0; /* borda forte */
 
-  /* Texto */
-  --foreground: #0f172a; /* slate-900 */
-  --muted: #475569; /* slate-600 */
-  --subtle: #64748b; /* slate-500 */
+  /* Texto — grafite */
+  --foreground: #1c1b19; /* grafite — títulos */
+  --muted: #4a4843; /* corpo */
+  --subtle: #7a776f; /* secundário */
 
-  /* Marca (emerald) */
-  --brand: #059669; /* emerald-600 — ação/marca */
-  --brand-hover: #047857; /* emerald-700 */
+  /* Marca — verde profundo */
+  --brand: #0f6b4f; /* primário */
+  --brand-hover: #0b5a42; /* hover */
   --brand-contrast: #ffffff;
-  --brand-soft: #ecfdf5; /* emerald-50 — fundo de badge */
-  --brand-soft-fg: #047857; /* emerald-700 — texto sobre soft */
+  --brand-soft: #e3efe9; /* verde suave — fundos de badge */
+  --brand-soft-fg: #0b5a42; /* texto sobre verde suave */
 
-  /* Badges por categoria */
-  --badge-lancamento-bg: #e0f2fe; /* sky-100 */
-  --badge-lancamento-fg: #0369a1; /* sky-700 */
-  --badge-alto-padrao-bg: #fef3c7; /* amber-100 */
-  --badge-alto-padrao-fg: #b45309; /* amber-700 */
-  --badge-mcmv-bg: #d1fae5; /* emerald-100 */
-  --badge-mcmv-fg: #047857; /* emerald-700 */
-  --badge-neutro-bg: #f1f5f9; /* slate-100 */
-  --badge-neutro-fg: #334155; /* slate-700 */
+  /* Acento dourado/champanhe — USO PARCIMONIOSO (selos, hairlines, detalhes) */
+  --gold: #b8894b; /* dourado — selos/detalhes/hairline; nunca texto pequeno */
+  --gold-strong: #8a6631; /* dourado escuro — texto (se necessário) sobre claro */
+  --gold-soft: #f3ebdd; /* champanhe suave — fundo de selo destaque */
+  --gold-contrast: #ffffff;
 
-  /* Foco a11y */
-  --focus-ring: #059669; /* emerald-600 */
+  /* Badges por categoria (pílulas editoriais sobre areia/verde) */
+  --badge-lancamento-bg: #e3efe9; /* verde suave */
+  --badge-lancamento-fg: #0b5a42;
+  --badge-alto-padrao-bg: #f3ebdd; /* champanhe suave */
+  --badge-alto-padrao-fg: #8a6631; /* dourado escuro (contraste AA) */
+  --badge-mcmv-bg: #e3efe9; /* verde suave */
+  --badge-mcmv-fg: #0b5a42;
+  --badge-neutro-bg: #ece6da; /* areia */
+  --badge-neutro-fg: #4a4843;
+
+  /* Foco a11y — verde profundo */
+  --focus-ring: #0f6b4f;
+
+  /* Sombras suaves e quentes (nada de preto duro) */
+  --shadow-soft: 0 6px 20px -12px rgb(28 27 25 / 0.14);
+  --shadow-card: 0 10px 30px -12px rgb(28 27 25 / 0.18);
+  --shadow-premium: 0 18px 48px -18px rgb(28 27 25 / 0.24);
 }
 
 @theme inline {
   /* Superfícies */
   --color-background: var(--background);
   --color-surface: var(--surface);
+  --color-surface-card: var(--surface-card);
+  --color-surface-strong: var(--surface-strong);
   --color-surface-muted: var(--surface-muted);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
@@ -61,6 +78,12 @@
   --color-brand-soft: var(--brand-soft);
   --color-brand-soft-fg: var(--brand-soft-fg);
 
+  /* Dourado / champanhe */
+  --color-gold: var(--gold);
+  --color-gold-strong: var(--gold-strong);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-contrast: var(--gold-contrast);
+
   /* Badges */
   --color-badge-lancamento-bg: var(--badge-lancamento-bg);
   --color-badge-lancamento-fg: var(--badge-lancamento-fg);
@@ -73,7 +96,14 @@
 
   --color-focus-ring: var(--focus-ring);
 
+  /* Sombras (utilitários shadow-soft / shadow-card / shadow-premium) */
+  --shadow-soft: var(--shadow-soft);
+  --shadow-card: var(--shadow-card);
+  --shadow-premium: var(--shadow-premium);
+
+  /* Tipografia — serif editorial (Fraunces) + sans (Geist) */
   --font-sans: var(--font-geist-sans);
+  --font-serif: var(--font-fraunces);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -83,17 +113,38 @@ body {
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  line-height: 1.6; /* corpo arejado */
 }
 
-/* Foco visível e consistente (emerald) para navegação por teclado. */
+/* Títulos base serifados — hierarquia editorial com tracking negativo sutil. */
+h1,
+h2 {
+  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+  font-optical-sizing: auto;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+h1 {
+  line-height: 1.08;
+}
+h2 {
+  line-height: 1.15;
+}
+
+/* Utilitário para elementos que devem usar a serif (preço, wordmark, destaques). */
+.font-serif {
+  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+  font-optical-sizing: auto;
+}
+
+/* Foco visível e consistente (verde profundo) para navegação por teclado. */
 :focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
-  border-radius: 0.375rem;
+  border-radius: 0.5rem;
 }
 
-/* Header sticky com sombra sutil ao rolar — CSS puro via scroll-driven.
- * Fallback: sombra fixa leve em navegadores sem suporte. */
+/* Header sticky com hairline sutil; ganha sombra quente suave ao rolar. */
 .header-sticky {
   box-shadow: 0 1px 0 0 var(--border);
 }
@@ -105,7 +156,7 @@ body {
   }
   @keyframes header-eleva {
     to {
-      box-shadow: 0 4px 16px -6px rgb(15 23 42 / 0.15);
+      box-shadow: 0 10px 30px -14px rgb(28 27 25 / 0.16);
     }
   }
 }

@@ -1,9 +1,10 @@
-// Linha de atributos do imóvel (padrão portal): ícones lucide + valores.
+// Linha de atributos do imóvel (editorial): ícones lucide finos + valores discretos.
 // Componente PURO: recebe números nuláveis e OCULTA os nulos/ausentes.
 //   area (m²) · quartos (cama) · banheiros (banheira) · vagas (carro).
 // Terreno naturalmente mostra só a área (os demais campos vêm nulos).
-// Se nada houver para exibir, não renderiza nada.
+// Itens separados por hairlines finas; se nada houver para exibir, não renderiza nada.
 
+import { Fragment } from "react";
 import { BedDouble, Car, Bath, Maximize } from "lucide-react";
 
 type Props = {
@@ -58,20 +59,28 @@ export function AtributosImovel({
 
   return (
     <ul
-      className={`flex flex-wrap items-center gap-x-4 gap-y-1.5 ${
+      className={`flex flex-wrap items-center gap-x-3.5 gap-y-1.5 ${
         naFicha ? "text-sm" : "text-xs"
       } text-muted ${className}`}
     >
-      {itens.map(({ chave, icone: Icone, rotulo }) => (
-        <li key={chave} className="inline-flex items-center gap-1.5" title={rotulo}>
-          <Icone
-            size={tamIcone}
-            className="shrink-0 text-subtle"
-            aria-hidden="true"
-            strokeWidth={1.8}
-          />
-          <span>{rotulo}</span>
-        </li>
+      {itens.map(({ chave, icone: Icone, rotulo }, i) => (
+        <Fragment key={chave}>
+          {i > 0 && (
+            <li
+              aria-hidden="true"
+              className="h-3.5 w-px bg-border-strong/70"
+            />
+          )}
+          <li className="inline-flex items-center gap-1.5" title={rotulo}>
+            <Icone
+              size={tamIcone}
+              className="shrink-0 text-gold"
+              aria-hidden="true"
+              strokeWidth={1.6}
+            />
+            <span>{rotulo}</span>
+          </li>
+        </Fragment>
       ))}
     </ul>
   );

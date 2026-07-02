@@ -22,8 +22,8 @@ export function BannerCapacidade({ capacidade }: { capacidade: number }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-900 dark:bg-emerald-950/30">
-      <p className="text-sm text-emerald-800 dark:text-emerald-300">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-brand-soft px-4 py-3">
+      <p className="text-sm text-brand-soft-fg">
         Mostrando imóveis até <strong>{formatarReais(capacidade)}</strong>, compatíveis com sua
         renda.
       </p>
@@ -31,7 +31,7 @@ export function BannerCapacidade({ capacidade }: { capacidade: number }) {
         type="button"
         onClick={verTodos}
         disabled={pendente}
-        className="rounded-lg border border-emerald-300 px-3 py-1.5 text-sm font-medium text-emerald-800 transition-colors hover:bg-emerald-100 disabled:opacity-60 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+        className="rounded-lg border border-brand/30 px-3 py-1.5 text-sm font-medium text-brand transition-colors hover:bg-brand/10 disabled:opacity-60"
       >
         {pendente ? "Carregando…" : "Ver todos"}
       </button>

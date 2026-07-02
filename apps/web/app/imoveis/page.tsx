@@ -85,20 +85,24 @@ export default async function PaginaCatalogo({
     total === 1 ? "1 imóvel encontrado" : `${total} imóveis encontrados`;
 
   return (
-    <div className="flex flex-1 flex-col bg-surface-muted px-6 py-10 font-sans">
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-        <header className="flex flex-col gap-2">
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            Catálogo de imóveis
+    <div className="flex flex-1 flex-col bg-background px-6 py-14 font-sans sm:py-16">
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-10">
+        <header className="flex flex-col gap-3">
+          <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-gold-strong">
+            <span aria-hidden className="h-px w-8 bg-gold" />
+            Catálogo
+          </span>
+          <h1 className="font-serif text-4xl tracking-tight text-foreground sm:text-5xl">
+            Encontre onde sua história vai morar
           </h1>
-          <p className="text-base text-muted">
-            Encontre o imóvel ideal e monte sua própria compra.
+          <p className="max-w-xl text-base leading-relaxed text-muted">
+            Imóveis selecionados para você explorar com calma e montar a compra do seu jeito.
           </p>
         </header>
 
         <section
           aria-label="Filtros"
-          className="sticky top-16 z-20 rounded-2xl border border-border bg-surface p-4 shadow-sm"
+          className="sticky top-16 z-20 rounded-3xl border border-border bg-surface-card/95 p-5 shadow-[var(--shadow-soft)] backdrop-blur-sm"
         >
           <FiltrosCatalogo />
         </section>
@@ -121,15 +125,18 @@ export default async function PaginaCatalogo({
 
         {total > 0 ? (
           <>
-            <p
-              aria-live="polite"
-              className="text-sm font-medium text-muted"
-            >
-              {rotuloContagem}
-            </p>
+            <div className="flex items-center gap-4">
+              <p
+                aria-live="polite"
+                className="font-serif text-lg text-foreground"
+              >
+                {rotuloContagem}
+              </p>
+              <span aria-hidden className="h-px flex-1 bg-border" />
+            </div>
             <section
               aria-label="Resultados"
-              className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+              className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3"
             >
               {imoveis.map((imovel) => (
                 <CardImovel
@@ -141,11 +148,11 @@ export default async function PaginaCatalogo({
             </section>
           </>
         ) : (
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border-strong bg-surface px-6 py-20 text-center">
-            <p className="text-lg font-medium text-foreground">
+          <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-border-strong bg-surface-card px-6 py-24 text-center shadow-[var(--shadow-soft)]">
+            <p className="font-serif text-2xl text-foreground">
               Nenhum imóvel encontrado
             </p>
-            <p className="text-sm text-subtle">
+            <p className="max-w-sm text-sm leading-relaxed text-subtle">
               Tente ajustar ou limpar os filtros para ver mais opções.
             </p>
           </div>

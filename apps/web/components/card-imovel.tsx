@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BotaoFavoritar } from "@/components/BotaoFavoritar";
 import { AtributosImovel } from "@/components/ui/AtributosImovel";
 import { Badge, type VarianteBadge } from "@/components/ui/Badge";
+import { Selo } from "@/components/ui/Selo";
 import type { CardImovel as DadosCardImovel } from "@/lib/dados/imoveis";
 
 const ROTULOS_TIPO: Record<TipoImovel, string> = {
@@ -37,14 +38,16 @@ export function CardImovel({
   aoAlternar?: boolean;
 }) {
   const rotuloTipo = imovel.tipo ? ROTULOS_TIPO[imovel.tipo] : "Imóvel";
-  // Badge de destaque no topo-esquerdo: prioriza a categoria (lançamento/alto
-  // padrão/MCMV, cores próprias); sem categoria, cai no tipo (neutro).
+  // Selo no topo-esquerdo: prioriza a categoria. Alto padrão e lançamento
+  // ganham o selo dourado "Destaque" (premium, uso parcimonioso); as demais
+  // categorias usam a pílula editorial própria; sem categoria, cai no tipo.
   const categoria = imovel.categorias[0] ?? null;
+  const ehDestaque = categoria === "alto_padrao" || categoria === "lancamento";
 
   return (
     // O coração é irmão do Link (não filho): botão dentro de <a> é HTML inválido
     // e o clique navegaria. O wrapper relativo ancora o overlay do coração.
-    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition-shadow hover:shadow-md">
+    <div className="group relative flex flex-col overflow-hidden rounded-3xl border border-border bg-surface-card shadow-[var(--shadow-soft)] transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[var(--shadow-card)]">
       <BotaoFavoritar
         imovelId={imovel.id}
         inicialFavoritado={favoritado}
@@ -58,7 +61,7 @@ export function CardImovel({
             <img
               src={imovel.fotoCapa}
               alt={imovel.titulo}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             />
           ) : (
             <div
@@ -81,8 +84,17 @@ export function CardImovel({
               </svg>
             </div>
           )}
-          <div className="absolute left-3 top-3">
-            {categoria ? (
+          {/* Gradiente sutil na base da foto p/ ancorar o selo e dar profundidade. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent"
+          />
+          <div className="absolute left-3.5 top-3.5">
+            {ehDestaque ? (
+              <Selo variante="destaque">
+                {ROTULOS_CATEGORIA[categoria as CategoriaImovel]}
+              </Selo>
+            ) : categoria ? (
               <Badge variante={VARIANTE_CATEGORIA[categoria]}>
                 {ROTULOS_CATEGORIA[categoria]}
               </Badge>
@@ -92,17 +104,17 @@ export function CardImovel({
           </div>
         </div>
 
-        <div className="flex flex-1 flex-col gap-2 p-4">
-          <p className="text-2xl font-bold tabular-nums text-foreground">
+        <div className="flex flex-1 flex-col gap-2 p-5">
+          <p className="font-serif text-[1.7rem] font-semibold leading-none tracking-[-0.01em] tabular-nums text-foreground">
             {formatarReais(imovel.valor)}
           </p>
-          <h3 className="line-clamp-1 text-base font-semibold text-foreground">
+          <h3 className="mt-1 line-clamp-1 text-[0.95rem] font-medium text-foreground">
             {imovel.titulo}
           </h3>
-          <p className="flex items-start gap-1 text-sm text-muted">
+          <p className="flex items-start gap-1.5 text-sm text-muted">
             <MapPin
               size={15}
-              className="mt-0.5 shrink-0 text-subtle"
+              className="mt-0.5 shrink-0 text-gold"
               aria-hidden="true"
               strokeWidth={1.8}
             />
@@ -117,7 +129,7 @@ export function CardImovel({
             banheiros={imovel.banheiros}
             vagas={imovel.vagas}
             variante="card"
-            className="mt-1 border-t border-border pt-3"
+            className="mt-auto border-t border-border pt-3.5"
           />
         </div>
       </Link>

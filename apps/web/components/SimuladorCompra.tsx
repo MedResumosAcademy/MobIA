@@ -102,7 +102,7 @@ export function SimuladorCompra({
 
   return (
     <div className="mt-4 flex flex-col gap-6">
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="text-sm text-muted">
         Ajuste a entrada e escolha a modalidade — os números recalculam na hora.
       </p>
 
@@ -122,10 +122,10 @@ export function SimuladorCompra({
                 role="tab"
                 aria-selected={ativa}
                 onClick={() => setModalidade(o.modalidade)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
                   ativa
-                    ? "bg-emerald-600 text-white dark:bg-emerald-500"
-                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                    ? "bg-brand text-brand-contrast"
+                    : "bg-surface text-muted hover:bg-surface-strong"
                 }`}
               >
                 {o.rotulo}
@@ -140,15 +140,15 @@ export function SimuladorCompra({
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <label
             htmlFor="entrada-slider"
-            className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+            className="text-sm font-medium text-muted"
           >
             Entrada (ato)
           </label>
           <span className="text-right">
-            <span className="text-lg font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+            <span className="font-serif text-xl font-semibold tabular-nums text-brand">
               {formatarReais(entrada)}
             </span>
-            <span className="ml-2 text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
+            <span className="ml-2 text-xs tabular-nums text-subtle">
               {percentualEntrada.toFixed(1)}% do imóvel
             </span>
           </span>
@@ -170,14 +170,14 @@ export function SimuladorCompra({
           aria-valuemax={entradaMaxima}
           aria-valuenow={entrada}
           aria-valuetext={`${formatarReais(entrada)}, ${percentualEntrada.toFixed(1)} por cento do imóvel`}
-          className="w-full accent-emerald-600 disabled:opacity-50 dark:accent-emerald-500"
+          className="w-full accent-[var(--brand)] disabled:opacity-50"
         />
 
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
+          <span className="text-xs tabular-nums text-subtle">
             mín. {formatarReais(entradaMinima)}
           </span>
-          <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
+          <span className="text-xs tabular-nums text-subtle">
             máx. {formatarReais(entradaMaxima)}
           </span>
         </div>
@@ -195,7 +195,7 @@ export function SimuladorCompra({
                   key={reais}
                   type="button"
                   onClick={() => setEntrada(alvo)}
-                  className="rounded-lg border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:border-emerald-400 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-emerald-500 dark:hover:text-emerald-400"
+                  className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-brand hover:text-brand"
                 >
                   mín. + R$ {reais.toLocaleString("pt-BR")}
                 </button>
@@ -204,7 +204,7 @@ export function SimuladorCompra({
             <button
               type="button"
               onClick={() => setEntrada(entradaMaxima)}
-              className="rounded-lg border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:border-emerald-400 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-emerald-500 dark:hover:text-emerald-400"
+              className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-brand hover:text-brand"
             >
               máx.
             </button>
@@ -215,7 +215,7 @@ export function SimuladorCompra({
       {/* Recálculo. Dentro da faixa nunca retorna erro — a mensagem é só um
           guarda amigável de defesa. */}
       {!resultado.ok ? (
-        <p className="text-sm text-amber-700 dark:text-amber-400">
+        <p className="text-sm text-gold-strong">
           Não foi possível montar o plano com essa entrada. Ajuste a barra ou fale
           com o corretor.
         </p>
@@ -227,7 +227,7 @@ export function SimuladorCompra({
       )}
 
       {/* H-14: disclaimer de estimativa. */}
-      <p className="text-xs leading-5 text-zinc-400 dark:text-zinc-500">
+      <p className="text-xs leading-5 text-subtle">
         Estimativa (parâmetros {rotuloParametros.vigenciaInicio}, v
         {rotuloParametros.versao}) — não constitui proposta formal.
       </p>
@@ -265,14 +265,14 @@ function PlanoResultado({
     <div className="flex flex-col gap-6">
       <PlanoPagamentoVisual plano={plano} />
 
-      <dl className="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
+      <dl className="flex flex-col divide-y divide-border">
         {linhas.map((linha) => (
           <div
             key={linha.rotulo}
             className="flex items-baseline justify-between gap-4 py-3"
           >
-            <dt className="text-sm text-zinc-500 dark:text-zinc-400">{linha.rotulo}</dt>
-            <dd className="text-base font-medium tabular-nums text-zinc-950 dark:text-zinc-50">
+            <dt className="text-sm text-subtle">{linha.rotulo}</dt>
+            <dd className="text-base font-medium tabular-nums text-foreground">
               {linha.valor}
             </dd>
           </div>

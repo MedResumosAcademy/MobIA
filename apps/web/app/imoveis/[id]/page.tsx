@@ -169,19 +169,19 @@ export default async function FichaImovel({ params }: ParamsFicha) {
     : `${imovel.cidade}/${imovel.uf}`;
 
   return (
-    <div className="flex flex-1 flex-col items-center bg-surface-muted px-4 py-8 font-sans sm:px-6 sm:py-10">
-      <div className="flex w-full max-w-6xl flex-col gap-6">
+    <div className="flex flex-1 flex-col items-center bg-surface-muted px-4 py-8 font-sans sm:px-6 sm:py-12">
+      <div className="flex w-full max-w-6xl flex-col gap-8">
         {/* Breadcrumb */}
         <nav aria-label="Navegação" className="flex items-center gap-1.5 text-sm text-subtle">
           <Link href="/imoveis" className="rounded hover:text-foreground">
             Comprar
           </Link>
-          <ChevronRight size={14} className="shrink-0" aria-hidden="true" />
+          <ChevronRight size={14} className="shrink-0 text-gold" aria-hidden="true" />
           <span className="line-clamp-1 text-muted">{imovel.titulo}</span>
         </nav>
 
-        {/* Cabeçalho */}
-        <header className="flex flex-col gap-3">
+        {/* Cabeçalho editorial */}
+        <header className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-2">
             {categoria ? (
               <Badge variante={VARIANTE_CATEGORIA[categoria]}>
@@ -192,11 +192,11 @@ export default async function FichaImovel({ params }: ParamsFicha) {
             )}
             {imovel.condicao && <Badge variante="neutro">{imovel.condicao}</Badge>}
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          <h1 className="font-serif text-4xl font-semibold leading-[1.05] tracking-[-0.02em] text-foreground sm:text-5xl">
             {imovel.titulo}
           </h1>
-          <p className="flex items-start gap-1.5 text-base text-muted">
-            <MapPin size={18} className="mt-0.5 shrink-0 text-subtle" aria-hidden="true" strokeWidth={1.8} />
+          <p className="flex items-start gap-2 text-base text-muted">
+            <MapPin size={18} className="mt-0.5 shrink-0 text-gold" aria-hidden="true" strokeWidth={1.8} />
             <span>{enderecoLinha}</span>
           </p>
         </header>
@@ -205,9 +205,9 @@ export default async function FichaImovel({ params }: ParamsFicha) {
         <FichaGaleria fotos={imovel.fotos} titulo={imovel.titulo} />
 
         {/* Layout 2 colunas: conteúdo à esquerda, card sticky à direita */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_360px]">
           {/* ESQUERDA — conteúdo */}
-          <div className="flex min-w-0 flex-col gap-10">
+          <div className="flex min-w-0 flex-col gap-12">
             {/* Grade de atributos destacada */}
             <AtributosImovel
               areaUtil={imovel.areaUtil}
@@ -215,12 +215,15 @@ export default async function FichaImovel({ params }: ParamsFicha) {
               banheiros={imovel.banheiros}
               vagas={imovel.vagas}
               variante="ficha"
-              className="rounded-2xl border border-border bg-surface px-5 py-4 shadow-sm !gap-x-6 !gap-y-2 text-base !text-foreground"
+              className="rounded-2xl border border-border bg-surface-card px-6 py-5 shadow-[var(--shadow-soft)] !gap-x-6 !gap-y-2 text-base !text-foreground"
             />
 
             {imovel.descricao && (
-              <section className="flex flex-col gap-3">
-                <h2 className="text-lg font-semibold text-foreground">Sobre o imóvel</h2>
+              <section className="flex flex-col gap-4">
+                <h2 className="flex items-center gap-3 font-serif text-2xl font-semibold tracking-[-0.01em] text-foreground">
+                  Sobre o imóvel
+                  <span aria-hidden="true" className="h-px flex-1 bg-border" />
+                </h2>
                 <p className="whitespace-pre-line text-base leading-7 text-muted">
                   {imovel.descricao}
                 </p>
@@ -228,27 +231,28 @@ export default async function FichaImovel({ params }: ParamsFicha) {
             )}
 
             {imovel.unidades.length > 0 && (
-              <section className="flex flex-col gap-3">
-                <h2 className="text-lg font-semibold text-foreground">
+              <section className="flex flex-col gap-4">
+                <h2 className="flex items-center gap-3 font-serif text-2xl font-semibold tracking-[-0.01em] text-foreground">
                   Unidades disponíveis
+                  <span aria-hidden="true" className="h-px flex-1 bg-border" />
                 </h2>
-                <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+                <div className="overflow-hidden rounded-2xl border border-border bg-surface-card shadow-[var(--shadow-soft)]">
                   <table className="w-full text-left text-sm">
-                    <thead className="bg-surface-muted text-subtle">
+                    <thead className="bg-surface-strong text-subtle">
                       <tr>
-                        <th className="px-4 py-2.5 font-medium">Unidade</th>
-                        <th className="px-4 py-2.5 font-medium">Andar</th>
-                        <th className="px-4 py-2.5 text-right font-medium">Valor</th>
+                        <th className="px-5 py-3 text-xs font-semibold uppercase tracking-[0.06em]">Unidade</th>
+                        <th className="px-5 py-3 text-xs font-semibold uppercase tracking-[0.06em]">Andar</th>
+                        <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-[0.06em]">Valor</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {imovel.unidades.map((u) => (
                         <tr key={u.id}>
-                          <td className="px-4 py-2.5 font-medium text-foreground">
+                          <td className="px-5 py-3 font-medium text-foreground">
                             {u.identificador}
                           </td>
-                          <td className="px-4 py-2.5 text-muted">{u.andar ?? "—"}</td>
-                          <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-foreground">
+                          <td className="px-5 py-3 text-muted">{u.andar ?? "—"}</td>
+                          <td className="px-5 py-3 text-right font-serif text-base font-semibold tabular-nums text-foreground">
                             {formatarReais(u.valor)}
                           </td>
                         </tr>
@@ -259,8 +263,11 @@ export default async function FichaImovel({ params }: ParamsFicha) {
               </section>
             )}
 
-            <section className="flex flex-col gap-3">
-              <h2 className="text-lg font-semibold text-foreground">Localização</h2>
+            <section className="flex flex-col gap-4">
+              <h2 className="flex items-center gap-3 font-serif text-2xl font-semibold tracking-[-0.01em] text-foreground">
+                Localização
+                <span aria-hidden="true" className="h-px flex-1 bg-border" />
+              </h2>
               <FichaLocalizacao
                 endereco={imovel.endereco}
                 cidade={imovel.cidade}
@@ -271,8 +278,11 @@ export default async function FichaImovel({ params }: ParamsFicha) {
             </section>
 
             {imovel.plantas.length > 0 && (
-              <section className="flex flex-col gap-3">
-                <h2 className="text-lg font-semibold text-foreground">Planta</h2>
+              <section className="flex flex-col gap-4">
+                <h2 className="flex items-center gap-3 font-serif text-2xl font-semibold tracking-[-0.01em] text-foreground">
+                  Planta
+                  <span aria-hidden="true" className="h-px flex-1 bg-border" />
+                </h2>
                 <ul className="flex flex-col gap-3">
                   {imovel.plantas.map((url, i) =>
                     ehPdf(url) ? (
@@ -281,7 +291,7 @@ export default async function FichaImovel({ params }: ParamsFicha) {
                           href={url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-medium text-brand shadow-sm hover:bg-surface-muted"
+                          className="inline-flex items-center gap-2 rounded-full border border-border-strong bg-surface-card px-4 py-2.5 text-sm font-medium text-brand shadow-[var(--shadow-soft)] transition-colors hover:bg-surface"
                         >
                           <FileText size={16} aria-hidden="true" />
                           Abrir planta {imovel.plantas.length > 1 ? i + 1 : ""} (PDF)
@@ -293,7 +303,7 @@ export default async function FichaImovel({ params }: ParamsFicha) {
                         <img
                           src={url}
                           alt={`Planta ${i + 1} — ${imovel.titulo}`}
-                          className="w-full rounded-2xl border border-border object-contain"
+                          className="w-full rounded-2xl border border-border bg-surface-card object-contain shadow-[var(--shadow-soft)]"
                         />
                       </li>
                     ),
@@ -305,14 +315,23 @@ export default async function FichaImovel({ params }: ParamsFicha) {
 
           {/* DIREITA — card sticky de preço + CTAs */}
           <aside className="lg:sticky lg:top-24 lg:h-fit">
-            <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-6 shadow-sm">
+            <div className="flex flex-col gap-5 rounded-3xl border border-border bg-surface-card p-6 shadow-[var(--shadow-card)]">
+              {categoria && (
+                <div>
+                  <Badge variante={VARIANTE_CATEGORIA[categoria]}>
+                    {ROTULOS_CATEGORIA[categoria]}
+                  </Badge>
+                </div>
+              )}
               <div className="flex flex-col gap-1">
-                <span className="text-sm text-subtle">Valor do imóvel</span>
-                <p className="text-3xl font-bold tabular-nums text-foreground">
+                <span className="text-xs font-medium uppercase tracking-[0.08em] text-subtle">
+                  Valor do imóvel
+                </span>
+                <p className="font-serif text-[2.25rem] font-semibold leading-none tracking-[-0.02em] tabular-nums text-foreground">
                   {formatarReais(imovel.valor)}
                 </p>
                 {modalidadeRotulo && (
-                  <p className="mt-1 text-sm text-muted">
+                  <p className="mt-2 text-sm text-muted">
                     Elegível para{" "}
                     <span className="font-medium text-brand">{modalidadeRotulo}</span>
                   </p>
@@ -341,7 +360,7 @@ export default async function FichaImovel({ params }: ParamsFicha) {
                 </a>
               </div>
 
-              <div className="border-t border-border pt-4">
+              <div className="border-t border-border pt-5">
                 <BotaoFavoritar
                   imovelId={imovel.id}
                   inicialFavoritado={favoritos.has(imovel.id)}
@@ -356,15 +375,17 @@ export default async function FichaImovel({ params }: ParamsFicha) {
         <section
           id="simulador"
           aria-label="Simulação de pagamento"
-          className="scroll-mt-24 overflow-hidden rounded-3xl border border-border bg-surface shadow-sm"
+          className="scroll-mt-24 overflow-hidden rounded-3xl border border-border bg-surface-card shadow-[var(--shadow-card)]"
         >
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-brand-soft px-6 py-5">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-brand-contrast">
-                <Sparkles size={20} aria-hidden="true" />
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-brand-soft px-6 py-6 sm:px-8">
+            <div className="flex items-center gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand text-brand-contrast shadow-[var(--shadow-soft)]">
+                <Sparkles size={22} aria-hidden="true" />
               </span>
-              <div className="flex flex-col">
-                <h2 className="text-xl font-bold text-foreground">Compre do seu jeito</h2>
+              <div className="flex flex-col gap-0.5">
+                <h2 className="font-serif text-2xl font-semibold tracking-[-0.01em] text-foreground sm:text-[1.75rem]">
+                  Compre do seu jeito
+                </h2>
                 <p className="text-sm text-brand-soft-fg">
                   Ajuste a entrada e veja seu plano de pagamento na hora.
                 </p>
@@ -373,7 +394,7 @@ export default async function FichaImovel({ params }: ParamsFicha) {
             {modalidadeRotulo && <Badge variante="marca">{modalidadeRotulo}</Badge>}
           </div>
 
-          <div className="p-6">
+          <div className="p-6 sm:p-8">
             {configSimulador === null ? (
               <p className="text-sm text-muted">
                 Condições sob consulta. Fale com o corretor para montar seu plano de

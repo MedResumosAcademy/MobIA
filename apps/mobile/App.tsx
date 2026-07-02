@@ -450,7 +450,7 @@ function TelaCatalogo({
 
       {carregando ? (
         <View style={styles.centralizado}>
-          <ActivityIndicator color="#18181b" />
+          <ActivityIndicator color={COR.marca} />
         </View>
       ) : erro ? (
         <View style={styles.centralizado}>
@@ -764,9 +764,9 @@ function SimulacaoInterativa({
           step={10_000}
           value={entradaClampeada}
           onValueChange={(v) => setEntrada(Math.round(v))}
-          minimumTrackTintColor="#059669"
-          maximumTrackTintColor="#e4e4e7"
-          thumbTintColor="#059669"
+          minimumTrackTintColor={COR.marca}
+          maximumTrackTintColor={COR.hairlineForte}
+          thumbTintColor={COR.marca}
           disabled={entradaMaxima <= entradaMinima}
         />
         <View style={styles.entradaLimites}>
@@ -874,7 +874,7 @@ function TelaFavoritos({
 
       {carregando ? (
         <View style={styles.centralizado}>
-          <ActivityIndicator color="#18181b" />
+          <ActivityIndicator color={COR.marca} />
         </View>
       ) : erro ? (
         <View style={styles.centralizado}>
@@ -1074,7 +1074,7 @@ function TelaSonhometro({
             onChangeText={setRenda}
             keyboardType="numeric"
             placeholder="R$ 3.500,00"
-            placeholderTextColor="#a1a1aa"
+            placeholderTextColor={COR.secundario}
           />
 
           <Text style={styles.campoRotulo}>Renda do cônjuge (opcional)</Text>
@@ -1084,7 +1084,7 @@ function TelaSonhometro({
             onChangeText={setRendaConjuge}
             keyboardType="numeric"
             placeholder="R$ 0,00"
-            placeholderTextColor="#a1a1aa"
+            placeholderTextColor={COR.secundario}
           />
 
           <Text style={styles.campoRotulo}>Renda de outros membros (opcional)</Text>
@@ -1094,7 +1094,7 @@ function TelaSonhometro({
             onChangeText={setRendaOutros}
             keyboardType="numeric"
             placeholder="R$ 0,00"
-            placeholderTextColor="#a1a1aa"
+            placeholderTextColor={COR.secundario}
           />
 
           <Text style={styles.campoRotulo}>Saldo de FGTS</Text>
@@ -1104,7 +1104,7 @@ function TelaSonhometro({
             onChangeText={setFgts}
             keyboardType="numeric"
             placeholder="R$ 0,00"
-            placeholderTextColor="#a1a1aa"
+            placeholderTextColor={COR.secundario}
           />
 
           <Text style={styles.campoRotulo}>Data de nascimento (AAAA-MM-DD)</Text>
@@ -1114,7 +1114,7 @@ function TelaSonhometro({
             onChangeText={setNascimento}
             autoCapitalize="none"
             placeholder="1990-05-20"
-            placeholderTextColor="#a1a1aa"
+            placeholderTextColor={COR.secundario}
           />
 
           <Text style={styles.campoRotulo}>Estado civil</Text>
@@ -1142,7 +1142,7 @@ function TelaSonhometro({
             onChangeText={setDependentes}
             keyboardType="number-pad"
             placeholder="0"
-            placeholderTextColor="#a1a1aa"
+            placeholderTextColor={COR.secundario}
           />
 
           <View style={styles.linhaCampos}>
@@ -1153,7 +1153,7 @@ function TelaSonhometro({
                 value={cidade}
                 onChangeText={setCidade}
                 placeholder="Fortaleza"
-                placeholderTextColor="#a1a1aa"
+                placeholderTextColor={COR.secundario}
               />
             </View>
             <View style={styles.campoUf}>
@@ -1165,7 +1165,7 @@ function TelaSonhometro({
                 autoCapitalize="characters"
                 maxLength={2}
                 placeholder="CE"
-                placeholderTextColor="#a1a1aa"
+                placeholderTextColor={COR.secundario}
               />
             </View>
           </View>
@@ -1285,7 +1285,7 @@ function TelaLogin() {
           autoComplete="email"
           keyboardType="email-address"
           placeholder="voce@exemplo.com.br"
-          placeholderTextColor="#a1a1aa"
+          placeholderTextColor={COR.secundario}
         />
 
         <Text style={styles.campoRotulo}>Senha</Text>
@@ -1296,7 +1296,7 @@ function TelaLogin() {
           secureTextEntry
           autoComplete="password"
           placeholder="Sua senha"
-          placeholderTextColor="#a1a1aa"
+          placeholderTextColor={COR.secundario}
         />
 
         {erro ? <Text style={styles.erro}>{erro}</Text> : null}
@@ -1414,7 +1414,7 @@ function TelaConta({
               value={consentiu}
               disabled={carregando}
               onValueChange={onDefinirConsentimento}
-              trackColor={{ false: "#e4e4e7", true: "#16a34a" }}
+              trackColor={{ false: COR.hairlineForte, true: COR.marca }}
             />
           </View>
           <Text style={styles.contaStatus}>
@@ -1618,7 +1618,7 @@ export default function App() {
   if (!sessaoCarregada) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator color="#18181b" />
+        <ActivityIndicator color={COR.marca} />
         <StatusBar style="auto" />
       </View>
     );
@@ -1631,58 +1631,82 @@ export default function App() {
   return <AppAutenticado sessao={sessao} />;
 }
 
+// --- Paleta editorial "Claro & Editorial" ----------------------------------
+// Superfícies claras (marfim/areia), marca verde profundo, dourado parcimonioso.
+const COR = {
+  marfim: "#FAF8F3",
+  areia: "#F3EFE7",
+  areiaForte: "#ECE6DA",
+  branco: "#FFFFFF",
+  marca: "#0F6B4F",
+  marcaHover: "#0B5A42",
+  verdeSuave: "#E3EFE9",
+  dourado: "#B8894B",
+  douradoEscuro: "#8A6631",
+  grafite: "#1C1B19",
+  corpo: "#4A4843",
+  secundario: "#7A776F",
+  hairline: "#E5DFD3",
+  hairlineForte: "#D8D0C0",
+  coracao: "#B23A2E",
+} as const;
+
 const styles = StyleSheet.create({
   appRoot: {
     flex: 1,
-    backgroundColor: "#fafafa",
+    backgroundColor: COR.marfim,
   },
   conteudoRoot: {
     flex: 1,
   },
   tela: {
     flex: 1,
-    paddingTop: 56,
+    paddingTop: 60,
+    backgroundColor: COR.marfim,
   },
   cabecalho: {
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    paddingHorizontal: 24,
+    marginBottom: 16,
   },
   tituloTela: {
-    fontSize: 28,
-    fontWeight: "600",
-    color: "#18181b",
+    fontSize: 34,
+    fontWeight: "700",
+    color: COR.grafite,
+    letterSpacing: -0.8,
   },
   subtituloTela: {
-    marginTop: 2,
-    fontSize: 14,
-    color: "#52525b",
+    marginTop: 4,
+    fontSize: 15,
+    lineHeight: 22,
+    color: COR.secundario,
   },
   chipsLinha: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    paddingHorizontal: 20,
-    marginBottom: 8,
+    paddingHorizontal: 24,
+    marginBottom: 10,
   },
   chip: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#e4e4e7",
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    borderColor: COR.hairlineForte,
+    backgroundColor: COR.branco,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   chipAtivo: {
-    backgroundColor: "#059669",
-    borderColor: "#059669",
+    backgroundColor: COR.marca,
+    borderColor: COR.marca,
   },
   chipTexto: {
     fontSize: 13,
-    fontWeight: "500",
-    color: "#3f3f46",
+    fontWeight: "600",
+    letterSpacing: 0.2,
+    color: COR.corpo,
   },
   chipTextoAtivo: {
-    color: "#ffffff",
+    color: COR.branco,
   },
   centralizado: {
     flex: 1,
@@ -1691,26 +1715,32 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   vazio: {
-    fontSize: 14,
-    color: "#71717a",
+    fontSize: 15,
+    lineHeight: 22,
+    color: COR.secundario,
     textAlign: "center",
   },
   listaConteudo: {
     paddingHorizontal: 20,
-    paddingBottom: 24,
-    gap: 16,
+    paddingBottom: 28,
+    gap: 20,
   },
   cardImovel: {
-    borderRadius: 16,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: "#e4e4e7",
-    backgroundColor: "#ffffff",
+    borderColor: COR.hairline,
+    backgroundColor: COR.branco,
     overflow: "hidden",
+    shadowColor: "#1C1B19",
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 3,
   },
   cardFoto: {
     width: "100%",
-    height: 180,
-    backgroundColor: "#f4f4f5",
+    height: 210,
+    backgroundColor: COR.areiaForte,
   },
   cardFotoVazia: {
     alignItems: "center",
@@ -1718,17 +1748,22 @@ const styles = StyleSheet.create({
   },
   cardFotoVaziaTexto: {
     fontSize: 13,
-    color: "#a1a1aa",
+    color: COR.secundario,
   },
   cardCorpo: {
-    padding: 16,
+    padding: 20,
   },
   cardFavorito: {
     position: "absolute",
-    top: 8,
-    right: 8,
+    top: 12,
+    right: 12,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: "rgba(255,255,255,0.92)",
+    shadowColor: "#1C1B19",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   favoritoBotao: {
     width: 40,
@@ -1737,20 +1772,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   favoritoIcone: {
-    color: "#71717a",
+    color: COR.secundario,
     lineHeight: 28,
   },
   favoritoIconeAtivo: {
-    color: "#dc2626",
+    color: COR.coracao,
   },
   capacidadeAviso: {
-    marginHorizontal: 20,
-    marginBottom: 10,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: "#f0fdf4",
+    marginHorizontal: 24,
+    marginBottom: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: COR.verdeSuave,
     borderWidth: 1,
-    borderColor: "#bbf7d0",
+    borderColor: COR.hairline,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -1758,13 +1794,14 @@ const styles = StyleSheet.create({
   },
   capacidadeAvisoTexto: {
     flexShrink: 1,
-    fontSize: 12,
-    color: "#166534",
+    fontSize: 13,
+    lineHeight: 18,
+    color: COR.marcaHover,
   },
   capacidadeAvisoLink: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "700",
-    color: "#166534",
+    color: COR.marca,
   },
   fichaTituloLinha: {
     flexDirection: "row",
@@ -1776,18 +1813,20 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   sonhoDestaque: {
-    marginTop: 8,
+    marginTop: 12,
     marginBottom: 4,
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#18181b",
+    fontSize: 27,
+    fontWeight: "800",
+    color: COR.grafite,
+    letterSpacing: -0.6,
   },
   sonhoSubtitulo: {
-    marginTop: 14,
-    marginBottom: 2,
+    marginTop: 18,
+    marginBottom: 4,
     fontSize: 13,
-    fontWeight: "600",
-    color: "#3f3f46",
+    fontWeight: "700",
+    letterSpacing: 0.3,
+    color: COR.corpo,
   },
   linhaCampos: {
     flexDirection: "row",
@@ -1800,26 +1839,31 @@ const styles = StyleSheet.create({
     width: 80,
   },
   cardTituloImovel: {
-    marginTop: 6,
-    fontSize: 15,
+    marginTop: 8,
+    fontSize: 17,
     fontWeight: "600",
-    color: "#0f172a",
+    color: COR.grafite,
+    letterSpacing: -0.2,
   },
   cardLocal: {
-    marginTop: 2,
+    marginTop: 3,
     fontSize: 13,
-    color: "#64748b",
+    color: COR.secundario,
   },
   cardValor: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: "800",
-    color: "#0f172a",
-    letterSpacing: -0.3,
+    color: COR.grafite,
+    letterSpacing: -0.8,
   },
   cardAtributos: {
-    marginTop: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COR.hairline,
     fontSize: 13,
-    color: "#475569",
+    lineHeight: 18,
+    color: COR.corpo,
   },
   fichaBarra: {
     paddingHorizontal: 16,
@@ -1827,69 +1871,74 @@ const styles = StyleSheet.create({
   },
   voltarBotao: {
     alignSelf: "flex-start",
-    paddingVertical: 6,
-    paddingHorizontal: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
   },
   voltarTexto: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#18181b",
+    color: COR.marca,
   },
   fichaConteudo: {
-    paddingBottom: 32,
+    paddingBottom: 40,
   },
   galeria: {
     width: "100%",
-    height: 240,
+    height: 280,
   },
   galeriaFoto: {
     width: 360,
     maxWidth: "100%",
-    height: 240,
-    backgroundColor: "#f4f4f5",
+    height: 280,
+    backgroundColor: COR.areiaForte,
   },
   fichaCabecalho: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: 24,
+    paddingTop: 20,
   },
   fichaTitulo: {
     flexShrink: 1,
-    fontSize: 22,
-    fontWeight: "600",
-    color: "#18181b",
+    fontSize: 26,
+    fontWeight: "700",
+    color: COR.grafite,
+    letterSpacing: -0.6,
   },
   fichaLocal: {
-    marginTop: 2,
+    marginTop: 4,
     fontSize: 14,
-    color: "#71717a",
+    color: COR.secundario,
   },
   fichaValor: {
-    marginTop: 8,
-    fontSize: 26,
+    marginTop: 12,
+    fontSize: 34,
     fontWeight: "800",
-    color: "#0f172a",
-    letterSpacing: -0.3,
+    color: COR.grafite,
+    letterSpacing: -1,
   },
   fichaAtributos: {
-    marginTop: 10,
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: COR.hairline,
     fontSize: 14,
-    color: "#475569",
+    lineHeight: 20,
+    color: COR.corpo,
   },
   fichaDescricao: {
-    paddingHorizontal: 20,
-    marginTop: 12,
-    fontSize: 14,
-    lineHeight: 21,
-    color: "#3f3f46",
+    paddingHorizontal: 24,
+    marginTop: 16,
+    fontSize: 15,
+    lineHeight: 24,
+    color: COR.corpo,
   },
   timeline: {
-    marginTop: 12,
-    gap: 4,
+    marginTop: 14,
+    gap: 6,
   },
   timelinePasso: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: "#3f3f46",
+    fontSize: 14,
+    lineHeight: 21,
+    color: COR.corpo,
   },
   simChipsLinha: {
     flexDirection: "row",
@@ -1906,9 +1955,10 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
   },
   entradaValor: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#047857",
+    fontSize: 20,
+    fontWeight: "800",
+    color: COR.marca,
+    letterSpacing: -0.4,
   },
   entradaLimites: {
     flexDirection: "row",
@@ -1917,41 +1967,41 @@ const styles = StyleSheet.create({
   },
   entradaLimiteTexto: {
     fontSize: 11,
-    color: "#a1a1aa",
+    color: COR.secundario,
   },
   atalhosLinha: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginTop: 10,
+    marginTop: 12,
   },
   atalho: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#e4e4e7",
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    borderColor: COR.hairlineForte,
+    backgroundColor: COR.branco,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
   atalhoAtivo: {
-    backgroundColor: "#059669",
-    borderColor: "#059669",
+    backgroundColor: COR.marca,
+    borderColor: COR.marca,
   },
   atalhoTexto: {
     fontSize: 12,
-    fontWeight: "500",
-    color: "#3f3f46",
+    fontWeight: "600",
+    color: COR.corpo,
   },
   atalhoTextoAtivo: {
-    color: "#ffffff",
+    color: COR.branco,
   },
   tabBar: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: "#e4e4e7",
-    backgroundColor: "#ffffff",
+    borderTopColor: COR.hairline,
+    backgroundColor: COR.branco,
     paddingBottom: 24,
-    paddingTop: 10,
+    paddingTop: 12,
   },
   tabItem: {
     flex: 1,
@@ -1959,108 +2009,116 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   tabTexto: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#a1a1aa",
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+    color: COR.secundario,
   },
   tabAtivo: {
-    color: "#059669",
+    color: COR.marca,
   },
   container: {
     flex: 1,
-    backgroundColor: "#fafafa",
+    backgroundColor: COR.marfim,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
   },
   titulo: {
-    fontSize: 40,
-    fontWeight: "700",
-    color: "#059669",
+    fontSize: 44,
+    fontWeight: "800",
+    color: COR.marca,
+    letterSpacing: -1.2,
   },
   frase: {
-    marginTop: 8,
+    marginTop: 10,
     fontSize: 16,
     lineHeight: 24,
     textAlign: "center",
-    color: "#52525b",
+    color: COR.corpo,
   },
   card: {
     marginTop: 20,
     marginHorizontal: 20,
-    borderRadius: 16,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: "#e4e4e7",
-    backgroundColor: "#ffffff",
-    padding: 20,
+    borderColor: COR.hairline,
+    backgroundColor: COR.branco,
+    padding: 24,
+    shadowColor: "#1C1B19",
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 2,
   },
   cardTitulo: {
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 1,
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1.4,
     textTransform: "uppercase",
-    color: "#71717a",
+    color: COR.douradoEscuro,
   },
   cardDescricao: {
-    marginTop: 4,
-    marginBottom: 12,
+    marginTop: 6,
+    marginBottom: 14,
     fontSize: 14,
-    lineHeight: 20,
-    color: "#3f3f46",
+    lineHeight: 21,
+    color: COR.corpo,
   },
   linha: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: "#f4f4f5",
+    borderTopColor: COR.hairline,
   },
   rotulo: {
     flexShrink: 1,
     fontSize: 13,
-    color: "#71717a",
+    color: COR.secundario,
   },
   valor: {
     fontSize: 15,
-    fontWeight: "500",
-    color: "#18181b",
+    fontWeight: "600",
+    color: COR.grafite,
   },
   disclaimer: {
-    marginTop: 12,
+    marginTop: 14,
     fontSize: 11,
     lineHeight: 16,
-    color: "#a1a1aa",
+    color: COR.secundario,
   },
   campoRotulo: {
-    marginTop: 12,
-    marginBottom: 4,
+    marginTop: 14,
+    marginBottom: 6,
     fontSize: 13,
-    color: "#71717a",
+    fontWeight: "500",
+    color: COR.corpo,
   },
   campo: {
     width: "100%",
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e4e4e7",
-    backgroundColor: "#fafafa",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: COR.hairlineForte,
+    backgroundColor: COR.marfim,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 15,
-    color: "#18181b",
+    color: COR.grafite,
   },
   erro: {
     marginTop: 12,
     fontSize: 13,
     lineHeight: 18,
-    color: "#dc2626",
+    color: COR.coracao,
   },
   botao: {
-    marginTop: 16,
-    borderRadius: 10,
-    backgroundColor: "#059669",
-    paddingVertical: 12,
+    marginTop: 18,
+    borderRadius: 14,
+    backgroundColor: COR.marca,
+    paddingVertical: 14,
     alignItems: "center",
   },
   botaoDesabilitado: {
@@ -2068,8 +2126,9 @@ const styles = StyleSheet.create({
   },
   botaoTexto: {
     fontSize: 15,
-    fontWeight: "600",
-    color: "#ffffff",
+    fontWeight: "700",
+    letterSpacing: 0.2,
+    color: COR.branco,
   },
   contaConteudo: {
     paddingBottom: 24,
@@ -2085,51 +2144,53 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   contaStatus: {
+    marginTop: 12,
     fontSize: 13,
-    fontWeight: "500",
-    color: "#3f3f46",
+    fontWeight: "600",
+    color: COR.corpo,
   },
   contaSair: {
     marginTop: 20,
     marginHorizontal: 20,
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e4e4e7",
-    backgroundColor: "#ffffff",
-    paddingVertical: 12,
+    borderColor: COR.hairlineForte,
+    backgroundColor: COR.branco,
+    paddingVertical: 14,
     alignItems: "center",
   },
   contaSairTexto: {
     fontSize: 15,
-    fontWeight: "600",
-    color: "#dc2626",
+    fontWeight: "700",
+    color: COR.coracao,
   },
   avisoConsent: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginHorizontal: 12,
-    marginBottom: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: "#eff6ff",
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: COR.verdeSuave,
     borderWidth: 1,
-    borderColor: "#bfdbfe",
+    borderColor: COR.hairline,
   },
   avisoConsentTexto: {
     flexShrink: 1,
     fontSize: 12,
-    color: "#1e3a8a",
+    lineHeight: 17,
+    color: COR.marcaHover,
   },
   avisoConsentLink: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#1d4ed8",
+    color: COR.marca,
   },
   avisoConsentDispensar: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#64748b",
+    color: COR.secundario,
   },
 });

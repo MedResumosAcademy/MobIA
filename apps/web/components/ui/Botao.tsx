@@ -1,29 +1,34 @@
-// Botão consistente do kit MobIA — estilos de ação padronizados.
+// Botão consistente do kit MobIA — estilos de ação editoriais.
 // Componente PURO de apresentação: aceita todos os atributos nativos de <button>.
 // Para links com aparência de botão, use `classesBotao(...)` em um <Link>.
-//   primario  = ação/marca (emerald)
-//   secundario = borda neutra (slate)
+//   primario   = ação/marca (verde profundo sólido, sombra suave)
+//   secundario = contorno neutro (areia)
+//   premium    = CTA especial (dourado/champanhe) — uso parcimonioso
 //   fantasma   = sem borda, hover suave
+// Cantos generosos (rounded-full) e transições suaves; foco herda o ring verde.
 
 import type { ButtonHTMLAttributes } from "react";
 
-export type VarianteBotao = "primario" | "secundario" | "fantasma";
+export type VarianteBotao = "primario" | "secundario" | "premium" | "fantasma";
 export type TamanhoBotao = "sm" | "md" | "lg";
 
 const BASE =
-  "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-full font-medium transition-[background-color,box-shadow,color] duration-200 ease-out focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
 
 const VARIANTES: Record<VarianteBotao, string> = {
-  primario: "bg-brand text-brand-contrast hover:bg-brand-hover",
+  primario:
+    "bg-brand text-brand-contrast shadow-[var(--shadow-soft)] hover:bg-brand-hover",
   secundario:
-    "border border-border-strong bg-surface text-foreground hover:bg-surface-muted",
-  fantasma: "text-muted hover:bg-surface-muted hover:text-foreground",
+    "border border-border-strong bg-surface-card text-foreground hover:bg-surface",
+  premium:
+    "bg-gold text-gold-contrast shadow-[var(--shadow-soft)] hover:bg-gold-strong",
+  fantasma: "text-muted hover:bg-surface hover:text-foreground",
 };
 
 const TAMANHOS: Record<TamanhoBotao, string> = {
-  sm: "px-3 py-1.5 text-sm",
-  md: "px-4 py-2 text-sm",
-  lg: "px-5 py-2.5 text-base",
+  sm: "px-3.5 py-1.5 text-sm",
+  md: "px-5 py-2 text-sm",
+  lg: "px-6 py-2.5 text-base",
 };
 
 /** Monta a string de classes — útil para aplicar em <Link> ou <a>. */

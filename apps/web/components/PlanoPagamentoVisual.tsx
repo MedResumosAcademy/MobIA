@@ -13,12 +13,14 @@ type Marco = {
   ponto: string;
 };
 
+// Recoloração editorial contida: superfícies areia/verde suave/champanhe;
+// pontos em verde (marca), dourado (parcimonioso) e areia. Sem multicor saturada.
 const CORES: Record<string, { faixa: string; ponto: string }> = {
-  ato: { faixa: "bg-emerald-50 dark:bg-emerald-950/40", ponto: "bg-emerald-500" },
-  parcela: { faixa: "bg-sky-50 dark:bg-sky-950/40", ponto: "bg-sky-500" },
-  balao: { faixa: "bg-amber-50 dark:bg-amber-950/40", ponto: "bg-amber-500" },
-  financiamento: { faixa: "bg-violet-50 dark:bg-violet-950/40", ponto: "bg-violet-500" },
-  chaves: { faixa: "bg-zinc-100 dark:bg-zinc-800/60", ponto: "bg-zinc-500" },
+  ato: { faixa: "bg-brand-soft", ponto: "bg-brand" },
+  parcela: { faixa: "bg-surface", ponto: "bg-brand" },
+  balao: { faixa: "bg-gold-soft", ponto: "bg-gold" },
+  financiamento: { faixa: "bg-surface-strong", ponto: "bg-brand" },
+  chaves: { faixa: "bg-surface-strong", ponto: "bg-subtle" },
 };
 
 export function PlanoPagamentoVisual({ plano }: { plano: PlanoPagamentoRecalculado }) {
@@ -88,17 +90,17 @@ export function PlanoPagamentoVisual({ plano }: { plano: PlanoPagamentoRecalcula
             <div className="flex items-center gap-3 sm:w-full sm:flex-col sm:gap-2">
               <span
                 aria-hidden
-                className={`h-3 w-3 shrink-0 rounded-full ring-4 ring-white dark:ring-zinc-950 ${marco.ponto}`}
+                className={`h-3 w-3 shrink-0 rounded-full ring-4 ring-background ${marco.ponto}`}
               />
-              <span className="hidden h-px flex-1 bg-zinc-200 dark:bg-zinc-800 sm:block" />
+              <span className="hidden h-px flex-1 bg-border sm:block" />
             </div>
             <div
               className={`rounded-xl px-3 py-2 sm:w-[calc(100%-0.5rem)] ${marco.cor}`}
             >
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                 {marco.rotulo}
               </p>
-              <p className="mt-0.5 text-sm font-medium tabular-nums text-zinc-950 dark:text-zinc-50">
+              <p className="mt-0.5 text-sm font-medium tabular-nums text-foreground">
                 {marco.detalhe}
               </p>
             </div>
