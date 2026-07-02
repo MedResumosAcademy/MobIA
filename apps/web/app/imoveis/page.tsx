@@ -24,6 +24,7 @@ type ParametrosBusca = {
   cidade?: string;
   precoMin?: string;
   precoMax?: string;
+  quartosMin?: string;
   /** ?todos=1 desliga o filtro de capacidade do Sonhômetro nesta visita (H-18). */
   todos?: string;
 };
@@ -36,6 +37,14 @@ function reaisParaCentavos(valor?: string): number | undefined {
   return Math.round(n * 100);
 }
 
+/** String da URL → inteiro positivo, ou undefined se inválido. */
+function inteiroPositivo(valor?: string): number | undefined {
+  if (!valor) return undefined;
+  const n = Number(valor);
+  if (!Number.isInteger(n) || n < 1) return undefined;
+  return n;
+}
+
 function derivarFiltros(params: ParametrosBusca): Filtros {
   const tipo = tipoImovelSchema.safeParse(params.tipo);
   const categoria = categoriaImovelSchema.safeParse(params.categoria);
@@ -46,6 +55,7 @@ function derivarFiltros(params: ParametrosBusca): Filtros {
     cidadeBusca: cidade ? cidade : undefined,
     precoMin: reaisParaCentavos(params.precoMin),
     precoMax: reaisParaCentavos(params.precoMax),
+    quartosMin: inteiroPositivo(params.quartosMin),
   };
 }
 
@@ -70,21 +80,25 @@ export default async function PaginaCatalogo({
     idsFavoritos(), // vazio se anônimo — marca os corações já favoritados
   ]);
 
+  const total = imoveis.length;
+  const rotuloContagem =
+    total === 1 ? "1 imóvel encontrado" : `${total} imóveis encontrados`;
+
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50 px-6 py-10 font-sans dark:bg-black">
+    <div className="flex flex-1 flex-col bg-surface-muted px-6 py-10 font-sans">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-8">
         <header className="flex flex-col gap-2">
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
             Catálogo de imóveis
           </h1>
-          <p className="text-base text-zinc-600 dark:text-zinc-400">
+          <p className="text-base text-muted">
             Encontre o imóvel ideal e monte sua própria compra.
           </p>
         </header>
 
         <section
           aria-label="Filtros"
-          className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+          className="sticky top-16 z-20 rounded-2xl border border-border bg-surface p-4 shadow-sm"
         >
           <FiltrosCatalogo />
         </section>
@@ -94,36 +108,44 @@ export default async function PaginaCatalogo({
         ) : (
           <Link
             href="/sonhometro"
-            className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-3 text-sm transition-colors hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:hover:border-zinc-600"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-border-strong bg-surface px-4 py-3 text-sm transition-colors hover:border-brand"
           >
-            <span className="text-zinc-700 dark:text-zinc-300">
+            <span className="text-muted">
               Descubra quanto você pode comprar e veja só os imóveis compatíveis com sua renda.
             </span>
-            <span className="font-medium text-zinc-950 dark:text-zinc-50">
+            <span className="font-medium text-brand">
               Abrir o Sonhômetro →
             </span>
           </Link>
         )}
 
-        {imoveis.length > 0 ? (
-          <section
-            aria-label="Resultados"
-            className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            {imoveis.map((imovel) => (
-              <CardImovel
-                key={imovel.id}
-                imovel={imovel}
-                favoritado={favoritos.has(imovel.id)}
-              />
-            ))}
-          </section>
+        {total > 0 ? (
+          <>
+            <p
+              aria-live="polite"
+              className="text-sm font-medium text-muted"
+            >
+              {rotuloContagem}
+            </p>
+            <section
+              aria-label="Resultados"
+              className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+            >
+              {imoveis.map((imovel) => (
+                <CardImovel
+                  key={imovel.id}
+                  imovel={imovel}
+                  favoritado={favoritos.has(imovel.id)}
+                />
+              ))}
+            </section>
+          </>
         ) : (
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-zinc-300 bg-white px-6 py-20 text-center dark:border-zinc-700 dark:bg-zinc-950">
-            <p className="text-lg font-medium text-zinc-700 dark:text-zinc-300">
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border-strong bg-surface px-6 py-20 text-center">
+            <p className="text-lg font-medium text-foreground">
               Nenhum imóvel encontrado
             </p>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-subtle">
               Tente ajustar ou limpar os filtros para ver mais opções.
             </p>
           </div>

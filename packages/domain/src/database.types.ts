@@ -220,7 +220,9 @@ export type Database = {
       }
       imoveis: {
         Row: {
+          area_util: number | null
           atualizado_em: string | null
+          banheiros: number | null
           categorias: string[]
           cidade: string
           condicao: string | null
@@ -236,13 +238,17 @@ export type Database = {
           modalidades_elegiveis: string[]
           org_id: string
           plantas: string[]
+          quartos: number | null
           status: string
           tipo: string | null
           uf: string
+          vagas: number | null
           valor: number
         }
         Insert: {
+          area_util?: number | null
           atualizado_em?: string | null
+          banheiros?: number | null
           categorias?: string[]
           cidade: string
           condicao?: string | null
@@ -258,13 +264,17 @@ export type Database = {
           modalidades_elegiveis?: string[]
           org_id: string
           plantas?: string[]
+          quartos?: number | null
           status?: string
           tipo?: string | null
           uf: string
+          vagas?: number | null
           valor: number
         }
         Update: {
+          area_util?: number | null
           atualizado_em?: string | null
+          banheiros?: number | null
           categorias?: string[]
           cidade?: string
           condicao?: string | null
@@ -280,9 +290,11 @@ export type Database = {
           modalidades_elegiveis?: string[]
           org_id?: string
           plantas?: string[]
+          quartos?: number | null
           status?: string
           tipo?: string | null
           uf?: string
+          vagas?: number | null
           valor?: number
         }
         Relationships: [

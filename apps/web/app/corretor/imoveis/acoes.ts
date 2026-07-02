@@ -138,6 +138,10 @@ function montarEntrada(formData: FormData): ImovelEntrada {
     esquemaPagamento: lerEsquema(formData.get("esquemaPagamento")),
     lat: numeroOpcional(formData.get("lat")),
     lng: numeroOpcional(formData.get("lng")),
+    quartos: numeroOpcionalInteiro(formData.get("quartos")),
+    banheiros: numeroOpcionalInteiro(formData.get("banheiros")),
+    vagas: numeroOpcionalInteiro(formData.get("vagas")),
+    areaUtil: numeroOpcionalInteiro(formData.get("areaUtil")),
   };
 }
 

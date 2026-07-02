@@ -37,10 +37,16 @@ export type CardImovel = {
   id: string;
   titulo: string;
   tipo: TipoImovel | null;
+  categorias: CategoriaImovel[];
+  endereco: string | null;
   cidade: string;
   uf: string;
   valor: number;
   fotoCapa: string | null;
+  quartos: number | null;
+  banheiros: number | null;
+  vagas: number | null;
+  areaUtil: number | null;
 };
 
 export type Unidade = {
@@ -73,6 +79,10 @@ export type ImovelDetalhe = {
   esquemaPagamento: EsquemaPagamentoArmazenado | null;
   lat: number | null;
   lng: number | null;
+  quartos: number | null;
+  banheiros: number | null;
+  vagas: number | null;
+  areaUtil: number | null;
   unidades: Unidade[];
 };
 
@@ -90,6 +100,8 @@ export type FiltrosCatalogo = {
    * vence o mais restritivo). Omitir = catálogo completo ("ver todos").
    */
   capacidadeMax?: number;
+  /** Número mínimo de quartos: só imóveis com quartos >= quartosMin. */
+  quartosMin?: number;
 };
 
 // --- Schemas de entrada (anti-forja: org_id/corretor NUNCA vêm do form) ---
@@ -133,6 +145,10 @@ export const imovelEntradaSchema = z
     esquemaPagamento: esquemaPagamentoEntradaSchema.optional(),
     lat: z.number().min(-90).max(90).nullable().optional(),
     lng: z.number().min(-180).max(180).nullable().optional(),
+    quartos: z.number().int().nonnegative().nullable().optional(),
+    banheiros: z.number().int().nonnegative().nullable().optional(),
+    vagas: z.number().int().nonnegative().nullable().optional(),
+    areaUtil: z.number().int().nonnegative().nullable().optional(),
   })
   .strict();
 
@@ -183,10 +199,16 @@ export function mapCardImovel(l: LinhaImovel): CardImovel {
     id: l.id,
     titulo: derivarTitulo(l),
     tipo: coagirTipo(l.tipo),
+    categorias: coagirCategorias(l.categorias),
+    endereco: l.endereco,
     cidade: l.cidade,
     uf: l.uf,
     valor: l.valor,
     fotoCapa,
+    quartos: l.quartos,
+    banheiros: l.banheiros,
+    vagas: l.vagas,
+    areaUtil: l.area_util,
   };
 }
 
@@ -226,6 +248,10 @@ function mapDetalhe(l: LinhaImovel, unidades: LinhaUnidade[]): ImovelDetalhe {
     esquemaPagamento: esquema && esquema.success ? esquema.data : null,
     lat: l.lat,
     lng: l.lng,
+    quartos: l.quartos,
+    banheiros: l.banheiros,
+    vagas: l.vagas,
+    areaUtil: l.area_util,
     unidades: unidades.map(mapUnidade),
   };
 }
@@ -260,6 +286,9 @@ export async function listarImoveis(
   if (filtros.capacidadeMax !== undefined) {
     // Compõe com precoMax: dois lte("valor", ...) ⇒ vence o mais restritivo.
     query = query.lte("valor", filtros.capacidadeMax);
+  }
+  if (filtros.quartosMin !== undefined) {
+    query = query.gte("quartos", filtros.quartosMin);
   }
 
   const { data, error } = await query;
@@ -339,6 +368,10 @@ function entradaParaInsert(
     esquema_pagamento: (input.esquemaPagamento ?? null) as Json,
     lat: input.lat ?? null,
     lng: input.lng ?? null,
+    quartos: input.quartos ?? null,
+    banheiros: input.banheiros ?? null,
+    vagas: input.vagas ?? null,
+    area_util: input.areaUtil ?? null,
   };
 }
 
@@ -380,6 +413,10 @@ export async function atualizarImovel(
     esquema_pagamento: (dados.esquemaPagamento ?? null) as Json,
     lat: dados.lat ?? null,
     lng: dados.lng ?? null,
+    quartos: dados.quartos ?? null,
+    banheiros: dados.banheiros ?? null,
+    vagas: dados.vagas ?? null,
+    area_util: dados.areaUtil ?? null,
     atualizado_em: new Date().toISOString(),
   };
   const { data, error } = await supabase

@@ -128,10 +128,38 @@ interface ImovelRow {
   valor: number;
   status: string;
   descricao: string | null;
+  quartos: number | null;
+  banheiros: number | null;
+  vagas: number | null;
+  area_util: number | null;
   fotos: string[];
   plantas: string[];
   modalidades_elegiveis: string[];
   esquema_pagamento: EsquemaPagamentoJson | null;
+}
+
+// Colunas selecionadas do imóvel — reusadas no catálogo e nos favoritos.
+const COLUNAS_IMOVEL =
+  "id, org_id, tipo, cidade, uf, valor, status, descricao, quartos, banheiros, vagas, area_util, fotos, plantas, modalidades_elegiveis, esquema_pagamento";
+
+/**
+ * Monta a linha de atributos do imóvel ("70 m² · 2 quartos · 1 banh. · 1 vaga"),
+ * ocultando os nulos. Terreno mostra apenas a área útil (m²).
+ */
+function atributosDoImovel(imovel: ImovelRow): string {
+  const partes: string[] = [];
+  if (imovel.area_util != null) partes.push(`\u{1F4D0} ${imovel.area_util} m²`);
+  if (imovel.tipo === "terreno") return partes.join("  ·  ");
+  if (imovel.quartos != null) {
+    partes.push(`\u{1F6CF}️ ${imovel.quartos} ${imovel.quartos === 1 ? "quarto" : "quartos"}`);
+  }
+  if (imovel.banheiros != null) {
+    partes.push(`\u{1F6C1} ${imovel.banheiros} banh.`);
+  }
+  if (imovel.vagas != null) {
+    partes.push(`\u{1F697} ${imovel.vagas} ${imovel.vagas === 1 ? "vaga" : "vagas"}`);
+  }
+  return partes.join("  ·  ");
 }
 
 // O jsonb `esquema_pagamento` guarda as regras do empreendimento SEM os
@@ -361,9 +389,7 @@ function TelaCatalogo({
       setErro(null);
       const { data, error } = await supabase
         .from("imoveis")
-        .select(
-          "id, org_id, tipo, cidade, uf, valor, status, descricao, fotos, plantas, modalidades_elegiveis, esquema_pagamento",
-        )
+        .select(COLUNAS_IMOVEL)
         .eq("status", "disponivel")
         .order("valor", { ascending: true });
       if (!ativo) return;
@@ -458,11 +484,14 @@ function TelaCatalogo({
                   />
                 </View>
                 <View style={styles.cardCorpo}>
+                  <Text style={styles.cardValor}>{formatarReais(item.valor)}</Text>
                   <Text style={styles.cardTituloImovel}>{tituloDoImovel(item)}</Text>
                   <Text style={styles.cardLocal}>
                     {item.cidade} — {item.uf}
                   </Text>
-                  <Text style={styles.cardValor}>{formatarReais(item.valor)}</Text>
+                  {atributosDoImovel(item) ? (
+                    <Text style={styles.cardAtributos}>{atributosDoImovel(item)}</Text>
+                  ) : null}
                 </View>
               </Pressable>
             );
@@ -541,6 +570,9 @@ function TelaFicha({
             {imovel.cidade} — {imovel.uf}
           </Text>
           <Text style={styles.fichaValor}>{formatarReais(imovel.valor)}</Text>
+          {atributosDoImovel(imovel) ? (
+            <Text style={styles.fichaAtributos}>{atributosDoImovel(imovel)}</Text>
+          ) : null}
         </View>
 
         {imovel.descricao ? (
@@ -732,9 +764,9 @@ function SimulacaoInterativa({
           step={10_000}
           value={entradaClampeada}
           onValueChange={(v) => setEntrada(Math.round(v))}
-          minimumTrackTintColor="#18181b"
+          minimumTrackTintColor="#059669"
           maximumTrackTintColor="#e4e4e7"
-          thumbTintColor="#18181b"
+          thumbTintColor="#059669"
           disabled={entradaMaxima <= entradaMinima}
         />
         <View style={styles.entradaLimites}>
@@ -816,9 +848,7 @@ function TelaFavoritos({
       }
       const { data, error } = await supabase
         .from("imoveis")
-        .select(
-          "id, org_id, tipo, cidade, uf, valor, status, descricao, fotos, plantas, modalidades_elegiveis, esquema_pagamento",
-        )
+        .select(COLUNAS_IMOVEL)
         .in("id", ids)
         .order("valor", { ascending: true });
       if (!ativo) return;
@@ -877,11 +907,14 @@ function TelaFavoritos({
                   <BotaoFavorito ativo onPress={() => onAlternarFavorito(item.id)} />
                 </View>
                 <View style={styles.cardCorpo}>
+                  <Text style={styles.cardValor}>{formatarReais(item.valor)}</Text>
                   <Text style={styles.cardTituloImovel}>{tituloDoImovel(item)}</Text>
                   <Text style={styles.cardLocal}>
                     {item.cidade} — {item.uf}
                   </Text>
-                  <Text style={styles.cardValor}>{formatarReais(item.valor)}</Text>
+                  {atributosDoImovel(item) ? (
+                    <Text style={styles.cardAtributos}>{atributosDoImovel(item)}</Text>
+                  ) : null}
                 </View>
               </Pressable>
             );
@@ -1640,8 +1673,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   chipAtivo: {
-    backgroundColor: "#18181b",
-    borderColor: "#18181b",
+    backgroundColor: "#059669",
+    borderColor: "#059669",
   },
   chipTexto: {
     fontSize: 13,
@@ -1767,20 +1800,26 @@ const styles = StyleSheet.create({
     width: 80,
   },
   cardTituloImovel: {
-    fontSize: 16,
+    marginTop: 6,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#18181b",
+    color: "#0f172a",
   },
   cardLocal: {
     marginTop: 2,
     fontSize: 13,
-    color: "#71717a",
+    color: "#64748b",
   },
   cardValor: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#0f172a",
+    letterSpacing: -0.3,
+  },
+  cardAtributos: {
     marginTop: 8,
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#18181b",
+    fontSize: 13,
+    color: "#475569",
   },
   fichaBarra: {
     paddingHorizontal: 16,
@@ -1826,9 +1865,15 @@ const styles = StyleSheet.create({
   },
   fichaValor: {
     marginTop: 8,
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#18181b",
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#0f172a",
+    letterSpacing: -0.3,
+  },
+  fichaAtributos: {
+    marginTop: 10,
+    fontSize: 14,
+    color: "#475569",
   },
   fichaDescricao: {
     paddingHorizontal: 20,
@@ -1863,7 +1908,7 @@ const styles = StyleSheet.create({
   entradaValor: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#18181b",
+    color: "#047857",
   },
   entradaLimites: {
     flexDirection: "row",
@@ -1889,8 +1934,8 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   atalhoAtivo: {
-    backgroundColor: "#18181b",
-    borderColor: "#18181b",
+    backgroundColor: "#059669",
+    borderColor: "#059669",
   },
   atalhoTexto: {
     fontSize: 12,
@@ -1919,7 +1964,7 @@ const styles = StyleSheet.create({
     color: "#a1a1aa",
   },
   tabAtivo: {
-    color: "#18181b",
+    color: "#059669",
   },
   container: {
     flex: 1,
@@ -1930,8 +1975,8 @@ const styles = StyleSheet.create({
   },
   titulo: {
     fontSize: 40,
-    fontWeight: "600",
-    color: "#18181b",
+    fontWeight: "700",
+    color: "#059669",
   },
   frase: {
     marginTop: 8,
@@ -2014,7 +2059,7 @@ const styles = StyleSheet.create({
   botao: {
     marginTop: 16,
     borderRadius: 10,
-    backgroundColor: "#18181b",
+    backgroundColor: "#059669",
     paddingVertical: 12,
     alignItems: "center",
   },

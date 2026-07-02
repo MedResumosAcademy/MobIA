@@ -202,6 +202,50 @@ export function FormularioImovel({ action, imovel }: Props) {
             />
           </label>
         </div>
+        <label className={rotuloClasse}>
+          Quartos
+          <input
+            name="quartos"
+            inputMode="numeric"
+            min={0}
+            type="number"
+            defaultValue={imovel?.quartos != null ? String(imovel.quartos) : ""}
+            className={inputClasse}
+          />
+        </label>
+        <label className={rotuloClasse}>
+          Banheiros
+          <input
+            name="banheiros"
+            inputMode="numeric"
+            min={0}
+            type="number"
+            defaultValue={imovel?.banheiros != null ? String(imovel.banheiros) : ""}
+            className={inputClasse}
+          />
+        </label>
+        <label className={rotuloClasse}>
+          Vagas
+          <input
+            name="vagas"
+            inputMode="numeric"
+            min={0}
+            type="number"
+            defaultValue={imovel?.vagas != null ? String(imovel.vagas) : ""}
+            className={inputClasse}
+          />
+        </label>
+        <label className={rotuloClasse}>
+          Área útil (m²)
+          <input
+            name="areaUtil"
+            inputMode="numeric"
+            min={0}
+            type="number"
+            defaultValue={imovel?.areaUtil != null ? String(imovel.areaUtil) : ""}
+            className={inputClasse}
+          />
+        </label>
         <label className={`${rotuloClasse} sm:col-span-2`}>
           Descrição
           <textarea

@@ -16,8 +16,13 @@ const ROTULOS_CATEGORIA: Record<(typeof CATEGORIAS_IMOVEL)[number], string> = {
   mcmv: "Minha Casa Minha Vida",
 };
 
+const OPCOES_QUARTOS = [1, 2, 3, 4];
+
+const CLASSE_ROTULO =
+  "flex flex-col gap-1 text-xs font-medium text-muted";
+
 const CLASSE_CAMPO =
-  "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100";
+  "rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-brand";
 
 export function FiltrosCatalogo() {
   const router = useRouter();
@@ -42,14 +47,14 @@ export function FiltrosCatalogo() {
     router.push(pathname);
   }, [pathname, router]);
 
-  const temFiltros = Array.from(searchParams.keys()).length > 0;
+  const temFiltros = Array.from(searchParams.keys()).some((k) => k !== "todos");
 
   return (
     <form
       className="flex flex-wrap items-end gap-3"
       onSubmit={(e) => e.preventDefault()}
     >
-      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+      <label className={CLASSE_ROTULO}>
         Tipo
         <select
           className={CLASSE_CAMPO}
@@ -65,7 +70,7 @@ export function FiltrosCatalogo() {
         </select>
       </label>
 
-      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+      <label className={CLASSE_ROTULO}>
         Categoria
         <select
           className={CLASSE_CAMPO}
@@ -81,7 +86,7 @@ export function FiltrosCatalogo() {
         </select>
       </label>
 
-      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+      <label className={CLASSE_ROTULO}>
         Cidade
         <input
           type="text"
@@ -98,7 +103,23 @@ export function FiltrosCatalogo() {
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+      <label className={CLASSE_ROTULO}>
+        Quartos (mín.)
+        <select
+          className={CLASSE_CAMPO}
+          value={searchParams.get("quartosMin") ?? ""}
+          onChange={(e) => atualizar("quartosMin", e.target.value)}
+        >
+          <option value="">Qualquer</option>
+          {OPCOES_QUARTOS.map((q) => (
+            <option key={q} value={q}>
+              {q}+
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className={CLASSE_ROTULO}>
         Preço mín. (R$)
         <input
           type="number"
@@ -111,7 +132,7 @@ export function FiltrosCatalogo() {
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+      <label className={CLASSE_ROTULO}>
         Preço máx. (R$)
         <input
           type="number"
@@ -128,7 +149,7 @@ export function FiltrosCatalogo() {
         <button
           type="button"
           onClick={limpar}
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          className="rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
         >
           Limpar
         </button>

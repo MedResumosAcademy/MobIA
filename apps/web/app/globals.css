@@ -1,26 +1,111 @@
 @import "tailwindcss";
 
+/*
+ * MobIA design tokens — tema CLARO por padrão (portal imobiliário).
+ * Paleta: marca = EMERALD (aprovação/dinheiro); neutros = SLATE.
+ * Superfícies claras, texto slate, foco emerald acessível.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  /* Superfícies */
+  --background: #ffffff; /* fundo base */
+  --surface: #ffffff; /* cards, header */
+  --surface-muted: #f8fafc; /* slate-50 — seções alternadas */
+  --border: #e2e8f0; /* slate-200 */
+  --border-strong: #cbd5e1; /* slate-300 */
+
+  /* Texto */
+  --foreground: #0f172a; /* slate-900 */
+  --muted: #475569; /* slate-600 */
+  --subtle: #64748b; /* slate-500 */
+
+  /* Marca (emerald) */
+  --brand: #059669; /* emerald-600 — ação/marca */
+  --brand-hover: #047857; /* emerald-700 */
+  --brand-contrast: #ffffff;
+  --brand-soft: #ecfdf5; /* emerald-50 — fundo de badge */
+  --brand-soft-fg: #047857; /* emerald-700 — texto sobre soft */
+
+  /* Badges por categoria */
+  --badge-lancamento-bg: #e0f2fe; /* sky-100 */
+  --badge-lancamento-fg: #0369a1; /* sky-700 */
+  --badge-alto-padrao-bg: #fef3c7; /* amber-100 */
+  --badge-alto-padrao-fg: #b45309; /* amber-700 */
+  --badge-mcmv-bg: #d1fae5; /* emerald-100 */
+  --badge-mcmv-fg: #047857; /* emerald-700 */
+  --badge-neutro-bg: #f1f5f9; /* slate-100 */
+  --badge-neutro-fg: #334155; /* slate-700 */
+
+  /* Foco a11y */
+  --focus-ring: #059669; /* emerald-600 */
 }
 
 @theme inline {
+  /* Superfícies */
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  /* Texto */
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+
+  /* Marca */
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-contrast: var(--brand-contrast);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-soft-fg: var(--brand-soft-fg);
+
+  /* Badges */
+  --color-badge-lancamento-bg: var(--badge-lancamento-bg);
+  --color-badge-lancamento-fg: var(--badge-lancamento-fg);
+  --color-badge-alto-padrao-bg: var(--badge-alto-padrao-bg);
+  --color-badge-alto-padrao-fg: var(--badge-alto-padrao-fg);
+  --color-badge-mcmv-bg: var(--badge-mcmv-bg);
+  --color-badge-mcmv-fg: var(--badge-mcmv-fg);
+  --color-badge-neutro-bg: var(--badge-neutro-bg);
+  --color-badge-neutro-fg: var(--badge-neutro-fg);
+
+  --color-focus-ring: var(--focus-ring);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Foco visível e consistente (emerald) para navegação por teclado. */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+/* Header sticky com sombra sutil ao rolar — CSS puro via scroll-driven.
+ * Fallback: sombra fixa leve em navegadores sem suporte. */
+.header-sticky {
+  box-shadow: 0 1px 0 0 var(--border);
+}
+@supports (animation-timeline: scroll()) {
+  .header-sticky {
+    animation: header-eleva linear both;
+    animation-timeline: scroll();
+    animation-range: 0 120px;
+  }
+  @keyframes header-eleva {
+    to {
+      box-shadow: 0 4px 16px -6px rgb(15 23 42 / 0.15);
+    }
+  }
 }
