@@ -6,6 +6,7 @@
     "@mobia/core": "workspace:*",
     "@mobia/domain": "workspace:*",
     "@react-native-async-storage/async-storage": "^3.1.1",
+    "@react-native-community/slider": "5.2.0",
     "@supabase/supabase-js": "^2.110.0",
     "expo": "~57.0.1",
     "expo-status-bar": "~57.0.0",

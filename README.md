@@ -23,7 +23,8 @@ MobIA é um sistema imobiliário com duas faces:
 - ✅ Motor financeiro (`@mobia/core`): Price/SAC, plano de pagamento, Sonhômetro, modalidades parametrizadas — 134 testes, ~96% de cobertura
 - ✅ E0.2/E0.3: Supabase (projeto "MobIA - Dev", sa-east-1) — 11 tabelas multi-tenant com RLS, isolamento provado com 2 orgs (matriz 22/22), auth web (Next 16 + @supabase/ssr) e mobile (Expo), parâmetros financeiros no banco (H-05: muda sem deploy)
 - ✅ MVP E1/E2/E8: catálogo com filtros (`/imoveis`), ficha com simulação do plano calculada pelo motor (`/imoveis/[id]`), cadastro de imóveis pelo corretor com upload de fotos/plantas (`/corretor/imoveis`), Storage por org; catálogo + ficha também no mobile
-- ⏭️ Próximo: E3/E4 — "Compre do seu jeito" (slider de entrada + recálculo em tempo real) e plano de pagamento interativo
+- ✅ MVP E3/E4 — "Compre do seu jeito": slider de entrada recalculando o plano **em tempo real no cliente** (via `@mobia/core`, sem ida ao servidor), toggle de modalidade elegível e timeline visual reativa — web e mobile. Invariante do plano verificado em 51/51 posições do slider
+- ⏭️ Próximo: E5 (Sonhômetro — capacidade de compra) e E6 (favoritos/comparação)
 
 > Convites de corretor/gestor: signup público sempre nasce `cliente`; promoção só via `privado.convites` (server-side). Seed de dev: `supabase/seed-dev.sql` (usuários @teste.mobia, senha `MobIA!teste1`).
 

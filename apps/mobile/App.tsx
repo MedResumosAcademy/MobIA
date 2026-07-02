@@ -4,7 +4,7 @@
 // imóvel tiver esquema de pagamento — a simulação "Compre do seu jeito" via
 // @mobia/core. A "prova do motor" (H-01/H-04) segue acessível por uma aba.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
   ActivityIndicator,
@@ -19,6 +19,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import Slider from "@react-native-community/slider";
 import type { Session } from "@supabase/supabase-js";
 import { formatarReais, obterParametrosAtuais, recalcularPlano } from "@mobia/core";
 import type {
@@ -65,6 +66,28 @@ function simularProvaDoMotor(parametros: ParametrosFinanceiros) {
 
 function valorDaParcelaMensal(plano: PlanoPagamentoRecalculado): number {
   return plano.cronograma.find((item) => item.tipo === "parcela")?.valor ?? 0;
+}
+
+const ROTULO_MODALIDADE: Record<Modalidade, string> = {
+  mcmv: "Minha Casa Minha Vida",
+  sbpe: "SBPE",
+  credito_associativo: "Crédito associativo",
+  imovel_novo: "Imóvel novo",
+  imovel_usado: "Imóvel usado",
+  terreno_e_construcao: "Terreno e construção",
+};
+
+// Atalhos de valor de entrada (em centavos) sugeridos ao cliente. São clampeados
+// para [entradaMinima, entradaMaxima] antes de recalcular, então nunca geram erro.
+const ATALHOS_ENTRADA: Array<{ rotulo: string; valor: number }> = [
+  { rotulo: "10 mil", valor: 1_000_000 },
+  { rotulo: "20 mil", valor: 2_000_000 },
+  { rotulo: "30 mil", valor: 3_000_000 },
+  { rotulo: "50 mil", valor: 5_000_000 },
+];
+
+function clampear(valor: number, min: number, max: number): number {
+  return Math.min(Math.max(valor, min), max);
 }
 
 // --- Catálogo/Ficha — dados do banco ---------------------------------------
@@ -218,36 +241,15 @@ function TelaFicha({ imovel, onVoltar }: { imovel: ImovelRow; onVoltar: () => vo
   const parametros = obterParametrosAtuais();
   const esquemaJson = imovel.esquema_pagamento;
 
-  let simulacao:
-    | { plano: PlanoPagamentoRecalculado; entrada: number; parcelas: number }
-    | { erro: string }
-    | null = null;
-
-  if (esquemaJson) {
-    const esquema: EsquemaPagamento = {
-      ...esquemaJson,
-      id: `${imovel.id}-esquema`,
-      orgId: imovel.org_id,
-      imovelId: imovel.id,
-    };
-    const modalidade = esquema.modalidade as Modalidade;
-    const config = parametros.modalidades[modalidade];
-    // Entrada padrão = mínimo exigido pelo esquema do empreendimento.
-    const entrada = Math.round(imovel.valor * esquema.percentualMinimoAto);
-    const resultado = recalcularPlano({
-      valorImovel: imovel.valor,
-      esquema,
-      entradaEscolhida: entrada,
-      financiamento: {
-        taxaAnual: config.taxaAnualEfetiva,
-        prazoMeses: config.prazoMaxMeses,
-        sistema: config.sistemaAmortizacaoPadrao,
-      },
-    });
-    simulacao = resultado.ok
-      ? { plano: resultado.plano, entrada, parcelas: esquema.numeroParcelasMensais }
-      : { erro: "Não foi possível montar a simulação para este imóvel." };
-  }
+  // Completa os identificadores de domínio (o jsonb persistido não os guarda).
+  const esquema: EsquemaPagamento | null = esquemaJson
+    ? {
+        ...esquemaJson,
+        id: `${imovel.id}-esquema`,
+        orgId: imovel.org_id,
+        imovelId: imovel.id,
+      }
+    : null;
 
   return (
     <View style={styles.tela}>
@@ -292,20 +294,19 @@ function TelaFicha({ imovel, onVoltar }: { imovel: ImovelRow; onVoltar: () => vo
           <Text style={styles.fichaDescricao}>{imovel.descricao}</Text>
         ) : null}
 
-        {simulacao === null ? (
+        {esquema === null ? (
           <View style={styles.card}>
             <Text style={styles.cardTitulo}>Simulação</Text>
             <Text style={styles.cardDescricao}>
               Este imóvel ainda não tem um plano de pagamento configurado.
             </Text>
           </View>
-        ) : "erro" in simulacao ? (
-          <View style={styles.card}>
-            <Text style={styles.cardTitulo}>Simulação</Text>
-            <Text style={styles.erro}>{simulacao.erro}</Text>
-          </View>
         ) : (
-          <Simulacao dados={simulacao} parametros={parametros} />
+          <SimulacaoInterativa
+            imovel={imovel}
+            esquema={esquema}
+            parametros={parametros}
+          />
         )}
       </ScrollView>
       <StatusBar style="auto" />
@@ -313,19 +314,109 @@ function TelaFicha({ imovel, onVoltar }: { imovel: ImovelRow; onVoltar: () => vo
   );
 }
 
-function Simulacao({
-  dados,
+// --- Simulação interativa (H-12/13/14/15) ----------------------------------
+//
+// O cliente arrasta o slider de entrada e/ou troca a modalidade elegível; o
+// plano recalcula em tempo real via recalcularPlano (síncrono, < 200ms).
+
+/** Modalidades que o cliente pode escolher: as elegíveis do imóvel que o
+ *  seed de parâmetros conhece. Sempre inclui a modalidade padrão do esquema. */
+function modalidadesDisponiveis(
+  imovel: ImovelRow,
+  esquema: EsquemaPagamento,
+  parametros: ParametrosFinanceiros,
+): Modalidade[] {
+  const conhecidas = new Set(Object.keys(parametros.modalidades));
+  const elegiveis = imovel.modalidades_elegiveis.filter(
+    (m): m is Modalidade => conhecidas.has(m),
+  );
+  const base = esquema.modalidade as Modalidade;
+  const lista = elegiveis.length > 0 ? elegiveis : [base];
+  return lista.includes(base) ? lista : [base, ...lista];
+}
+
+function SimulacaoInterativa({
+  imovel,
+  esquema,
   parametros,
 }: {
-  dados: { plano: PlanoPagamentoRecalculado; entrada: number; parcelas: number };
+  imovel: ImovelRow;
+  esquema: EsquemaPagamento;
   parametros: ParametrosFinanceiros;
 }) {
-  const { plano, parcelas } = dados;
+  const modalidades = useMemo(
+    () => modalidadesDisponiveis(imovel, esquema, parametros),
+    [imovel, esquema, parametros],
+  );
+
+  const [modalidade, setModalidade] = useState<Modalidade>(
+    () => modalidades[0] ?? (esquema.modalidade as Modalidade),
+  );
+
+  // Faixa de entrada válida: min = round(valor × percentualMinimoAto);
+  // max = valor − Σparcelas − Σbalões (financiado ≥ 0). Independem da modalidade.
+  const { entradaMinima, entradaMaxima } = useMemo(() => {
+    const min = Math.round(imovel.valor * esquema.percentualMinimoAto);
+    const totalParcelas =
+      esquema.parcelaMensal?.valor !== undefined
+        ? esquema.parcelaMensal.valor * esquema.numeroParcelasMensais
+        : esquema.parcelaMensal?.percentual !== undefined
+          ? Math.round(
+              imovel.valor * esquema.parcelaMensal.percentual * esquema.numeroParcelasMensais,
+            )
+          : 0;
+    let totalBaloes = 0;
+    for (const balao of esquema.baloes) {
+      let ocorrencias = 0;
+      for (let m = balao.periodicidadeMeses; m <= esquema.numeroParcelasMensais; m += balao.periodicidadeMeses) {
+        ocorrencias += 1;
+      }
+      totalBaloes +=
+        balao.valor !== undefined
+          ? balao.valor * ocorrencias
+          : balao.percentual !== undefined
+            ? Math.round(imovel.valor * balao.percentual * ocorrencias)
+            : 0;
+    }
+    const max = Math.max(min, imovel.valor - totalParcelas - totalBaloes);
+    return { entradaMinima: min, entradaMaxima: max };
+  }, [imovel.valor, esquema]);
+
+  const [entrada, setEntrada] = useState<number>(entradaMinima);
+
+  // Mantém a entrada dentro da faixa quando o imóvel/esquema muda.
+  const entradaClampeada = clampear(entrada, entradaMinima, entradaMaxima);
+
+  const resultado = useMemo(() => {
+    const config = parametros.modalidades[modalidade];
+    return recalcularPlano({
+      valorImovel: imovel.valor,
+      esquema: { ...esquema, modalidade },
+      entradaEscolhida: entradaClampeada,
+      financiamento: {
+        taxaAnual: config.taxaAnualEfetiva,
+        prazoMeses: config.prazoMaxMeses,
+        sistema: config.sistemaAmortizacaoPadrao,
+      },
+    });
+  }, [imovel.valor, esquema, modalidade, entradaClampeada, parametros]);
+
+  if (!resultado.ok) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.cardTitulo}>Compre do seu jeito</Text>
+        <Text style={styles.erro}>Não foi possível montar a simulação para este imóvel.</Text>
+      </View>
+    );
+  }
+
+  const plano = resultado.plano;
   const pos = plano.financiamentoPosChaves;
+  const parcelas = esquema.numeroParcelasMensais;
   const parcelaMensal = valorDaParcelaMensal(plano);
 
   const linhas: Array<{ rotulo: string; valor: string }> = [
-    { rotulo: "Ato (entrada mínima)", valor: formatarReais(plano.resumo.totalAto) },
+    { rotulo: "Ato (entrada)", valor: formatarReais(plano.resumo.totalAto) },
   ];
   if (parcelas > 0) {
     linhas.push({
@@ -353,8 +444,68 @@ function Simulacao({
     <View style={styles.card}>
       <Text style={styles.cardTitulo}>Compre do seu jeito</Text>
       <Text style={styles.cardDescricao}>
-        Estimativa com a entrada mínima do empreendimento, calculada via @mobia/core.
+        Arraste a entrada e escolha a modalidade — o plano recalcula na hora.
       </Text>
+
+      {/* H-13: chips de modalidade quando há mais de uma elegível. */}
+      {modalidades.length > 1 ? (
+        <View style={styles.simChipsLinha}>
+          {modalidades.map((m) => {
+            const ativo = m === modalidade;
+            return (
+              <Pressable
+                key={m}
+                style={[styles.chip, ativo && styles.chipAtivo]}
+                onPress={() => setModalidade(m)}
+              >
+                <Text style={[styles.chipTexto, ativo && styles.chipTextoAtivo]}>
+                  {ROTULO_MODALIDADE[m]}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {/* H-12: controle de entrada. */}
+      <View style={styles.entradaBloco}>
+        <View style={styles.entradaTopo}>
+          <Text style={styles.rotulo}>Entrada (ato)</Text>
+          <Text style={styles.entradaValor}>{formatarReais(entradaClampeada)}</Text>
+        </View>
+        <Slider
+          minimumValue={entradaMinima}
+          maximumValue={entradaMaxima}
+          step={10_000}
+          value={entradaClampeada}
+          onValueChange={(v) => setEntrada(Math.round(v))}
+          minimumTrackTintColor="#18181b"
+          maximumTrackTintColor="#e4e4e7"
+          thumbTintColor="#18181b"
+          disabled={entradaMaxima <= entradaMinima}
+        />
+        <View style={styles.entradaLimites}>
+          <Text style={styles.entradaLimiteTexto}>mín {formatarReais(entradaMinima)}</Text>
+          <Text style={styles.entradaLimiteTexto}>máx {formatarReais(entradaMaxima)}</Text>
+        </View>
+        <View style={styles.atalhosLinha}>
+          {ATALHOS_ENTRADA.map((atalho) => {
+            const alvo = clampear(atalho.valor, entradaMinima, entradaMaxima);
+            const ativo = alvo === entradaClampeada;
+            return (
+              <Pressable
+                key={atalho.rotulo}
+                style={[styles.atalho, ativo && styles.atalhoAtivo]}
+                onPress={() => setEntrada(alvo)}
+              >
+                <Text style={[styles.atalhoTexto, ativo && styles.atalhoTextoAtivo]}>
+                  {atalho.rotulo}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
 
       {linhas.map((linha) => (
         <View key={linha.rotulo} style={styles.linha}>
@@ -363,6 +514,7 @@ function Simulacao({
         </View>
       ))}
 
+      {/* H-15: timeline textual reage ao slider. */}
       <View style={styles.timeline}>
         {timeline.map((passo, i) => (
           <Text key={passo} style={styles.timelinePasso}>
@@ -371,6 +523,7 @@ function Simulacao({
         ))}
       </View>
 
+      {/* H-14: disclaimer de estimativa sempre visível. */}
       <Text style={styles.disclaimer}>
         Simulação estimativa (parâmetros {parametros.vigenciaInicio}, v{parametros.versao}) — não
         constitui proposta formal de crédito.
@@ -760,6 +913,60 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     color: "#3f3f46",
+  },
+  simChipsLinha: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 12,
+  },
+  entradaBloco: {
+    marginBottom: 8,
+  },
+  entradaTopo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+  },
+  entradaValor: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#18181b",
+  },
+  entradaLimites: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: -2,
+  },
+  entradaLimiteTexto: {
+    fontSize: 11,
+    color: "#a1a1aa",
+  },
+  atalhosLinha: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 10,
+  },
+  atalho: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#e4e4e7",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  atalhoAtivo: {
+    backgroundColor: "#18181b",
+    borderColor: "#18181b",
+  },
+  atalhoTexto: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#3f3f46",
+  },
+  atalhoTextoAtivo: {
+    color: "#ffffff",
   },
   tabBar: {
     flexDirection: "row",

@@ -9,7 +9,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FichaGaleria } from "@/components/FichaGaleria";
 import { FichaLocalizacao } from "@/components/FichaLocalizacao";
-import { PlanoPagamentoVisual } from "@/components/PlanoPagamentoVisual";
+import {
+  SimuladorCompra,
+  type OpcaoModalidade,
+} from "@/components/SimuladorCompra";
 import { registrarEvento } from "@/lib/dados/eventos";
 import { obterImovel, type ImovelDetalhe } from "@/lib/dados/imoveis";
 import { obterParametrosVigentesDoBanco } from "@/lib/parametros";
@@ -41,11 +44,23 @@ function ehPdf(url: string): boolean {
   return /\.pdf(\?|$)/i.test(url);
 }
 
-/** Calcula o plano padrão: ato = percentual mínimo do esquema × valor. */
-function simularPlanoPadrao(imovel: ImovelDetalhe, parametros: ParametrosFinanceiros) {
+type ConfigSimulador = {
+  valorImovel: number;
+  esquema: EsquemaPagamento;
+  entradaMinima: number;
+  entradaMaxima: number;
+  opcoesModalidade: OpcaoModalidade[];
+};
+
+/** Monta a config serializável do simulador interativo "Compre do seu jeito".
+ *  Retorna null quando não há esquema (fallback "Condições sob consulta"). */
+function montarConfigSimulador(
+  imovel: ImovelDetalhe,
+  parametros: ParametrosFinanceiros,
+): ConfigSimulador | null {
   // O jsonb persistido não guarda id/orgId/imovelId (anti-forja); o motor não os
   // lê. Completamos os campos derivados a partir do imóvel só para satisfazer o
-  // tipo EsquemaPagamento esperado por recalcularPlano.
+  // tipo EsquemaPagamento esperado por recalcularPlano/SimuladorCompra.
   const armazenado = imovel.esquemaPagamento;
   if (!armazenado) {
     return null;
@@ -56,19 +71,48 @@ function simularPlanoPadrao(imovel: ImovelDetalhe, parametros: ParametrosFinance
     imovelId: imovel.id,
     ...armazenado,
   };
-  const modalidade = parametros.modalidades[esquema.modalidade];
-  const entradaPadrao = Math.round(imovel.valor * esquema.percentualMinimoAto);
-  const resultado = recalcularPlano({
+
+  // entradaMinima = round(valor × percentualMinimoAto). entradaMaxima = valor −
+  // (Σparcelas + Σbalões) para que o financiado nunca fique negativo. Derivamos
+  // ambos chamando o motor na entrada mínima (invariante garante a soma).
+  const entradaMinima = Math.round(imovel.valor * esquema.percentualMinimoAto);
+  const modalidadeBase = parametros.modalidades[esquema.modalidade];
+  const base = recalcularPlano({
     valorImovel: imovel.valor,
     esquema,
-    entradaEscolhida: entradaPadrao,
+    entradaEscolhida: entradaMinima,
     financiamento: {
-      taxaAnual: modalidade.taxaAnualEfetiva,
-      prazoMeses: modalidade.prazoMaxMeses,
-      sistema: modalidade.sistemaAmortizacaoPadrao,
+      taxaAnual: modalidadeBase.taxaAnualEfetiva,
+      prazoMeses: modalidadeBase.prazoMaxMeses,
+      sistema: modalidadeBase.sistemaAmortizacaoPadrao,
     },
   });
-  return resultado;
+  if (!base.ok) {
+    return null;
+  }
+  const { totalParcelas, totalBaloes } = base.plano.resumo;
+  const entradaMaxima = imovel.valor - (totalParcelas + totalBaloes);
+
+  // opcoesModalidade: a do esquema + demais elegíveis do imóvel que existam nos
+  // parâmetros. A do esquema sempre entra primeiro (estado inicial do simulador).
+  const modalidadesElegiveis = new Set<Modalidade>([
+    esquema.modalidade,
+    ...imovel.modalidadesElegiveis,
+  ]);
+  const opcoesModalidade: OpcaoModalidade[] = [...modalidadesElegiveis]
+    .filter((m) => parametros.modalidades[m] !== undefined)
+    .map((m): OpcaoModalidade => {
+      const cfg = parametros.modalidades[m];
+      return {
+        modalidade: m,
+        rotulo: ROTULO_MODALIDADE[m],
+        taxaAnual: cfg.taxaAnualEfetiva,
+        prazoMeses: cfg.prazoMaxMeses,
+        sistema: cfg.sistemaAmortizacaoPadrao,
+      };
+    });
+
+  return { valorImovel: imovel.valor, esquema, entradaMinima, entradaMaxima, opcoesModalidade };
 }
 
 export default async function FichaImovel({ params }: ParamsFicha) {
@@ -82,9 +126,7 @@ export default async function FichaImovel({ params }: ParamsFicha) {
   await registrarEvento("visita_ficha", { imovelId: imovel.id });
 
   const parametros = await obterParametrosVigentesDoBanco();
-  const simulacao = imovel.esquemaPagamento
-    ? simularPlanoPadrao(imovel, parametros)
-    : null;
+  const configSimulador = montarConfigSimulador(imovel, parametros);
   const modalidadeRotulo = imovel.esquemaPagamento
     ? ROTULO_MODALIDADE[imovel.esquemaPagamento.modalidade]
     : null;
@@ -213,7 +255,7 @@ export default async function FichaImovel({ params }: ParamsFicha) {
         >
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">
-              Simulação — plano padrão
+              Compre do seu jeito
             </h2>
             {modalidadeRotulo && (
               <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
@@ -222,25 +264,23 @@ export default async function FichaImovel({ params }: ParamsFicha) {
             )}
           </div>
 
-          {simulacao === null && (
+          {configSimulador === null ? (
             <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
               Condições sob consulta. Fale com o corretor para montar seu plano de
               pagamento.
             </p>
-          )}
-
-          {simulacao !== null && !simulacao.ok && (
-            <p className="mt-3 text-sm text-amber-700 dark:text-amber-400">
-              Não foi possível montar o plano padrão para este imóvel. Condições sob
-              consulta.
-            </p>
-          )}
-
-          {simulacao !== null && simulacao.ok && (
-            <PlanoSimulado
-              plano={simulacao.plano}
-              parametros={parametros}
-              numeroParcelas={imovel.esquemaPagamento!.numeroParcelasMensais}
+          ) : (
+            <SimuladorCompra
+              valorImovel={configSimulador.valorImovel}
+              esquema={configSimulador.esquema}
+              entradaMinima={configSimulador.entradaMinima}
+              entradaMaxima={configSimulador.entradaMaxima}
+              opcoesModalidade={configSimulador.opcoesModalidade}
+              rotuloParametros={{
+                vigenciaInicio: parametros.vigenciaInicio,
+                versao: parametros.versao,
+              }}
+              imovelId={imovel.id}
             />
           )}
         </section>
@@ -249,63 +289,3 @@ export default async function FichaImovel({ params }: ParamsFicha) {
   );
 }
 
-function PlanoSimulado({
-  plano,
-  parametros,
-  numeroParcelas,
-}: {
-  plano: import("@mobia/domain").PlanoPagamentoRecalculado;
-  parametros: ParametrosFinanceiros;
-  numeroParcelas: number;
-}) {
-  const { financiamentoPosChaves } = plano;
-  const primeiraParcela =
-    plano.cronograma.find((i) => i.tipo === "parcela")?.valor ?? 0;
-
-  const linhas: Array<{ rotulo: string; valor: string }> = [
-    { rotulo: "Ato (entrada)", valor: formatarReais(plano.resumo.totalAto) },
-    {
-      rotulo: "Parcelas mensais até as chaves",
-      valor:
-        numeroParcelas > 0
-          ? `${numeroParcelas}× de ${formatarReais(primeiraParcela)}`
-          : "—",
-    },
-    { rotulo: "Financiado nas chaves", valor: formatarReais(plano.valorFinanciado) },
-    {
-      rotulo: `Parcela estimada pós-chaves (${financiamentoPosChaves.sistema.toUpperCase()}, ${financiamentoPosChaves.prazoMeses} meses)`,
-      valor: formatarReais(financiamentoPosChaves.parcelaEstimada),
-    },
-  ];
-
-  return (
-    <>
-      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-        Entrada mínima do empreendimento sobre {formatarReais(plano.resumo.valorImovel)}.
-      </p>
-
-      <div className="mt-6">
-        <PlanoPagamentoVisual plano={plano} />
-      </div>
-
-      <dl className="mt-6 flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
-        {linhas.map((linha) => (
-          <div
-            key={linha.rotulo}
-            className="flex items-baseline justify-between gap-4 py-3"
-          >
-            <dt className="text-sm text-zinc-500 dark:text-zinc-400">{linha.rotulo}</dt>
-            <dd className="text-base font-medium tabular-nums text-zinc-950 dark:text-zinc-50">
-              {linha.valor}
-            </dd>
-          </div>
-        ))}
-      </dl>
-
-      <p className="mt-4 text-xs leading-5 text-zinc-400 dark:text-zinc-500">
-        Estimativa (parâmetros {parametros.vigenciaInicio}, v{parametros.versao}) — não
-        constitui proposta formal de crédito.
-      </p>
-    </>
-  );
-}

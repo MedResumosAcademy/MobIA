@@ -26,7 +26,7 @@ export function PlanoPagamentoVisual({ plano }: { plano: PlanoPagamentoRecalcula
 
   const parcelas = cronograma.filter((i) => i.tipo === "parcela");
   const baloes = cronograma.filter((i) => i.tipo === "balao");
-  const mesChaves = financiamentoPosChaves.prazoMeses;
+  const prazoFinanciamento = financiamentoPosChaves.prazoMeses;
   const primeiraParcela = parcelas[0]?.valor ?? 0;
   const mesFinanciamento =
     cronograma.find((i) => i.tipo === "financiamento")?.mesRelativo ?? 0;
@@ -72,7 +72,7 @@ export function PlanoPagamentoVisual({ plano }: { plano: PlanoPagamentoRecalcula
   marcos.push({
     chave: "chaves",
     rotulo: `Chaves (mês ${mesFinanciamento})`,
-    detalhe: `${financiamentoPosChaves.sistema.toUpperCase()} · ${mesChaves} meses`,
+    detalhe: `${financiamentoPosChaves.sistema.toUpperCase()} · financia em ${prazoFinanciamento} meses`,
     cor: CORES.chaves.faixa,
     ponto: CORES.chaves.ponto,
   });
