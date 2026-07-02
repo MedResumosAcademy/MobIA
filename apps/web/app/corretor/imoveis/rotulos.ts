@@ -6,7 +6,7 @@ import type {
   Modalidade,
   StatusImovel,
   TipoImovel,
-} from "@mobia/domain";
+} from "@imobia/domain";
 
 export const TIPOS: { valor: TipoImovel; rotulo: string }[] = [
   { valor: "casa", rotulo: "Casa" },

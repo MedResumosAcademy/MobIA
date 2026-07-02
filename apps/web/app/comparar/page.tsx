@@ -1,19 +1,19 @@
 // Rota /comparar?ids=a,b,c (E6 / H-20). Compara 2 a 3 imóveis lado a lado:
 // preço, cidade/UF, tipo, modalidade e a PARCELA do plano padrão (entrada
-// mínima do esquema, calculada por recalcularPlano do @mobia/core). Quando o
+// mínima do esquema, calculada por recalcularPlano do @imobia/core). Quando o
 // imóvel não tem esquema de pagamento a parcela fica "sob consulta".
 // RLS: obterImovel usa o client público — só retorna imóveis visíveis; ids
 // inexistentes/ocultos simplesmente somem da comparação.
 
-import { formatarReais, recalcularPlano } from "@mobia/core";
-import type { Modalidade } from "@mobia/domain";
+import { formatarReais, recalcularPlano } from "@imobia/core";
+import type { Modalidade } from "@imobia/domain";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { classesBotao } from "@/components/ui/Botao";
 import { obterImovel, type ImovelDetalhe } from "@/lib/dados/imoveis";
 import { obterParametrosVigentesDoBanco } from "@/lib/parametros";
 
-export const metadata: Metadata = { title: "Comparar imóveis — MobIA" };
+export const metadata: Metadata = { title: "Comparar imóveis — ImobIA" };
 
 // Depende de parâmetros vigentes e RLS a cada request.
 export const dynamic = "force-dynamic";

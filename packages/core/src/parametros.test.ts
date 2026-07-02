@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MODALIDADES, parametrosFinanceirosSchema, type ParametrosFinanceiros } from "@mobia/domain";
+import { MODALIDADES, parametrosFinanceirosSchema, type ParametrosFinanceiros } from "@imobia/domain";
 import { taxaAnualEfetivaDeNominal } from "./financiamento";
 import {
   HISTORICO_PARAMETROS,

@@ -1,4 +1,4 @@
-// Selo — pílula sobreposta em imagens (overlay de card/ficha), MobIA editorial.
+// Selo — pílula sobreposta em imagens (overlay de card/ficha), ImobIA editorial.
 // Diferente do Badge (inline no corpo), o Selo é pensado para POUSAR sobre fotos:
 // fundo levemente translúcido + backdrop-blur para legibilidade sobre qualquer
 // imagem, com sombra suave. Ideal para o selo "Destaque" no topo do card.

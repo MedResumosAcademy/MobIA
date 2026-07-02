@@ -30,7 +30,7 @@ import {
   type ParametrosGerais,
   type Taxa,
   type TetoValorImovel,
-} from "@mobia/domain";
+} from "@imobia/domain";
 import {
   cronogramaSAC,
   parcelaMaximaPorRenda,

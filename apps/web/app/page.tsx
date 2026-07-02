@@ -1,4 +1,4 @@
-// Landing do MobIA — nível Airbnb/portal: hero foto-forward com busca clara,
+// Landing do ImobIA — nível Airbnb/portal: hero foto-forward com busca clara,
 // atalhos de categoria, imóveis em destaque e faixa de diferenciais enxuta.
 // Server Component: destaques vêm do banco a cada request (RLS: só disponíveis).
 
@@ -21,7 +21,7 @@ import { idsFavoritos } from "@/lib/dados/favoritos";
 import { listarImoveis } from "@/lib/dados/imoveis";
 
 export const metadata: Metadata = {
-  title: "MobIA — Monte a compra do seu imóvel do seu jeito",
+  title: "ImobIA — Monte a compra do seu imóvel do seu jeito",
 };
 
 export const dynamic = "force-dynamic";
@@ -166,7 +166,7 @@ export default async function Home() {
               <div className="flex flex-col gap-2">
                 <span className="inline-flex items-center gap-2 text-[0.8rem] font-medium uppercase tracking-[0.14em] text-gold-strong">
                   <span aria-hidden className="h-px w-6 bg-gold/60" />
-                  Seleção MobIA
+                  Seleção ImobIA
                 </span>
                 <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
                   Imóveis em destaque
@@ -203,7 +203,7 @@ export default async function Home() {
 
       {/* DIFERENCIAIS — faixa enxuta antes do rodapé (que vem do layout) */}
       <section
-        aria-label="Diferenciais MobIA"
+        aria-label="Diferenciais ImobIA"
         className="border-t border-border bg-background"
       >
         <div className="mx-auto grid w-full max-w-6xl gap-x-10 gap-y-10 px-6 py-16 sm:grid-cols-3 sm:py-20">

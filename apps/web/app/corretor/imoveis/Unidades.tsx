@@ -1,5 +1,5 @@
 import type { Unidade } from "@/lib/dados/imoveis";
-import { formatarReais } from "@mobia/core";
+import { formatarReais } from "@imobia/core";
 import { Botao } from "@/components/ui/Botao";
 import { classesCampo } from "@/components/ui/Campo";
 import {

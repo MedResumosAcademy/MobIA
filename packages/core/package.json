@@ -1,5 +1,5 @@
 {
-  "name": "@mobia/core",
+  "name": "@imobia/core",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mobia/domain": "workspace:*"
+    "@imobia/domain": "workspace:*"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^3.2.6",

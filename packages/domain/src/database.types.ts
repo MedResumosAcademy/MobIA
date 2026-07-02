@@ -1,4 +1,4 @@
-// Tipos gerados do banco Supabase (projeto MobIA - Dev).
+// Tipos gerados do banco Supabase (projeto ImobIA - Dev).
 // NÃO editar à mão — regenerar com a ferramenta generate_typescript_types
 // do MCP Supabase após cada migração e colar aqui.
 

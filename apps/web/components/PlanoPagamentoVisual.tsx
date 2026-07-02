@@ -2,8 +2,8 @@
 // Financiamento → Chaves. Puro CSS/flex (Server Component, sem JS no cliente),
 // legível no mobile. Recebe o plano JÁ calculado pelo core — não faz cálculo.
 
-import { formatarReais } from "@mobia/core";
-import type { PlanoPagamentoRecalculado } from "@mobia/domain";
+import { formatarReais } from "@imobia/core";
+import type { PlanoPagamentoRecalculado } from "@imobia/domain";
 
 type Marco = {
   chave: string;

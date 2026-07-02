@@ -10,8 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mobia/core": "workspace:*",
-    "@mobia/domain": "workspace:*",
+    "@imobia/core": "workspace:*",
+    "@imobia/domain": "workspace:*",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.0",
     "lucide-react": "^1.23.0",

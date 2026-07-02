@@ -3,7 +3,7 @@ import {
   tipoImovelSchema,
   type CategoriaImovel,
   type TipoImovel,
-} from "@mobia/domain";
+} from "@imobia/domain";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BannerCapacidade } from "@/components/BannerCapacidade";
@@ -13,7 +13,7 @@ import { obterCapacidadeAtual } from "@/lib/capacidade";
 import { idsFavoritos } from "@/lib/dados/favoritos";
 import { listarImoveis, type FiltrosCatalogo as Filtros } from "@/lib/dados/imoveis";
 
-export const metadata: Metadata = { title: "Catálogo — MobIA" };
+export const metadata: Metadata = { title: "Catálogo — ImobIA" };
 
 // Catálogo lê parâmetros da URL a cada request; RLS já limita a disponível.
 export const dynamic = "force-dynamic";

@@ -1,15 +1,15 @@
 // Ficha do imóvel (E2 — H-10/H-11). Server Component: galeria, planta,
 // localização, valor, descrição, unidades e — quando há esquema_pagamento —
-// simulação do plano padrão calculada pelo @mobia/core com parâmetros vigentes.
+// simulação do plano padrão calculada pelo @imobia/core com parâmetros vigentes.
 
-import { formatarReais, recalcularPlano } from "@mobia/core";
+import { formatarReais, recalcularPlano } from "@imobia/core";
 import type {
   CategoriaImovel,
   EsquemaPagamento,
   Modalidade,
   ParametrosFinanceiros,
   TipoImovel,
-} from "@mobia/domain";
+} from "@imobia/domain";
 import type { Metadata } from "next";
 import { ChevronRight, FileText, MapPin, Sparkles } from "lucide-react";
 import Link from "next/link";
@@ -65,9 +65,9 @@ export async function generateMetadata({ params }: ParamsFicha): Promise<Metadat
   const { id } = await params;
   const imovel = await obterImovel(id);
   if (!imovel) {
-    return { title: "Imóvel não encontrado — MobIA" };
+    return { title: "Imóvel não encontrado — ImobIA" };
   }
-  return { title: `${imovel.titulo} — MobIA` };
+  return { title: `${imovel.titulo} — ImobIA` };
 }
 
 function ehPdf(url: string): boolean {

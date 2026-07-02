@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { formatarReais } from "@mobia/core";
+import { formatarReais } from "@imobia/core";
 import { listarImoveisDaOrg } from "@/lib/dados/imoveis";
 import { Botao, classesBotao } from "@/components/ui/Botao";
 import { CampoSelect } from "@/components/ui/Campo";
 import { definirStatusImovelAction } from "./acoes";
 import { ROTULO_STATUS, STATUS } from "./rotulos";
 
-export const metadata: Metadata = { title: "Meus imóveis — MobIA" };
+export const metadata: Metadata = { title: "Meus imóveis — ImobIA" };
 export const dynamic = "force-dynamic";
 
 const MENSAGENS_OK: Record<string, string> = {

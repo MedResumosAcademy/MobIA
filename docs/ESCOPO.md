@@ -1,4 +1,4 @@
-# MobIA — Escopo do Projeto
+# ImobIA — Escopo do Projeto
 
 > Documento vivo. Versão inicial — sujeito a refinamento conforme validação com corretores e clientes.
 
@@ -21,7 +21,7 @@
 
 ## 1. Visão geral
 
-O **MobIA** é uma plataforma de inteligência imobiliária que centraliza, em um único ponto, toda a jornada de compra de um imóvel — da descoberta ao fechamento — e toda a gestão comercial e financeira do corretor.
+O **ImobIA** é uma plataforma de inteligência imobiliária que centraliza, em um único ponto, toda a jornada de compra de um imóvel — da descoberta ao fechamento — e toda a gestão comercial e financeira do corretor.
 
 Para o **cliente**, é uma experiência de autoatendimento: ele descobre imóveis, compara, **monta o próprio plano de pagamento** com uma barra interativa, simula financiamento e descobe quanto pode comprar — tudo sem precisar falar com ninguém.
 
@@ -38,7 +38,7 @@ Não vendemos como CRM. Não vendemos como portal. Não vendemos como simulador.
 
 ## 2. Problema e oportunidade
 
-| Dor | Quem sente | Como o MobIA resolve |
+| Dor | Quem sente | Como o ImobIA resolve |
 |---|---|---|
 | Cliente não entende **como** comprar (ato, balões, financiamento, FGTS) | Cliente | Plano de pagamento visual + simulador interativo |
 | Cliente não sabe **quanto** pode comprar | Cliente | Sonhômetro (capacidade de compra) |
@@ -395,7 +395,7 @@ O **`packages/core`** é a joia da coroa: TypeScript puro, sem dependência de p
 **Ainda em aberto:**
 1. **Origem dos imóveis:** cadastro manual pelo corretor, importação de portais, ou integração com construtoras? *(MVP assume cadastro manual.)*
 2. **Fonte das taxas/regras:** quem mantém os parâmetros (Caixa, índices, regras MCMV) atualizados e com que frequência?
-3. **Marca/escopo do nome:** "MobIA" sugere forte componente de IA — o Coringa (IA) entra na V1; confirmar se o discurso de venda do MVP já deve enfatizar IA ou só a experiência do cliente.
+3. **Marca/escopo do nome:** "ImobIA" sugere forte componente de IA — o Coringa (IA) entra na V1; confirmar se o discurso de venda do MVP já deve enfatizar IA ou só a experiência do cliente.
 4. **Cidades/empreendimentos do piloto:** por onde começar para validar antes de escalar.
 
 ---

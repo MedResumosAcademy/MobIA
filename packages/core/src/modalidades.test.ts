@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Modalidade, ParametrosFinanceiros } from "@mobia/domain";
+import type { Modalidade, ParametrosFinanceiros } from "@imobia/domain";
 import {
   UFS_BRASIL,
   enquadrarModalidades,

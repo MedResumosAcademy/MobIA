@@ -2,7 +2,7 @@
 //
 // Classifica a INTENÇÃO DE COMPRA de um cliente a partir dos seus sinais de
 // comportamento agregados (`SinaisLead`). Lógica PURA e TESTÁVEL — vive no motor
-// (@mobia/core), NUNCA em SQL nem na UI. A camada de dados só agrega as
+// (@imobia/core), NUNCA em SQL nem na UI. A camada de dados só agrega as
 // contagens de eventos e chama `calcularTemperatura`.
 //
 // MODELO (documentado e parametrizável):
@@ -27,7 +27,7 @@
 // LIMIARES_TERMOMETRO). Ajustá-las NÃO exige tocar na lógica nem nos testes de
 // monotonicidade — apenas nos testes de fronteira, que derivam dos limiares.
 
-import type { SinaisLead, Temperatura } from "@mobia/domain";
+import type { SinaisLead, Temperatura } from "@imobia/domain";
 
 /**
  * Pesos de cada sinal na soma do score. Escolhidos de modo que:

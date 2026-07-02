@@ -28,7 +28,7 @@ import {
   type SistemaAmortizacao,
   type Taxa,
   type TipoItemPlano,
-} from "@mobia/domain";
+} from "@imobia/domain";
 import { cronogramaSAC, parcelaPrice, taxaMensalDeAnual } from "./financiamento";
 
 // Tipos do RESULTADO vivem no domain (schemas zod — H-02): o snapshot
@@ -37,7 +37,7 @@ export type {
   CorrecaoMonetaria,
   FinanciamentoPosChaves,
   PlanoPagamentoRecalculado,
-} from "@mobia/domain";
+} from "@imobia/domain";
 
 /** Condições de financiamento escolhidas para o saldo pós-chaves. */
 export interface FinanciamentoEscolhido {

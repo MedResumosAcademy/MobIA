@@ -74,7 +74,7 @@ export type Lead = z.infer<typeof leadSchema>;
  * Derivam dos `TIPOS_EVENTO`: `visitas` ← visita_ficha, `simulacoes` ←
  * simulacao, `favoritos` ← favorito, `cliquesFinanciamento` ←
  * clique_financiamento, `retornos` ← retorno. A lógica de scoring vive no motor
- * puro (@mobia/core), não em SQL.
+ * puro (@imobia/core), não em SQL.
  */
 export const sinaisLeadSchema = z
   .object({

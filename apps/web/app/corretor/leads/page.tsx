@@ -9,7 +9,7 @@ import { listarLeads } from "@/lib/dados/leads";
 import { ChipTermometro } from "./termometro";
 import { tempoRelativo } from "./tempo";
 
-export const metadata: Metadata = { title: "Leads — MobIA" };
+export const metadata: Metadata = { title: "Leads — ImobIA" };
 export const dynamic = "force-dynamic";
 
 export default async function PaginaLeads() {

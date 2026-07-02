@@ -1,5 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
-import type { Database } from "@mobia/domain";
+import type { Database } from "@imobia/domain";
 
 /**
  * Client de LEITURA PÚBLICA, sem cookies/sessão — para o catálogo anônimo

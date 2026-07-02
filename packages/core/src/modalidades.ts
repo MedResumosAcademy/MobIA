@@ -17,7 +17,7 @@ import {
   type ParametrosFinanceiros,
   type TetoValorImovel,
   type TipoImovel,
-} from "@mobia/domain";
+} from "@imobia/domain";
 
 /** Condição do imóvel para fins de modalidade (novo/lançamento vs. usado). */
 export const CONDICOES_IMOVEL = ["novo", "usado"] as const;

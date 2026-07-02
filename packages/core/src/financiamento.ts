@@ -7,7 +7,7 @@
 //   (alimentados por `ParametrosFinanceiros` nas camadas superiores).
 // - Todo resultado é ESTIMATIVA, não proposta formal (ver `AVISO_ESTIMATIVA`).
 
-import type { Centavos, Taxa } from "@mobia/domain";
+import type { Centavos, Taxa } from "@imobia/domain";
 
 /**
  * Aviso legal padrão: toda simulação produzida por este módulo é uma

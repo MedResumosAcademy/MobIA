@@ -1,4 +1,4 @@
-// Divisor — hairline fina editorial (MobIA "Claro & Editorial").
+// Divisor — hairline fina editorial (ImobIA "Claro & Editorial").
 // Componente PURO de apresentação. Orientação horizontal (padrão) ou vertical.
 // `dourado` aplica o tick/hairline em dourado (uso parcimonioso — detalhes).
 // Decorativo: marcado com role="separator" + aria-orientation para leitores de tela.

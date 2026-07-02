@@ -3,7 +3,7 @@ import Link from "next/link";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { classesBotao } from "@/components/ui/Botao";
 
-export const metadata: Metadata = { title: "Painel do corretor — MobIA" };
+export const metadata: Metadata = { title: "Painel do corretor — ImobIA" };
 
 export default async function PainelCorretor() {
   const sessao = await obterSessao();

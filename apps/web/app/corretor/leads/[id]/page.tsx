@@ -5,12 +5,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatarReais } from "@mobia/core";
+import { formatarReais } from "@imobia/core";
 import { obterLead } from "@/lib/dados/leads";
 import { ChipTermometro } from "../termometro";
 import { tempoRelativo } from "../tempo";
 
-export const metadata: Metadata = { title: "Lead — MobIA" };
+export const metadata: Metadata = { title: "Lead — ImobIA" };
 export const dynamic = "force-dynamic";
 
 export default async function PaginaLead({

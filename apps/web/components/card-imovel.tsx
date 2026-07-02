@@ -1,5 +1,5 @@
-import { formatarReais } from "@mobia/core";
-import type { CategoriaImovel, TipoImovel } from "@mobia/domain";
+import { formatarReais } from "@imobia/core";
+import type { CategoriaImovel, TipoImovel } from "@imobia/domain";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
 import { BotaoFavoritar } from "@/components/BotaoFavoritar";

@@ -1,4 +1,4 @@
-# Glossário — MobIA
+# Glossário — ImobIA
 
 Termos do mercado imobiliário e de financiamento usados no projeto.
 

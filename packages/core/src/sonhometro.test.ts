@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Modalidade } from "@mobia/domain";
-import { MODALIDADES } from "@mobia/domain";
+import type { Modalidade } from "@imobia/domain";
+import { MODALIDADES } from "@imobia/domain";
 import {
   calcularCapacidade,
   idadeEmMeses,

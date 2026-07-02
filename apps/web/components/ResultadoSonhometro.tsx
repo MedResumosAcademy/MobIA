@@ -5,8 +5,8 @@
 // catálogo já ficou ativo pelo cookie). Todo resultado é ESTIMATIVA.
 "use client";
 
-import { formatarReais, type CapacidadeModalidade, type ResultadoSonhometro } from "@mobia/core";
-import type { Modalidade } from "@mobia/domain";
+import { formatarReais, type CapacidadeModalidade, type ResultadoSonhometro } from "@imobia/core";
+import type { Modalidade } from "@imobia/domain";
 import Link from "next/link";
 import { classesBotao } from "@/components/ui/Botao";
 

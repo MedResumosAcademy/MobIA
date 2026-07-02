@@ -1,4 +1,4 @@
-# MobIA — Histórias de Usuário do MVP
+# ImobIA — Histórias de Usuário do MVP
 
 > Escopo: **Fase 0 (Fundação)** + **MVP (Experiência do Cliente)**, conforme [ESCOPO.md §9](ESCOPO.md). Foco em validar a tese central: *o cliente monta a própria compra*.
 

@@ -4,7 +4,7 @@
 // Anônimo/corretor-gestor: leitura vazia; escrita exige cliente logado.
 "use server";
 
-import type { Database } from "@mobia/domain";
+import type { Database } from "@imobia/domain";
 import { obterSessao } from "@/lib/auth/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { registrarEvento } from "./eventos";

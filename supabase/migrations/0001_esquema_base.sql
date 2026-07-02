@@ -1,5 +1,5 @@
 -- ============================================================================
--- 0001_esquema_base.sql — Esquema base do MobIA (Postgres 17 / Supabase)
+-- 0001_esquema_base.sql — Esquema base do ImobIA (Postgres 17 / Supabase)
 --
 -- Espelha os schemas zod de packages/domain/src/*.ts (fonte de verdade do
 -- vocabulário) e as histórias E0.2/E0.3, H-03/H-04/H-05 (docs/MVP-HISTORIAS.md).

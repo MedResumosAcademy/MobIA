@@ -26,16 +26,16 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "MobIA",
+  title: "ImobIA",
   description: "O primeiro aplicativo que permite ao cliente montar sua própria compra.",
 };
 
-// Wordmark reutilizável — "Mob" grafite, "IA" laranja marca. SANS (Geist) por
+// Wordmark reutilizável — "Imob" grafite, "IA" laranja marca. SANS (Geist) por
 // padrão para um traço limpo e moderno (estilo portal/Airbnb).
 function Wordmark({ className = "" }: { className?: string }) {
   return (
     <span className={`font-semibold tracking-tight ${className}`}>
-      Mob<span className="text-brand">IA</span>
+      Imob<span className="text-brand">IA</span>
     </span>
   );
 }
@@ -68,7 +68,7 @@ export default async function RootLayout({
               <Link
                 href="/"
                 className="text-2xl text-foreground"
-                aria-label="MobIA — página inicial"
+                aria-label="ImobIA — página inicial"
               >
                 <Wordmark />
               </Link>
@@ -181,7 +181,7 @@ export default async function RootLayout({
           </div>
           <div className="border-t border-border">
             <p className="mx-auto w-full max-w-7xl px-4 py-5 text-xs text-subtle sm:px-6">
-              © {new Date().getFullYear()} MobIA. Todos os direitos reservados.
+              © {new Date().getFullYear()} ImobIA. Todos os direitos reservados.
             </p>
           </div>
         </footer>

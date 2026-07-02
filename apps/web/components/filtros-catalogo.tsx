@@ -1,6 +1,6 @@
 "use client";
 
-import { CATEGORIAS_IMOVEL, TIPOS_IMOVEL } from "@mobia/domain";
+import { CATEGORIAS_IMOVEL, TIPOS_IMOVEL } from "@imobia/domain";
 import {
   Building2,
   Home,

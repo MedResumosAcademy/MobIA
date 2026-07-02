@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SinaisLead } from "@mobia/domain";
+import type { SinaisLead } from "@imobia/domain";
 import {
   calcularTemperatura,
   LIMIARES_TERMOMETRO,

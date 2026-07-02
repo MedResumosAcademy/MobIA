@@ -10,7 +10,7 @@ import { classesBotao } from "@/components/ui/Botao";
 import { obterSessao } from "@/lib/auth/sessao";
 import { obterConsentimento } from "@/lib/dados/consentimento";
 
-export const metadata: Metadata = { title: "Minha conta — MobIA" };
+export const metadata: Metadata = { title: "Minha conta — ImobIA" };
 
 // Depende da sessão/RLS a cada request.
 export const dynamic = "force-dynamic";

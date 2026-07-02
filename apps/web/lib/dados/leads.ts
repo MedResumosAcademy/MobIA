@@ -7,12 +7,12 @@
 // dados de clientes que consentiram. Aqui NÃO reforçamos consentimento por conta
 // própria: confiamos na RLS. O que a query enxerga já está autorizado.
 //
-// TERMÔMETRO: a temperatura/score vêm SEMPRE do motor puro (@mobia/core) a
+// TERMÔMETRO: a temperatura/score vêm SEMPRE do motor puro (@imobia/core) a
 // partir dos contadores materializados na linha do lead — NUNCA da coluna
 // `temperatura` (que o trigger grava como placeholder 'quente').
 
-import { calcularTemperatura, type ResultadoTermometro } from "@mobia/core";
-import type { Database, SinaisLead, Temperatura } from "@mobia/domain";
+import { calcularTemperatura, type ResultadoTermometro } from "@imobia/core";
+import type { Database, SinaisLead, Temperatura } from "@imobia/domain";
 import { obterSessao } from "@/lib/auth/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 

@@ -3,14 +3,14 @@
 // Materialização de lead é V1 — NÃO fazer aqui.
 "use server";
 
-import type { Database, TipoEvento } from "@mobia/domain";
+import type { Database, TipoEvento } from "@imobia/domain";
 import { obterSessao, obterPerfil } from "@/lib/auth/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
 // Tipos de evento aceitos pelo CHECK `eventos_tipo_check` do banco — alinhados
 // ao union TipoEvento do domínio (packages/domain/src/lead.ts). NÃO reexportar
 // daqui: este é um módulo "use server" e só pode exportar funções async; quem
-// precisar do tipo importa direto de @mobia/domain.
+// precisar do tipo importa direto de @imobia/domain.
 
 type Json = Database["public"]["Tables"]["eventos"]["Row"]["metadata"];
 

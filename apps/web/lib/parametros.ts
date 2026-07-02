@@ -1,5 +1,5 @@
-import { obterParametrosAtuais } from "@mobia/core";
-import { parametrosFinanceirosSchema, type ParametrosFinanceiros } from "@mobia/domain";
+import { obterParametrosAtuais } from "@imobia/core";
+import { parametrosFinanceirosSchema, type ParametrosFinanceiros } from "@imobia/domain";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
 // Teto de espera pela leitura do banco. Com o backend fora do ar, um fetch sem
@@ -43,7 +43,7 @@ export async function obterParametrosVigentesDoBanco(): Promise<ParametrosFinanc
   } catch (erro) {
     falhaAte = Date.now() + MEMO_FALHA_MS;
     console.warn(
-      "parametros_financeiros indisponível — usando seed embarcado do @mobia/core:",
+      "parametros_financeiros indisponível — usando seed embarcado do @imobia/core:",
       erro instanceof Error ? erro.message : erro,
     );
     return obterParametrosAtuais();

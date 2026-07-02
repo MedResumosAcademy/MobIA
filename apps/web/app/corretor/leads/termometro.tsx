@@ -1,8 +1,8 @@
 // Apresentação do TERMÔMETRO (§5.3) — rótulos, chamas e cores por temperatura.
-// PURA UI: nenhuma regra de negócio aqui (a temperatura/score vêm do @mobia/core
+// PURA UI: nenhuma regra de negócio aqui (a temperatura/score vêm do @imobia/core
 // via lib/dados/leads.ts). Este módulo só traduz o enum em algo visível.
 
-import type { Temperatura } from "@mobia/domain";
+import type { Temperatura } from "@imobia/domain";
 
 type EstiloTermometro = {
   rotulo: string;

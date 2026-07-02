@@ -1,4 +1,4 @@
-// Tipos e enums fundamentais compartilhados por todo o MobIA.
+// Tipos e enums fundamentais compartilhados por todo o ImobIA.
 // Este arquivo é a fonte de verdade para vocabulário do domínio —
 // os demais módulos (domain e core) constroem sobre ele.
 

@@ -12,7 +12,7 @@ import {
   statusImovelSchema,
   tipoImovelSchema,
   ufSchema,
-} from "@mobia/domain";
+} from "@imobia/domain";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import {
   atualizarImovel,

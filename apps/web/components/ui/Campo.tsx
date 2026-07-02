@@ -1,4 +1,4 @@
-// Campos de formulário consistentes do kit MobIA (paleta QUENTE).
+// Campos de formulário consistentes do kit ImobIA (paleta QUENTE).
 // Componentes PUROS de apresentação: repassam todos os atributos nativos.
 // Objetivo: inputs/selects/textarea com o MESMO acabamento (hairline, radii
 // rounded-xl, foco laranja, estados hover) nas telas de busca, filtros,

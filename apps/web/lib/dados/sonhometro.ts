@@ -3,13 +3,13 @@
 // cidadeUF), calcula a capacidade com os parâmetros vigentes e persiste:
 //  - cliente logado: UPSERT do próprio cliente_profiles (renda/fgts/etc +
 //    capacidade_calculada);
-//  - SEMPRE grava o cookie 'mobia_capacidade' (funciona para anônimo também);
+//  - SEMPRE grava o cookie 'imobia_capacidade' (funciona para anônimo também);
 //  - registra o evento 'sonhometro_completo'.
 // Todo resultado é ESTIMATIVA (ehEstimativa: true no core).
 "use server";
 
-import { calcularCapacidade, type PerfilSonhometro, type ResultadoSonhometro } from "@mobia/core";
-import { estadoCivilSchema, type Database } from "@mobia/domain";
+import { calcularCapacidade, type PerfilSonhometro, type ResultadoSonhometro } from "@imobia/core";
+import { estadoCivilSchema, type Database } from "@imobia/domain";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { obterSessao } from "@/lib/auth/sessao";

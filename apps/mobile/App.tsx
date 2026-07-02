@@ -2,7 +2,7 @@
 // imóveis disponíveis (lê de `imoveis` via Supabase; RLS limita a status
 // 'disponivel'). Ao tocar num card, abre a FICHA com fotos, descrição e — se o
 // imóvel tiver esquema de pagamento — a simulação "Compre do seu jeito" via
-// @mobia/core. A "prova do motor" (H-01/H-04) segue acessível por uma aba.
+// @imobia/core. A "prova do motor" (H-01/H-04) segue acessível por uma aba.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -27,8 +27,8 @@ import {
   formatarReais,
   obterParametrosAtuais,
   recalcularPlano,
-} from "@mobia/core";
-import type { PerfilSonhometro, ResultadoSonhometro } from "@mobia/core";
+} from "@imobia/core";
+import type { PerfilSonhometro, ResultadoSonhometro } from "@imobia/core";
 import type {
   EsquemaPagamento,
   EstadoCivil,
@@ -36,7 +36,7 @@ import type {
   ParametrosFinanceiros,
   PlanoPagamentoRecalculado,
   TipoImovel,
-} from "@mobia/domain";
+} from "@imobia/domain";
 import { supabase } from "./lib/supabase";
 
 // Modalidades rotuladas para o detalhamento do Sonhômetro (reusa ROTULO_MODALIDADE
@@ -927,7 +927,7 @@ function TelaFavoritos({
 
 // --- Sonhômetro (H-16/H-17/H-18) --------------------------------------------
 //
-// Formulário → calcularCapacidade(@mobia/core) com obterParametrosAtuais() →
+// Formulário → calcularCapacidade(@imobia/core) com obterParametrosAtuais() →
 // "Você consegue comprar até R$ X" + melhor modalidade + detalhamento. Persiste
 // a capacidade em cliente_profiles (upsert do próprio) e registra o evento
 // 'sonhometro_completo'. A capacidade fica disponível para o catálogo filtrar.
@@ -1270,7 +1270,7 @@ function TelaLogin() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Text style={styles.titulo}>MobIA</Text>
+      <Text style={styles.titulo}>ImobIA</Text>
       <Text style={styles.frase}>Entre para montar sua própria compra.</Text>
 
       <View style={styles.card}>
@@ -1337,7 +1337,7 @@ function TelaProvaDoMotor() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>MobIA</Text>
+      <Text style={styles.titulo}>ImobIA</Text>
       <Text style={styles.frase}>
         O primeiro aplicativo que permite ao cliente montar sua própria compra.
       </Text>
@@ -1346,7 +1346,7 @@ function TelaProvaDoMotor() {
         <Text style={styles.cardTitulo}>Prova do motor</Text>
         <Text style={styles.cardDescricao}>
           Imóvel de {formatarReais(VALOR_IMOVEL)} com entrada de {formatarReais(ENTRADA)}, calculado
-          via @mobia/core.
+          via @imobia/core.
         </Text>
 
         {linhas.map((linha) => (

@@ -1,5 +1,5 @@
 -- ============================================================================
--- seed-dev.sql — Seed de desenvolvimento/teste RLS do MobIA (H-03 DoD).
+-- seed-dev.sql — Seed de desenvolvimento/teste RLS do ImobIA (H-03 DoD).
 -- IDEMPOTENTE: re-executável (on conflict do nothing em todos os inserts).
 -- Executar como service_role/postgres (bypassa RLS; org_id dos favoritos/
 -- simulacoes/eventos é reescrito pelo trigger anti-forja de qualquer forma).

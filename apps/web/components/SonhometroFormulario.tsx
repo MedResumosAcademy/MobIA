@@ -5,8 +5,8 @@
 // a melhor modalidade e o detalhamento por modalidade. Tudo é ESTIMATIVA.
 "use client";
 
-import type { ResultadoSonhometro } from "@mobia/core";
-import { ESTADOS_CIVIS, type EstadoCivil } from "@mobia/domain";
+import type { ResultadoSonhometro } from "@imobia/core";
+import { ESTADOS_CIVIS, type EstadoCivil } from "@imobia/domain";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { calcularESalvarCapacidade } from "@/lib/dados/sonhometro";

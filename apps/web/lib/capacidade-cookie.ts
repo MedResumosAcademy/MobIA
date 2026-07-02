@@ -4,10 +4,10 @@
 // async — não podem reexportar constantes).
 
 /** Nome do cookie que guarda a capacidade calculada (centavos + timestamp). */
-export const COOKIE_CAPACIDADE = "mobia_capacidade";
+export const COOKIE_CAPACIDADE = "imobia_capacidade";
 
 /** Validade do cookie de capacidade: ~30 dias. */
 export const COOKIE_CAPACIDADE_MAX_AGE = 60 * 60 * 24 * 30;
 
-/** Formato serializado no cookie 'mobia_capacidade'. */
+/** Formato serializado no cookie 'imobia_capacidade'. */
 export type CookieCapacidade = { valor: number; criadoEm: string };

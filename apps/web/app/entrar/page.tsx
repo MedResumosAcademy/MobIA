@@ -4,7 +4,7 @@ import { entrar } from "@/lib/auth/acoes";
 import { Botao } from "@/components/ui/Botao";
 import { Campo, GrupoCampo } from "@/components/ui/Campo";
 
-export const metadata: Metadata = { title: "Entrar — MobIA" };
+export const metadata: Metadata = { title: "Entrar — ImobIA" };
 
 const MENSAGENS_ERRO: Record<string, string> = {
   "campos-obrigatorios": "Preencha e-mail e senha.",

@@ -1,5 +1,5 @@
 // Leitura da CAPACIDADE atual do cliente (E5 / H-18) — fonte para filtrar o
-// catálogo por "imóveis compatíveis". Prioriza o cookie 'mobia_capacidade'
+// catálogo por "imóveis compatíveis". Prioriza o cookie 'imobia_capacidade'
 // (serve anônimo e é a última interação do Sonhômetro); no fallback, para o
 // cliente logado, lê cliente_profiles.capacidade_calculada.
 "use server";
@@ -23,7 +23,7 @@ function lerCookieCapacidade(bruto: string | undefined): number | null {
 
 /**
  * Capacidade atual em CENTAVOS, ou null se desconhecida/desligada. Ordem:
- * cookie 'mobia_capacidade' → (se logado) cliente_profiles.capacidade_calculada.
+ * cookie 'imobia_capacidade' → (se logado) cliente_profiles.capacidade_calculada.
  */
 export async function obterCapacidadeAtual(): Promise<number | null> {
   const cookieStore = await cookies();

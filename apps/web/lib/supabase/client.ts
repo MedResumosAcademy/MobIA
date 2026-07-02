@@ -1,5 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
-import type { Database } from "@mobia/domain";
+import type { Database } from "@imobia/domain";
 
 export function criarClienteNavegador() {
   return createBrowserClient<Database>(

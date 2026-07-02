@@ -7,7 +7,7 @@
 -- CONSENTIR. Consentimento é OPT-IN (default false) e é imposto na RLS via o
 -- helper SECURITY DEFINER privado.cliente_consentiu(), não só na UI.
 --
--- O termômetro (temperatura do lead) é calculado NO APP pelo @mobia/core a
+-- O termômetro (temperatura do lead) é calculado NO APP pelo @imobia/core a
 -- partir dos sinais materializados aqui — NENHUM score é calculado em SQL.
 -- ============================================================================
 
@@ -21,7 +21,7 @@ alter table public.cliente_profiles
 
 -- ----------------------------------------------------------------------------
 -- 2) leads — contadores de sinais materializados a partir dos eventos. O app
---    lê estes campos e recalcula a temperatura no @mobia/core na leitura.
+--    lê estes campos e recalcula a temperatura no @imobia/core na leitura.
 -- ----------------------------------------------------------------------------
 alter table public.leads
   add column visitas int not null default 0,

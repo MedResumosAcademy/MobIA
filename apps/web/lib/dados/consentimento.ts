@@ -4,7 +4,7 @@
 // privado.cliente_consentiu; aqui só gravamos/lemos a flag do PRÓPRIO cliente.
 "use server";
 
-import type { Database } from "@mobia/domain";
+import type { Database } from "@imobia/domain";
 import { obterSessao } from "@/lib/auth/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 

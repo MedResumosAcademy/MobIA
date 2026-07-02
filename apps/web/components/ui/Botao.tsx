@@ -1,4 +1,4 @@
-// Botão consistente do kit MobIA — estilos de ação (paleta quente).
+// Botão consistente do kit ImobIA — estilos de ação (paleta quente).
 // Componente PURO de apresentação: aceita todos os atributos nativos de <button>.
 // Para links com aparência de botão, use `classesBotao(...)` em um <Link>.
 //   primario   = ação/marca (LARANJA sólido, sombra suave, hover mais escuro)

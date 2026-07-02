@@ -1,5 +1,5 @@
 // Camada de dados de imóveis — funções server-side. Mapeia snake_case⇄camelCase
-// e valida com zod de @mobia/domain. RLS multi-tenant cuida do escopo:
+// e valida com zod de @imobia/domain. RLS multi-tenant cuida do escopo:
 // catálogo público só vê status='disponivel'; corretor/gestor só a própria org.
 // Módulo de dados server-side (NÃO é um arquivo de Server Actions: exporta
 // schemas/tipos além de funções). Importado só por Server Components e ações.
@@ -18,7 +18,7 @@ import {
   type Modalidade,
   type StatusImovel,
   type TipoImovel,
-} from "@mobia/domain";
+} from "@imobia/domain";
 import { z } from "zod";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { criarClientePublico } from "@/lib/supabase/publico";

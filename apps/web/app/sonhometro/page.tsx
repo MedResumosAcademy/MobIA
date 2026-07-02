@@ -5,7 +5,7 @@
 import type { Metadata } from "next";
 import { SonhometroFormulario } from "@/components/SonhometroFormulario";
 
-export const metadata: Metadata = { title: "Sonhômetro — MobIA" };
+export const metadata: Metadata = { title: "Sonhômetro — ImobIA" };
 
 export default function PaginaSonhometro() {
   return (

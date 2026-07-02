@@ -1,13 +1,13 @@
 // Simulador interativo "Compre do seu jeito" (E3/E4 — H-12/13/14/15).
 // Client Component: recebe do Server Component tudo serializável (valores em
 // centavos, esquema completo, opções de modalidade) e recalcula o plano EM
-// TEMPO REAL no browser via @mobia/core (TS puro, síncrono, sem ida ao
+// TEMPO REAL no browser via @imobia/core (TS puro, síncrono, sem ida ao
 // servidor). O usuário arrasta a barra de entrada / troca a modalidade e os
 // números + a timeline (PlanoPagamentoVisual) reagem instantaneamente.
 "use client";
 
-import { formatarReais, recalcularPlano } from "@mobia/core";
-import type { EsquemaPagamento, Modalidade, SistemaAmortizacao } from "@mobia/domain";
+import { formatarReais, recalcularPlano } from "@imobia/core";
+import type { EsquemaPagamento, Modalidade, SistemaAmortizacao } from "@imobia/domain";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { registrarSimulacaoAction } from "@/app/imoveis/[id]/acoes";
 import { PlanoPagamentoVisual } from "@/components/PlanoPagamentoVisual";
@@ -239,7 +239,7 @@ function PlanoResultado({
   plano,
   numeroParcelas,
 }: {
-  plano: import("@mobia/domain").PlanoPagamentoRecalculado;
+  plano: import("@imobia/domain").PlanoPagamentoRecalculado;
   numeroParcelas: number;
 }) {
   const { financiamentoPosChaves } = plano;

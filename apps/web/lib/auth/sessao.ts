@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { papelSchema, type Papel } from "@mobia/domain";
+import { papelSchema, type Papel } from "@imobia/domain";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
 export type Sessao = { usuarioId: string; email: string | null };

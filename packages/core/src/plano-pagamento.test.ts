@@ -8,7 +8,7 @@ import {
   type Balao,
   type Centavos,
   type EsquemaPagamento,
-} from "@mobia/domain";
+} from "@imobia/domain";
 import { parcelaPrice, taxaMensalDeAnual } from "./financiamento";
 import {
   recalcularPlano,

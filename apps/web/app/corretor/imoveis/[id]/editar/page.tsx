@@ -6,13 +6,13 @@ import {
   type ImovelDetalhe,
   type Unidade,
 } from "@/lib/dados/imoveis";
-import { statusImovelSchema } from "@mobia/domain";
+import { statusImovelSchema } from "@imobia/domain";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { atualizarImovelAction } from "../../acoes";
 import { FormularioImovel } from "../../FormularioImovel";
 import { Unidades } from "../../Unidades";
 
-export const metadata: Metadata = { title: "Editar imóvel — MobIA" };
+export const metadata: Metadata = { title: "Editar imóvel — ImobIA" };
 export const dynamic = "force-dynamic";
 
 const MENSAGENS_ERRO: Record<string, string> = {

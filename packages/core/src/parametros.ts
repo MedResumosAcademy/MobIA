@@ -20,7 +20,7 @@
 // persistência. Os apps NÃO devem importar a constante diretamente: usar
 // `obterParametrosAtuais()` (ponto único a trocar pela fonte externa/DB).
 
-import type { FaixaModalidade, ParametrosFinanceiros } from "@mobia/domain";
+import type { FaixaModalidade, ParametrosFinanceiros } from "@imobia/domain";
 import { taxaAnualEfetivaDeNominal } from "./financiamento";
 
 /**

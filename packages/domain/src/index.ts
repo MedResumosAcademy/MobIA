@@ -1,4 +1,4 @@
-// @mobia/domain — tipos e schemas compartilhados (zod).
+// @imobia/domain — tipos e schemas compartilhados (zod).
 //
 // Cobertura do ESCOPO.md §7 — omissão DELIBERADA na Fase 0: as entidades
 // Negocio/Deal (funil de vendas) e Pagamento (parcelas de negócio fechado) são

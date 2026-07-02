@@ -4,7 +4,7 @@
 // espera nem bloqueia. No-op para anônimo/corretor (registrarEvento decide).
 "use server";
 
-import type { Modalidade } from "@mobia/domain";
+import type { Modalidade } from "@imobia/domain";
 import { registrarEvento } from "@/lib/dados/eventos";
 
 /**

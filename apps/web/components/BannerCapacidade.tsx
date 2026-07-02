@@ -4,7 +4,7 @@
 // catálogo sem o teto. Client Component só pela interação do botão.
 "use client";
 
-import { formatarReais } from "@mobia/core";
+import { formatarReais } from "@imobia/core";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { limparCapacidade } from "@/lib/capacidade";
