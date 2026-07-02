@@ -7,3 +7,4 @@ export * from "./modalidades";
 export * from "./plano-pagamento";
 export * from "./sonhometro";
 export * from "./termometro";
+export * from "./coringa";

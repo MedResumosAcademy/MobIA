@@ -332,6 +332,31 @@ export async function listarImoveisDaOrg(): Promise<ImovelDetalhe[]> {
   return (data ?? []).map((l) => mapDetalhe(l, []));
 }
 
+/**
+ * Imóvel + unidades da própria org — TODOS os status (RLS server-side).
+ * Gêmeo org-scoped de obterImovel (público, só status='disponivel'): use este
+ * quando a origem já é a lista autorizada da org (ex.: Coringa), para que um
+ * imóvel reservado/vendido visível no SELECT não falhe na ação. Retorna null se
+ * fora do escopo (RLS) ou inexistente.
+ */
+export async function obterImovelDaOrg(id: string): Promise<ImovelDetalhe | null> {
+  const supabase = await criarClienteServidor();
+  const { data: imovel, error } = await supabase
+    .from("imoveis")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !imovel) {
+    return null;
+  }
+  const { data: unidades } = await supabase
+    .from("unidades")
+    .select("*")
+    .eq("imovel_id", id)
+    .order("identificador", { ascending: true });
+  return mapDetalhe(imovel, unidades ?? []);
+}
+
 // --- Escrita (escopo org via sessão) ---
 
 async function exigirCorretor(): Promise<{ usuarioId: string; orgId: string }> {

@@ -20,6 +20,9 @@ export default async function PainelCorretor() {
         </p>
 
         <nav className="mt-6 flex flex-wrap gap-3">
+          <Link href="/corretor/coringa" className={classesBotao("primario", "md")}>
+            Coringa
+          </Link>
           <Link href="/corretor/imoveis" className={classesBotao("secundario", "md")}>
             Meus imóveis
           </Link>
