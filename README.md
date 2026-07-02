@@ -30,7 +30,8 @@ ImobIA é um sistema imobiliário com duas faces:
 - ✅ **Redesign visual (padrão portal)**: tema claro, atributos de imóvel (m²/quartos/banheiros/vagas), cards, catálogo, ficha (2 colunas) e landing no nível de um portal imobiliário; design system com tokens da marca + `components/ui` (lucide-react)
 - ✅ **Overhaul visual (nível portal)**: paleta quente laranja/âmbar (`#DB6414`/`#F2A93B`), acabamento inspirado em Airbnb/Chaves na Mão — busca no hero, pílulas de categoria, cards foto-forward com preço em sans bold, ficha com galeria em mosaico + lightbox e card de preço sticky, aplicado em TODAS as telas (cliente, corretor, ferramentas, auth) e no mobile; design system com `components/ui` (Botao, Badge, Selo, Campo, PilulasCategoria)
 - ✅ V1 — **Coringa** (motor de estratégias): dado o cenário do cliente (renda, FGTS, entrada, imóvel-alvo), o `@imobia/core` gera e ranqueia jogadas — aumentar entrada, usar FGTS, trocar modalidade/unidade, ajustar prazo, amortizar — com impacto exato (parcela antes→depois, economia total, prazo) e explicação em pt-BR; tela `/corretor/coringa`. Motor validado numericamente (20 testes)
-- ⏭️ Próximo (V1): métricas de funil (CAC, conversão) e visão de Imobiliária/Gestor
+- ✅ V1 — **Visão de Gestor/Imobiliária** (`/corretor/equipe`): dashboard consolidado da org (imóveis por status, leads consentidos, prontos para compra, corretores), distribuição de temperatura, desempenho por corretor, e **distribuição de leads** (gestor reatribui lead a outro corretor da org, via RLS — 7 vetores adversariais verdes)
+- ⏭️ Próximo (V1): funil de negócios (Negócio/Deal) para conversão real + contato do lead
 
 > Convites de corretor/gestor: signup público sempre nasce `cliente`; promoção só via `privado.convites` (server-side). Seed de dev: `supabase/seed-dev.sql` (usuários @teste.mobia, senha `MobIA!teste1`).
 

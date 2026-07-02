@@ -26,6 +26,8 @@ export type LeadPainel = {
   id: string;
   clienteId: string;
   imovelId: string;
+  /** Corretor atualmente responsável pelo lead (para reatribuição do gestor). */
+  corretorId: string;
   /** Nome do cliente (perfis.nome) — null se a RLS não expõe ou não preenchido. */
   clienteNome: string | null;
   /** Título derivado do imóvel (o banco não tem coluna de título). */
@@ -104,6 +106,7 @@ function mapLeadPainel(
     id: l.id,
     clienteId: l.cliente_id,
     imovelId: l.imovel_id,
+    corretorId: l.corretor_id,
     clienteNome,
     imovelTitulo: tituloImovel(imovel),
     temperatura,

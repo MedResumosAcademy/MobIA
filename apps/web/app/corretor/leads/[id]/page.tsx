@@ -7,8 +7,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatarReais } from "@imobia/core";
 import { obterLead } from "@/lib/dados/leads";
+import { listarCorretoresDaOrg, obterPapelEOrg } from "@/lib/dados/gestor";
 import { ChipTermometro } from "../termometro";
 import { tempoRelativo } from "../tempo";
+import { ReatribuirLead } from "./reatribuir";
 
 export const metadata: Metadata = { title: "Lead — ImobIA" };
 export const dynamic = "force-dynamic";
@@ -24,6 +26,12 @@ export default async function PaginaLead({
     notFound();
   }
   const { lead, timeline, capacidadeCliente } = detalhe;
+
+  // Só gestor/admin veem o controle de reatribuição; corretor comum, não.
+  const papelEOrg = await obterPapelEOrg();
+  const podeReatribuir =
+    papelEOrg?.papel === "gestor" || papelEOrg?.papel === "admin";
+  const corretores = podeReatribuir ? await listarCorretoresDaOrg() : [];
 
   return (
     <div className="flex flex-1 flex-col items-center bg-background px-6 py-16 font-sans">
@@ -93,6 +101,14 @@ export default async function PaginaLead({
             </ol>
           )}
         </section>
+
+        {podeReatribuir && (
+          <ReatribuirLead
+            leadId={lead.id}
+            corretorAtualId={lead.corretorId}
+            corretores={corretores}
+          />
+        )}
       </main>
     </div>
   );

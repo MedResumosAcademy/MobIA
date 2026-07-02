@@ -29,6 +29,11 @@ export default async function PainelCorretor() {
           <Link href="/corretor/leads" className={classesBotao("secundario", "md")}>
             Leads
           </Link>
+          {(perfil?.papel === "gestor" || perfil?.papel === "admin") && (
+            <Link href="/corretor/equipe" className={classesBotao("secundario", "md")}>
+              Equipe
+            </Link>
+          )}
         </nav>
 
         <section className="mt-8 rounded-2xl border border-border bg-surface-card p-8 shadow-[var(--shadow-soft)]">
