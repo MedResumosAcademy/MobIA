@@ -10,3 +10,4 @@ export * from "./termometro";
 export * from "./coringa";
 export * from "./funil";
 export * from "./metricas";
+export * from "./gamificacao";

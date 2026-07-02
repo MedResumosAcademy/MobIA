@@ -17,4 +17,5 @@ export * from "./parametros";
 export * from "./coringa";
 export * from "./negocio";
 export * from "./tarefa";
+export * from "./perfil";
 export type { Database, Json } from "./database.types";

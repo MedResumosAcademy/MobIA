@@ -482,7 +482,14 @@ function Ranking({ linhas }: { linhas: DashboardGerencial["metricas"]["ranking"]
                     {i + 1}
                   </span>
                 </td>
-                <td className="px-4 py-3 font-medium text-foreground">{c.nome}</td>
+                <td className="px-4 py-3 font-medium text-foreground">
+                  <Link
+                    href={`/corretor/perfil/${c.corretorId}`}
+                    className="inline-flex items-center gap-1 transition-colors hover:text-brand-strong hover:underline"
+                  >
+                    {c.nome}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 text-right tabular-nums font-semibold text-brand-strong">
                   {c.ganhos}
                 </td>

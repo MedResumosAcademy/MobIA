@@ -23,6 +23,7 @@ import {
   UsersRound,
   ArrowRight,
   AlertTriangle,
+  UserCircle,
 } from "lucide-react";
 import { formatarReais } from "@imobia/core";
 import { ETAPAS_NEGOCIO, type EtapaNegocio } from "@imobia/domain";
@@ -138,6 +139,12 @@ export default async function PainelCorretor() {
               titulo="Coringa"
               descricao="Sua ferramenta rápida do dia a dia"
               destaque
+            />
+            <CardAtalho
+              href="/corretor/perfil"
+              icone={<UserCircle className="h-5 w-5" aria-hidden />}
+              titulo="Meu perfil"
+              descricao="Sua vitrine, conquistas e depoimentos"
             />
             <CardAtalho
               href="/corretor/imoveis"

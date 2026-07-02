@@ -79,18 +79,36 @@ export type Database = {
       }
       corretor_profiles: {
         Row: {
+          bio: string | null
+          capa_url: string | null
+          cidade: string | null
           creci: string
+          foto_url: string | null
+          instagram: string | null
           org_id: string
+          telefone: string | null
           usuario_id: string
         }
         Insert: {
+          bio?: string | null
+          capa_url?: string | null
+          cidade?: string | null
           creci: string
+          foto_url?: string | null
+          instagram?: string | null
           org_id: string
+          telefone?: string | null
           usuario_id: string
         }
         Update: {
+          bio?: string | null
+          capa_url?: string | null
+          cidade?: string | null
           creci?: string
+          foto_url?: string | null
+          instagram?: string | null
           org_id?: string
+          telefone?: string | null
           usuario_id?: string
         }
         Relationships: [
@@ -106,6 +124,54 @@ export type Database = {
             columns: ["usuario_id"]
             isOneToOne: true
             referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      depoimentos: {
+        Row: {
+          autor_nome: string
+          autor_relacao: string | null
+          corretor_id: string
+          criado_em: string
+          id: string
+          nota: number | null
+          org_id: string
+          texto: string
+        }
+        Insert: {
+          autor_nome: string
+          autor_relacao?: string | null
+          corretor_id: string
+          criado_em?: string
+          id?: string
+          nota?: number | null
+          org_id: string
+          texto: string
+        }
+        Update: {
+          autor_nome?: string
+          autor_relacao?: string | null
+          corretor_id?: string
+          criado_em?: string
+          id?: string
+          nota?: number | null
+          org_id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "depoimentos_corretor_id_fkey"
+            columns: ["corretor_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "depoimentos_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
             referencedColumns: ["id"]
           },
         ]
