@@ -68,6 +68,14 @@ export default async function RootLayout({
           </div>
           {sessao ? (
             <div className="flex items-center gap-4">
+              {ehCliente && (
+                <Link
+                  href="/conta"
+                  className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
+                >
+                  Minha conta
+                </Link>
+              )}
               <span className="text-sm text-zinc-600 dark:text-zinc-400">{sessao.email}</span>
               <form action={sair}>
                 <button

@@ -1,0 +1,110 @@
+// Detalhe de um LEAD (ESCOPO §5.2–5.3): termômetro, TIMELINE cronológica do
+// comportamento do cliente e a capacidade do Sonhômetro (se a RLS a expõe).
+// A visibilidade é governada pela RLS + consentimento (Decisão 6).
+
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { formatarReais } from "@mobia/core";
+import { obterLead } from "@/lib/dados/leads";
+import { ChipTermometro } from "../termometro";
+import { tempoRelativo } from "../tempo";
+
+export const metadata: Metadata = { title: "Lead — MobIA" };
+export const dynamic = "force-dynamic";
+
+export default async function PaginaLead({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const detalhe = await obterLead(id);
+  if (!detalhe) {
+    notFound();
+  }
+  const { lead, timeline, capacidadeCliente } = detalhe;
+
+  return (
+    <div className="flex flex-1 flex-col items-center bg-zinc-50 px-6 py-16 font-sans dark:bg-black">
+      <main className="w-full max-w-2xl">
+        <Link
+          href="/corretor/leads"
+          className="text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+        >
+          ← Voltar aos leads
+        </Link>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+            {lead.clienteNome ?? "Cliente"}
+          </h1>
+          <ChipTermometro temperatura={lead.temperatura} />
+        </div>
+        <p className="mt-2 text-zinc-600 dark:text-zinc-400">{lead.imovelTitulo}</p>
+
+        <section className="mt-8 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
+          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <Contador rotulo="Visitas" valor={lead.sinais.visitas} />
+            <Contador rotulo="Simulações" valor={lead.sinais.simulacoes} />
+            <Contador rotulo="Favoritos" valor={lead.sinais.favoritos} />
+            <Contador
+              rotulo="Cliques financiamento"
+              valor={lead.sinais.cliquesFinanciamento}
+            />
+            <Contador rotulo="Retornos" valor={lead.sinais.retornos} />
+          </dl>
+          {capacidadeCliente !== null && (
+            <div className="mt-6 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+              <dt className="text-sm text-zinc-500 dark:text-zinc-400">
+                Capacidade estimada (Sonhômetro)
+              </dt>
+              <dd className="mt-1 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+                {formatarReais(capacidadeCliente)}
+              </dd>
+            </div>
+          )}
+        </section>
+
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+            Comportamento
+          </h2>
+          {timeline.length === 0 ? (
+            <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+              Nenhuma atividade registrada ainda.
+            </p>
+          ) : (
+            <ol className="mt-4 flex flex-col gap-4 border-l border-zinc-200 pl-5 dark:border-zinc-800">
+              {timeline.map((item) => (
+                <li key={item.id} className="relative">
+                  <span
+                    aria-hidden
+                    className="absolute -left-[27px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-zinc-300 dark:border-black dark:bg-zinc-600"
+                  />
+                  <p className="text-sm text-zinc-950 dark:text-zinc-50">
+                    {item.descricao}
+                  </p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                    {tempoRelativo(item.criadoEm)}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function Contador({ rotulo, valor }: { rotulo: string; valor: number }) {
+  return (
+    <div>
+      <dt className="text-xs text-zinc-500 dark:text-zinc-400">{rotulo}</dt>
+      <dd className="mt-0.5 text-xl font-semibold text-zinc-950 dark:text-zinc-50">
+        {valor}
+      </dd>
+    </div>
+  );
+}

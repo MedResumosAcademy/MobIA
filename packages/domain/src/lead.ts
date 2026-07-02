@@ -65,3 +65,30 @@ export const leadSchema = z
   .strict();
 
 export type Lead = z.infer<typeof leadSchema>;
+
+/**
+ * Sinais de comportamento AGREGADOS de um cliente (num imóvel ou no geral) que
+ * alimentam o termômetro de lead scoring (ESCOPO.md §5.3). Cada campo é a
+ * contagem de eventos daquele tipo — todos inteiros >= 0.
+ *
+ * Derivam dos `TIPOS_EVENTO`: `visitas` ← visita_ficha, `simulacoes` ←
+ * simulacao, `favoritos` ← favorito, `cliquesFinanciamento` ←
+ * clique_financiamento, `retornos` ← retorno. A lógica de scoring vive no motor
+ * puro (@mobia/core), não em SQL.
+ */
+export const sinaisLeadSchema = z
+  .object({
+    /** Nº de visitas à ficha do imóvel (evento visita_ficha). */
+    visitas: z.number().int().nonnegative(),
+    /** Nº de simulações de financiamento feitas (evento simulacao). */
+    simulacoes: z.number().int().nonnegative(),
+    /** Nº de vezes que o cliente favoritou (evento favorito). */
+    favoritos: z.number().int().nonnegative(),
+    /** Nº de cliques em "financiamento" — sinal de maior intenção (evento clique_financiamento). */
+    cliquesFinanciamento: z.number().int().nonnegative(),
+    /** Nº de retornos do cliente (evento retorno). */
+    retornos: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export type SinaisLead = z.infer<typeof sinaisLeadSchema>;

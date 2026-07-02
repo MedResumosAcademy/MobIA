@@ -118,9 +118,15 @@ insert into public.eventos (id, cliente_id, imovel_id, org_id, tipo, metadata) v
 on conflict (id) do nothing;
 
 -- Lead correspondente (criação server-side, H-22) ----------------------------
+-- Contadores por tipo alinhados aos 2 eventos acima (1 visita_ficha + 1 simulacao),
+-- espelhando o mapeamento do trigger privado.materializar_lead. Como os eventos são
+-- semeados diretamente (sem passar pelo trigger AFTER INSERT), os contadores PRECISAM
+-- ser explícitos aqui, senão o lead consentido aparece com score 0 no painel.
 insert into public.leads (id, org_id, corretor_id, cliente_id, imovel_id,
-                          temperatura, origem, eventos_count) values
+                          temperatura, origem, eventos_count,
+                          visitas, simulacoes, favoritos, cliques_financiamento, retornos) values
   ('abcdefab-cdef-4abc-8def-000000000001', '11111111-1111-4111-8111-111111111111',
    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', 'cccccccc-cccc-4ccc-8ccc-ccccccccccc1',
-   '11111111-aaaa-4aaa-8aaa-000000000001', 'quente', 'catalogo', 2)
+   '11111111-aaaa-4aaa-8aaa-000000000001', 'quente', 'catalogo', 2,
+   1, 1, 0, 0, 0)
 on conflict (org_id, cliente_id, imovel_id) do nothing;

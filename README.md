@@ -26,7 +26,8 @@ MobIA é um sistema imobiliário com duas faces:
 - ✅ MVP E3/E4 — "Compre do seu jeito": slider de entrada recalculando o plano **em tempo real no cliente** (via `@mobia/core`, sem ida ao servidor), toggle de modalidade elegível e timeline visual reativa — web e mobile. Invariante do plano verificado em 51/51 posições do slider
 - ✅ MVP E5/E6 — **Sonhômetro** (`/sonhometro`): quiz de capacidade → "você consegue comprar até R$ X" + detalhamento por modalidade, catálogo passa a filtrar por capacidade; **favoritos** (coração no card/ficha, `/favoritos`) e **comparação** de imóveis (`/comparar`) — web e mobile
 - 🎉 **MVP da experiência do cliente completo** (E1–E8): descobrir → montar a compra → descobrir quanto pode → favoritar/comparar
-- ⏭️ Próximo (V1): painel do corretor com leads, timeline e termômetro 🔥
+- ✅ V1 (parte 1) — **Painel do corretor**: captura automática de leads (trigger materializa eventos → leads), **termômetro** 🔥 no `@mobia/core`, timeline de comportamento, painel `/corretor/leads`; **consentimento LGPD opt-in** com portão na RLS (corretor só vê clientes que consentiram) — web e mobile
+- ⏭️ Próximo (V1): Coringa (motor de estratégias) e métricas de funil (CAC, conversão)
 
 > Convites de corretor/gestor: signup público sempre nasce `cliente`; promoção só via `privado.convites` (server-side). Seed de dev: `supabase/seed-dev.sql` (usuários @teste.mobia, senha `MobIA!teste1`).
 

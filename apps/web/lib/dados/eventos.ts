@@ -3,7 +3,7 @@
 // Materialização de lead é V1 — NÃO fazer aqui.
 "use server";
 
-import type { TipoEvento } from "@mobia/domain";
+import type { Database, TipoEvento } from "@mobia/domain";
 import { obterSessao, obterPerfil } from "@/lib/auth/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
@@ -12,9 +12,14 @@ import { criarClienteServidor } from "@/lib/supabase/server";
 // daqui: este é um módulo "use server" e só pode exportar funções async; quem
 // precisar do tipo importa direto de @mobia/domain.
 
+type Json = Database["public"]["Tables"]["eventos"]["Row"]["metadata"];
+
+/** Metadata livre gravada no evento (jsonb). Ex.: { entrada } numa simulacao. */
+export type MetadataEvento = Record<string, unknown>;
+
 export async function registrarEvento(
   tipo: TipoEvento,
-  { imovelId }: { imovelId?: string } = {},
+  { imovelId, metadata }: { imovelId?: string; metadata?: MetadataEvento } = {},
 ): Promise<void> {
   const sessao = await obterSessao();
   if (!sessao) {
@@ -32,6 +37,8 @@ export async function registrarEvento(
     tipo,
     cliente_id: sessao.usuarioId,
     imovel_id: imovelId ?? null,
+    // Só envia metadata quando há algo — default do banco é {} (jsonb not null).
+    ...(metadata !== undefined ? { metadata: metadata as Json } : {}),
   });
   if (error) {
     // Não mascarar a falha: sem sinal capturado o lead scoring fica cego.

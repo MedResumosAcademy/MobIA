@@ -4,8 +4,10 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BannerConsentimento } from "@/components/BannerConsentimento";
 import { FavoritosLista } from "@/components/FavoritosLista";
 import { obterSessao } from "@/lib/auth/sessao";
+import { obterConsentimento } from "@/lib/dados/consentimento";
 import { listarFavoritos } from "@/lib/dados/favoritos";
 
 export const metadata: Metadata = { title: "Favoritos — MobIA" };
@@ -52,7 +54,13 @@ export default async function PaginaFavoritos() {
 }
 
 async function FavoritosConteudo() {
-  const imoveis = await listarFavoritos();
+  const [imoveis, consentimento] = await Promise.all([
+    listarFavoritos(),
+    obterConsentimento(),
+  ]);
+
+  // Banner discreto de intenção (LGPD): só para quem ainda não decidiu.
+  const bannerConsentimento = consentimento === null ? <BannerConsentimento /> : null;
 
   if (imoveis.length === 0) {
     return (
@@ -73,5 +81,10 @@ async function FavoritosConteudo() {
     );
   }
 
-  return <FavoritosLista imoveis={imoveis} />;
+  return (
+    <div className="flex flex-col gap-6">
+      {bannerConsentimento}
+      <FavoritosLista imoveis={imoveis} />
+    </div>
+  );
 }

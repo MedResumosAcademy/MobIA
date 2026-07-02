@@ -15,6 +15,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -244,6 +245,62 @@ function useFavoritos(usuarioId: string): FavoritosContexto {
   );
 
   return { favoritos, carregando, alternar, recarregar };
+}
+
+// Consentimento LGPD (Decisão 6): OPT-IN, default false, sempre reversível.
+// Enquanto o cliente não consentir, corretor/gestor NÃO enxerga seu
+// comportamento (imposto na RLS via privado.cliente_consentiu). Este hook só
+// mexe no PRÓPRIO perfil do usuário logado.
+interface ConsentimentoContexto {
+  consentiu: boolean;
+  carregando: boolean;
+  definir: (concedido: boolean) => Promise<void>;
+}
+
+function useConsentimento(usuarioId: string): ConsentimentoContexto {
+  const [consentiu, setConsentiu] = useState(false);
+  const [carregando, setCarregando] = useState(true);
+
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      const { data } = await supabase
+        .from("cliente_profiles")
+        .select("consentimento_leads")
+        .eq("usuario_id", usuarioId)
+        .maybeSingle();
+      if (!ativo) return;
+      setConsentiu(Boolean(data?.consentimento_leads));
+      setCarregando(false);
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, [usuarioId]);
+
+  const definir = useCallback(
+    async (concedido: boolean) => {
+      const anterior = consentiu;
+      // Atualização otimista.
+      setConsentiu(concedido);
+      const { error } = await supabase.from("cliente_profiles").upsert(
+        {
+          usuario_id: usuarioId,
+          consentimento_leads: concedido,
+          // Carimba o momento ao conceder; limpa ao revogar.
+          consentimento_leads_em: concedido ? new Date().toISOString() : null,
+        },
+        { onConflict: "usuario_id" },
+      );
+      if (error) {
+        // Reverte em caso de falha.
+        setConsentiu(anterior);
+      }
+    },
+    [consentiu, usuarioId],
+  );
+
+  return { consentiu, carregando, definir };
 }
 
 /** Botão de coração reutilizável (card do catálogo e ficha). */
@@ -857,10 +914,12 @@ function TelaSonhometro({
   usuarioId,
   perfilInicial,
   onCapacidade,
+  onSimulou,
 }: {
   usuarioId: string;
   perfilInicial: PerfilProfileRow | null;
   onCapacidade: (valor: number) => void;
+  onSimulou?: () => void;
 }) {
   const parametros = obterParametrosAtuais();
 
@@ -960,6 +1019,8 @@ function TelaSonhometro({
       });
     }
     setSalvando(false);
+    // Sinal de interesse: sugere (discretamente) ativar o compartilhamento.
+    onSimulou?.();
   }
 
   return (
@@ -1273,14 +1334,84 @@ function TelaProvaDoMotor() {
   );
 }
 
+// --- Privacidade / Conta ----------------------------------------------------
+
+// Tela de Conta com o portão de consentimento (LGPD). Opt-in explícito e
+// reversível a qualquer momento. Nenhum painel de corretor aqui — isso é web.
+function TelaConta({
+  email,
+  consentiu,
+  carregando,
+  onDefinirConsentimento,
+  onSair,
+}: {
+  email: string | undefined;
+  consentiu: boolean;
+  carregando: boolean;
+  onDefinirConsentimento: (concedido: boolean) => void;
+  onSair: () => void;
+}) {
+  return (
+    <View style={styles.tela}>
+      <View style={styles.cabecalho}>
+        <Text style={styles.tituloTela}>Conta</Text>
+        <Text style={styles.subtituloTela}>Sua conta e privacidade.</Text>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.contaConteudo}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitulo}>Acesso</Text>
+          <View style={styles.linha}>
+            <Text style={styles.rotulo}>E-mail</Text>
+            <Text style={styles.valor}>{email ?? "—"}</Text>
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.contaToggleLinha}>
+            <View style={styles.contaToggleTexto}>
+              <Text style={styles.cardTitulo}>Compartilhar meu interesse</Text>
+              <Text style={styles.cardDescricao}>
+                Ao ativar, você autoriza o corretor responsável a acompanhar seu
+                interesse pelos imóveis (favoritos, simulações e visitas) para te
+                atender melhor. Fica desativado por padrão.
+              </Text>
+            </View>
+            <Switch
+              value={consentiu}
+              disabled={carregando}
+              onValueChange={onDefinirConsentimento}
+              trackColor={{ false: "#e4e4e7", true: "#16a34a" }}
+            />
+          </View>
+          <Text style={styles.contaStatus}>
+            {consentiu
+              ? "Ativado — o corretor pode acompanhar seu interesse."
+              : "Desativado — nenhum corretor vê seu comportamento."}
+          </Text>
+          <Text style={styles.disclaimer}>
+            Você pode ativar ou desativar quando quiser. Ao desativar, o corretor
+            deixa de enxergar seu comportamento.
+          </Text>
+        </View>
+
+        <Pressable style={styles.contaSair} onPress={onSair}>
+          <Text style={styles.contaSairTexto}>Sair da conta</Text>
+        </Pressable>
+      </ScrollView>
+    </View>
+  );
+}
+
 // --- Shell autenticado: catálogo → ficha, com aba da prova do motor --------
 
-type Aba = "catalogo" | "favoritos" | "sonhometro" | "motor";
+type Aba = "catalogo" | "favoritos" | "sonhometro" | "conta" | "motor";
 
 const ABAS: Array<{ valor: Aba; rotulo: string }> = [
   { valor: "catalogo", rotulo: "Imóveis" },
   { valor: "favoritos", rotulo: "Favoritos" },
   { valor: "sonhometro", rotulo: "Sonhômetro" },
+  { valor: "conta", rotulo: "Conta" },
   { valor: "motor", rotulo: "Motor" },
 ];
 
@@ -1290,6 +1421,25 @@ function AppAutenticado({ sessao }: { sessao: Session }) {
   const [imovelAberto, setImovelAberto] = useState<ImovelRow | null>(null);
 
   const { favoritos, alternar } = useFavoritos(usuarioId);
+  const { consentiu, carregando: consentCarregando, definir } =
+    useConsentimento(usuarioId);
+
+  // Aviso discreto pós-ação (favoritar/simular) para quem ainda não ativou o
+  // compartilhamento. Não intrusivo: um rodapé dispensável, some ao ativar.
+  const [avisoConsentimento, setAvisoConsentimento] = useState(false);
+  const sugerirConsentimento = useCallback(() => {
+    if (!consentiu) setAvisoConsentimento(true);
+  }, [consentiu]);
+
+  // Favoritar dispara a sugestão discreta (além do fluxo normal).
+  const alternarComAviso = useCallback(
+    async (imovelId: string) => {
+      const eraFavorito = favoritos.has(imovelId);
+      await alternar(imovelId);
+      if (!eraFavorito) sugerirConsentimento();
+    },
+    [alternar, favoritos, sugerirConsentimento],
+  );
 
   // Capacidade calculada do Sonhômetro (centavos) — recuperada do perfil no
   // banco ao abrir e atualizada quando o cliente recalcula. Alimenta o filtro
@@ -1328,31 +1478,63 @@ function AppAutenticado({ sessao }: { sessao: Session }) {
             imovel={imovelAberto}
             onVoltar={() => setImovelAberto(null)}
             favorito={favoritos.has(imovelAberto.id)}
-            onAlternarFavorito={alternar}
+            onAlternarFavorito={alternarComAviso}
           />
         ) : aba === "catalogo" ? (
           <TelaCatalogo
             onAbrirFicha={setImovelAberto}
             favoritos={favoritos}
-            onAlternarFavorito={alternar}
+            onAlternarFavorito={alternarComAviso}
             capacidade={capacidade}
           />
         ) : aba === "favoritos" ? (
           <TelaFavoritos
             favoritos={favoritos}
             onAbrirFicha={setImovelAberto}
-            onAlternarFavorito={alternar}
+            onAlternarFavorito={alternarComAviso}
           />
         ) : aba === "sonhometro" ? (
           <TelaSonhometro
             usuarioId={usuarioId}
             perfilInicial={perfil}
             onCapacidade={setCapacidade}
+            onSimulou={sugerirConsentimento}
+          />
+        ) : aba === "conta" ? (
+          <TelaConta
+            email={sessao.user.email}
+            consentiu={consentiu}
+            carregando={consentCarregando}
+            onDefinirConsentimento={(c) => {
+              void definir(c);
+              if (c) setAvisoConsentimento(false);
+            }}
+            onSair={() => supabase.auth.signOut()}
           />
         ) : (
           <TelaProvaDoMotor />
         )}
       </View>
+
+      {avisoConsentimento && !consentiu && !imovelAberto ? (
+        <View style={styles.avisoConsent}>
+          <Text style={styles.avisoConsentTexto}>
+            Quer que o corretor te ajude com o que você curtiu? Ative o
+            compartilhamento em Conta.
+          </Text>
+          <Pressable
+            onPress={() => {
+              setAvisoConsentimento(false);
+              setAba("conta");
+            }}
+          >
+            <Text style={styles.avisoConsentLink}>Abrir</Text>
+          </Pressable>
+          <Pressable onPress={() => setAvisoConsentimento(false)}>
+            <Text style={styles.avisoConsentDispensar}>Agora não</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <View style={styles.tabBar}>
         {ABAS.map((item) => (
@@ -1843,5 +2025,66 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: "#ffffff",
+  },
+  contaConteudo: {
+    paddingBottom: 24,
+    gap: 4,
+  },
+  contaToggleLinha: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  contaToggleTexto: {
+    flexShrink: 1,
+  },
+  contaStatus: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#3f3f46",
+  },
+  contaSair: {
+    marginTop: 20,
+    marginHorizontal: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e4e4e7",
+    backgroundColor: "#ffffff",
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  contaSairTexto: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#dc2626",
+  },
+  avisoConsent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginHorizontal: 12,
+    marginBottom: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#eff6ff",
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+  },
+  avisoConsentTexto: {
+    flexShrink: 1,
+    fontSize: 12,
+    color: "#1e3a8a",
+  },
+  avisoConsentLink: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#1d4ed8",
+  },
+  avisoConsentDispensar: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#64748b",
   },
 });
