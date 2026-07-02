@@ -1,59 +1,60 @@
 @import "tailwindcss";
 
 /*
- * MobIA design tokens — "Claro & Editorial" (revista de arquitetura / alto padrão).
- * Superfícies em marfim/areia; marca = VERDE PROFUNDO #0F6B4F (aprovação/confiança);
- * acento DOURADO/champanhe #B8894B em detalhes (selos, hairlines) — parcimonioso.
- * Texto em grafite. Tipografia serifada (Fraunces) em títulos/preços.
- * Nomes de tokens preservados do design anterior — telas herdam os novos valores.
+ * MobIA design tokens — PALETA QUENTE (laranja/âmbar), acabamento nível
+ * Airbnb / Chaves na Mão / ImóvelWeb: foto-forward, sombras suaves em camadas,
+ * cantos generosos, tipografia SANS (Geist) para UI/preços/filtros.
+ * Marca = LARANJA #DB6414; acento = ÂMBAR #F2A93B (selos/detalhes, nunca texto pequeno).
+ * NOMES dos tokens preservados do design anterior — telas herdam os novos valores.
  */
 :root {
   color-scheme: light;
 
-  /* Superfícies — marfim/areia */
-  --background: #faf8f3; /* marfim base — fundo padrão */
-  --surface: #f3efe7; /* areia/cartão */
-  --surface-card: #ffffff; /* branco puro p/ cards que precisam destacar */
-  --surface-strong: #ece6da; /* areia mais densa — seções/realces */
-  --surface-muted: #f3efe7; /* alias de compatibilidade (seções alternadas) */
-  --border: #e5dfd3; /* hairline */
-  --border-strong: #d8d0c0; /* borda forte */
+  /* Superfícies — off-white quente / areia */
+  --background: #fbfaf8; /* página off-white quente — fundo padrão */
+  --surface: #f6f3ee; /* seção alternada */
+  --surface-card: #ffffff; /* branco puro — cards que destacam */
+  --surface-strong: #f0ebe3; /* areia forte — realces/seções */
+  --surface-muted: #f6f3ee; /* alias de compatibilidade (seções alternadas) */
+  --border: #eae6df; /* hairline */
+  --border-strong: #dad5cc; /* borda forte */
 
-  /* Texto — grafite */
-  --foreground: #1c1b19; /* grafite — títulos */
-  --muted: #4a4843; /* corpo */
-  --subtle: #7a776f; /* secundário */
+  /* Texto */
+  --foreground: #26241f; /* título */
+  --muted: #57534c; /* corpo */
+  --subtle: #8a857c; /* secundário */
 
-  /* Marca — verde profundo */
-  --brand: #0f6b4f; /* primário */
-  --brand-hover: #0b5a42; /* hover */
+  /* Marca — LARANJA */
+  --brand: #db6414; /* primário */
+  --brand-hover: #be550f; /* hover */
   --brand-contrast: #ffffff;
-  --brand-soft: #e3efe9; /* verde suave — fundos de badge */
-  --brand-soft-fg: #0b5a42; /* texto sobre verde suave */
+  --brand-soft: #fdeedd; /* laranja suave — fundos de badge */
+  --brand-strong: #9c4310; /* texto laranja em tamanho normal sobre claro (AA) */
+  --brand-soft-fg: #9c4310; /* texto sobre laranja suave — usa brand-strong */
 
-  /* Acento dourado/champanhe — USO PARCIMONIOSO (selos, hairlines, detalhes) */
-  --gold: #b8894b; /* dourado — selos/detalhes/hairline; nunca texto pequeno */
-  --gold-strong: #8a6631; /* dourado escuro — texto (se necessário) sobre claro */
-  --gold-soft: #f3ebdd; /* champanhe suave — fundo de selo destaque */
+  /* Acento — ÂMBAR/AMARELO (selos/destaques/filetes/ícones; NÃO texto pequeno) */
+  --gold: #f2a93b; /* âmbar — selos/detalhes/hairline */
+  --gold-strong: #8a5a12; /* âmbar escuro — texto (se necessário) sobre claro */
+  --gold-soft: #fef3e0; /* âmbar suave — fundo de selo destaque */
   --gold-contrast: #ffffff;
 
-  /* Badges por categoria (pílulas editoriais sobre areia/verde) */
-  --badge-lancamento-bg: #e3efe9; /* verde suave */
-  --badge-lancamento-fg: #0b5a42;
-  --badge-alto-padrao-bg: #f3ebdd; /* champanhe suave */
-  --badge-alto-padrao-fg: #8a6631; /* dourado escuro (contraste AA) */
-  --badge-mcmv-bg: #e3efe9; /* verde suave */
-  --badge-mcmv-fg: #0b5a42;
-  --badge-neutro-bg: #ece6da; /* areia */
-  --badge-neutro-fg: #4a4843;
+  /* Badges por categoria (pílulas quentes) */
+  --badge-lancamento-bg: #fdeedd; /* laranja suave */
+  --badge-lancamento-fg: #9c4310; /* brand-strong (AA) */
+  --badge-alto-padrao-bg: #fef3e0; /* âmbar suave */
+  --badge-alto-padrao-fg: #8a5a12; /* âmbar escuro (AA) */
+  --badge-mcmv-bg: #fdeedd; /* laranja suave */
+  --badge-mcmv-fg: #9c4310;
+  --badge-neutro-bg: #f0ebe3; /* areia */
+  --badge-neutro-fg: #57534c;
 
-  /* Foco a11y — verde profundo */
-  --focus-ring: #0f6b4f;
+  /* Foco a11y — laranja da marca */
+  --focus-ring: #db6414;
 
-  /* Sombras suaves e quentes (nada de preto duro) */
-  --shadow-soft: 0 6px 20px -12px rgb(28 27 25 / 0.14);
-  --shadow-card: 0 10px 30px -12px rgb(28 27 25 / 0.18);
-  --shadow-premium: 0 18px 48px -18px rgb(28 27 25 / 0.24);
+  /* Sombras suaves em camadas (nada de preto duro) */
+  --shadow-soft: 0 6px 20px -8px rgb(38 36 31 / 0.12);
+  --shadow-card: 0 16px 40px -14px rgb(38 36 31 / 0.18);
+  --shadow-premium: 0 22px 52px -18px rgb(38 36 31 / 0.22);
 }
 
 @theme inline {
@@ -76,9 +77,10 @@
   --color-brand-hover: var(--brand-hover);
   --color-brand-contrast: var(--brand-contrast);
   --color-brand-soft: var(--brand-soft);
+  --color-brand-strong: var(--brand-strong);
   --color-brand-soft-fg: var(--brand-soft-fg);
 
-  /* Dourado / champanhe */
+  /* Âmbar */
   --color-gold: var(--gold);
   --color-gold-strong: var(--gold-strong);
   --color-gold-soft: var(--gold-soft);
@@ -101,7 +103,7 @@
   --shadow-card: var(--shadow-card);
   --shadow-premium: var(--shadow-premium);
 
-  /* Tipografia — serif editorial (Fraunces) + sans (Geist) */
+  /* Tipografia — SANS (Geist) base; serif (Fraunces) opcional em h1/hero */
   --font-sans: var(--font-geist-sans);
   --font-serif: var(--font-fraunces);
   --font-mono: var(--font-geist-mono);
@@ -116,28 +118,37 @@ body {
   line-height: 1.6; /* corpo arejado */
 }
 
-/* Títulos base serifados — hierarquia editorial com tracking negativo sutil. */
+/*
+ * Títulos base em SANS (Geist) — hierarquia por peso/tamanho como nas
+ * referências (Airbnb/portais). A serif (Fraunces) é OPCIONAL e aplicada
+ * pontualmente via .font-serif em h1 de hero/títulos de página.
+ */
 h1,
 h2 {
-  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
-  font-optical-sizing: auto;
   letter-spacing: -0.02em;
   color: var(--foreground);
+  font-weight: 600;
 }
 h1 {
-  line-height: 1.08;
+  line-height: 1.1;
 }
 h2 {
-  line-height: 1.15;
+  line-height: 1.18;
 }
 
-/* Utilitário para elementos que devem usar a serif (preço, wordmark, destaques). */
+/* Utilitário opcional para título display serifado (hero/página). */
 .font-serif {
   font-family: var(--font-fraunces), ui-serif, Georgia, serif;
   font-optical-sizing: auto;
+  letter-spacing: -0.02em;
 }
 
-/* Foco visível e consistente (verde profundo) para navegação por teclado. */
+/* Utilitário para texto laranja legível (AA) em tamanho normal sobre claro. */
+.text-brand-strong {
+  color: var(--brand-strong);
+}
+
+/* Foco visível e consistente (laranja) para navegação por teclado. */
 :focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
@@ -156,7 +167,7 @@ h2 {
   }
   @keyframes header-eleva {
     to {
-      box-shadow: 0 10px 30px -14px rgb(28 27 25 / 0.16);
+      box-shadow: 0 10px 30px -14px rgb(38 36 31 / 0.14);
     }
   }
 }

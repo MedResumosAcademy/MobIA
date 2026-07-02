@@ -48,7 +48,7 @@ export function BannerConsentimento() {
         </button>
         <Link
           href="/conta"
-          className="text-sm font-medium text-brand underline underline-offset-2"
+          className="text-sm font-medium text-brand-strong underline underline-offset-2"
         >
           Saiba mais
         </Link>

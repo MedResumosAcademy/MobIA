@@ -26,24 +26,24 @@ export default async function PaginaLead({
   const { lead, timeline, capacidadeCliente } = detalhe;
 
   return (
-    <div className="flex flex-1 flex-col items-center bg-zinc-50 px-6 py-16 font-sans dark:bg-black">
+    <div className="flex flex-1 flex-col items-center bg-background px-6 py-16 font-sans">
       <main className="w-full max-w-2xl">
         <Link
           href="/corretor/leads"
-          className="text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+          className="text-sm text-muted transition-colors hover:text-brand-strong"
         >
           ← Voltar aos leads
         </Link>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
             {lead.clienteNome ?? "Cliente"}
           </h1>
           <ChipTermometro temperatura={lead.temperatura} />
         </div>
-        <p className="mt-2 text-zinc-600 dark:text-zinc-400">{lead.imovelTitulo}</p>
+        <p className="mt-2 text-muted">{lead.imovelTitulo}</p>
 
-        <section className="mt-8 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
+        <section className="mt-8 rounded-2xl border border-border bg-surface-card p-6 shadow-[var(--shadow-soft)]">
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Contador rotulo="Visitas" valor={lead.sinais.visitas} />
             <Contador rotulo="Simulações" valor={lead.sinais.simulacoes} />
@@ -55,11 +55,11 @@ export default async function PaginaLead({
             <Contador rotulo="Retornos" valor={lead.sinais.retornos} />
           </dl>
           {capacidadeCliente !== null && (
-            <div className="mt-6 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-              <dt className="text-sm text-zinc-500 dark:text-zinc-400">
+            <div className="mt-6 border-t border-border pt-4">
+              <dt className="text-sm text-subtle">
                 Capacidade estimada (Sonhômetro)
               </dt>
-              <dd className="mt-1 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+              <dd className="mt-1 text-lg font-semibold tabular-nums text-foreground">
                 {formatarReais(capacidadeCliente)}
               </dd>
             </div>
@@ -67,25 +67,25 @@ export default async function PaginaLead({
         </section>
 
         <section className="mt-8">
-          <h2 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+          <h2 className="text-lg font-semibold text-foreground">
             Comportamento
           </h2>
           {timeline.length === 0 ? (
-            <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-3 text-sm text-subtle">
               Nenhuma atividade registrada ainda.
             </p>
           ) : (
-            <ol className="mt-4 flex flex-col gap-4 border-l border-zinc-200 pl-5 dark:border-zinc-800">
+            <ol className="mt-4 flex flex-col gap-4 border-l border-border pl-5">
               {timeline.map((item) => (
                 <li key={item.id} className="relative">
                   <span
                     aria-hidden
-                    className="absolute -left-[27px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-zinc-300 dark:border-black dark:bg-zinc-600"
+                    className="absolute -left-[27px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-surface-card bg-gold"
                   />
-                  <p className="text-sm text-zinc-950 dark:text-zinc-50">
+                  <p className="text-sm text-foreground">
                     {item.descricao}
                   </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                  <p className="text-xs text-subtle">
                     {tempoRelativo(item.criadoEm)}
                   </p>
                 </li>
@@ -101,8 +101,8 @@ export default async function PaginaLead({
 function Contador({ rotulo, valor }: { rotulo: string; valor: number }) {
   return (
     <div>
-      <dt className="text-xs text-zinc-500 dark:text-zinc-400">{rotulo}</dt>
-      <dd className="mt-0.5 text-xl font-semibold text-zinc-950 dark:text-zinc-50">
+      <dt className="text-xs text-subtle">{rotulo}</dt>
+      <dd className="mt-0.5 text-xl font-semibold tabular-nums text-foreground">
         {valor}
       </dd>
     </div>

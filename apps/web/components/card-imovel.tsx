@@ -39,7 +39,7 @@ export function CardImovel({
 }) {
   const rotuloTipo = imovel.tipo ? ROTULOS_TIPO[imovel.tipo] : "Imóvel";
   // Selo no topo-esquerdo: prioriza a categoria. Alto padrão e lançamento
-  // ganham o selo dourado "Destaque" (premium, uso parcimonioso); as demais
+  // ganham o selo âmbar "Destaque" (premium, uso parcimonioso); as demais
   // categorias usam a pílula editorial própria; sem categoria, cai no tipo.
   const categoria = imovel.categorias[0] ?? null;
   const ehDestaque = categoria === "alto_padrao" || categoria === "lancamento";
@@ -47,21 +47,27 @@ export function CardImovel({
   return (
     // O coração é irmão do Link (não filho): botão dentro de <a> é HTML inválido
     // e o clique navegaria. O wrapper relativo ancora o overlay do coração.
-    <div className="group relative flex flex-col overflow-hidden rounded-3xl border border-border bg-surface-card shadow-[var(--shadow-soft)] transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[var(--shadow-card)]">
+    // Card foto-forward (Airbnb/portal): foto arredondada com zoom no hover,
+    // elevação suave (translate + shadow-card), sombra-soft em repouso.
+    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-surface-card shadow-[var(--shadow-soft)] transition-all duration-300 ease-out hover:-translate-y-1 hover:border-border-strong/60 hover:shadow-[var(--shadow-card)]">
       <BotaoFavoritar
         imovelId={imovel.id}
         inicialFavoritado={favoritado}
         variante="card"
         atualizarAoAlternar={aoAlternar}
       />
-      <Link href={`/imoveis/${imovel.id}`} className="flex flex-1 flex-col">
+      <Link
+        href={`/imoveis/${imovel.id}`}
+        className="flex flex-1 flex-col rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-card"
+      >
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-muted">
           {imovel.fotoCapa ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={imovel.fotoCapa}
               alt={imovel.titulo}
-              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+              loading="lazy"
+              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
             />
           ) : (
             <div
@@ -84,10 +90,10 @@ export function CardImovel({
               </svg>
             </div>
           )}
-          {/* Gradiente sutil na base da foto p/ ancorar o selo e dar profundidade. */}
+          {/* Gradiente sutil no topo p/ ancorar o selo e dar contraste sobre a foto. */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent"
+            className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/20 to-transparent"
           />
           <div className="absolute left-3.5 top-3.5">
             {ehDestaque ? (
@@ -104,14 +110,15 @@ export function CardImovel({
           </div>
         </div>
 
-        <div className="flex flex-1 flex-col gap-2 p-5">
-          <p className="font-serif text-[1.7rem] font-semibold leading-none tracking-[-0.01em] tabular-nums text-foreground">
+        <div className="flex flex-1 flex-col p-4">
+          {/* Preço: destaque máximo em SANS bold (como as referências), tabular-nums. */}
+          <p className="text-2xl font-bold leading-none tracking-[-0.02em] tabular-nums text-foreground">
             {formatarReais(imovel.valor)}
           </p>
-          <h3 className="mt-1 line-clamp-1 text-[0.95rem] font-medium text-foreground">
+          <h3 className="mt-2 line-clamp-1 text-[0.95rem] font-medium leading-snug text-foreground">
             {imovel.titulo}
           </h3>
-          <p className="flex items-start gap-1.5 text-sm text-muted">
+          <p className="mt-1 flex items-start gap-1.5 text-sm text-muted">
             <MapPin
               size={15}
               className="mt-0.5 shrink-0 text-gold"

@@ -29,23 +29,23 @@ export function ControleConsentimento({ inicial }: { inicial: boolean | null }) 
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface-card p-6 shadow-soft">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+          <h2 className="text-lg font-semibold text-foreground">
             Atendimento personalizado
           </h2>
           <span
             className={
               ativo
-                ? "rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300"
-                : "rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400"
+                ? "rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-semibold text-brand-strong"
+                : "rounded-full bg-surface-strong px-2.5 py-0.5 text-xs font-medium text-subtle"
             }
           >
             {ativo ? "Ativado" : "Desativado"}
           </span>
         </div>
-        <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm leading-relaxed text-muted">
           Ao ativar, os corretores dos imóveis que você favoritar ou simular poderão ver seu
           interesse e falar com você para ajudar na sua compra. É você quem decide: nada é
           compartilhado enquanto você não ativar, e você pode desativar quando quiser.
@@ -60,13 +60,13 @@ export function ControleConsentimento({ inicial }: { inicial: boolean | null }) 
         onClick={() => alternar(!ativo)}
         disabled={pendente}
         className={
-          "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 " +
-          (ativo ? "bg-emerald-600" : "bg-zinc-300 dark:bg-zinc-700")
+          "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-60 " +
+          (ativo ? "bg-brand" : "bg-border-strong")
         }
       >
         <span
           className={
-            "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform " +
+            "inline-block h-5 w-5 transform rounded-full bg-surface-card shadow-soft transition-transform " +
             (ativo ? "translate-x-6" : "translate-x-1")
           }
         />
@@ -77,18 +77,18 @@ export function ControleConsentimento({ inicial }: { inicial: boolean | null }) 
           type="button"
           onClick={() => alternar(!ativo)}
           disabled={pendente}
-          className="w-fit text-sm font-medium text-zinc-950 underline underline-offset-2 disabled:opacity-60 dark:text-zinc-50"
+          className="w-fit text-sm font-semibold text-brand-strong underline underline-offset-2 transition-colors hover:text-brand-hover disabled:opacity-60"
         >
           {pendente ? "Salvando…" : ativo ? "Desativar" : "Ativar agora"}
         </button>
         {erro && (
-          <p className="text-sm text-rose-600 dark:text-rose-400">
+          <p className="text-sm text-brand-strong">
             Não foi possível salvar. Tente novamente.
           </p>
         )}
       </div>
 
-      <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-500">
+      <p className="text-xs leading-relaxed text-subtle">
         Transparência (LGPD): esta opção é opcional (opt-in) e reversível. Enquanto estiver
         desativada, seu comportamento no app permanece privado e nenhum corretor tem acesso aos
         seus dados de interesse.

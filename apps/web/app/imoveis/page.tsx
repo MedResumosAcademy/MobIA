@@ -81,8 +81,6 @@ export default async function PaginaCatalogo({
   ]);
 
   const total = imoveis.length;
-  const rotuloContagem =
-    total === 1 ? "1 imóvel encontrado" : `${total} imóveis encontrados`;
 
   return (
     <div className="flex flex-1 flex-col bg-background px-6 py-14 font-sans sm:py-16">
@@ -102,7 +100,7 @@ export default async function PaginaCatalogo({
 
         <section
           aria-label="Filtros"
-          className="sticky top-16 z-20 rounded-3xl border border-border bg-surface-card/95 p-5 shadow-[var(--shadow-soft)] backdrop-blur-sm"
+          className="sticky top-16 z-20 rounded-2xl border border-border bg-surface-card/90 p-5 shadow-[var(--shadow-soft)] backdrop-blur-md sm:p-6"
         >
           <FiltrosCatalogo />
         </section>
@@ -117,7 +115,7 @@ export default async function PaginaCatalogo({
             <span className="text-muted">
               Descubra quanto você pode comprar e veja só os imóveis compatíveis com sua renda.
             </span>
-            <span className="font-medium text-brand">
+            <span className="font-medium text-brand-strong">
               Abrir o Sonhômetro →
             </span>
           </Link>
@@ -128,9 +126,10 @@ export default async function PaginaCatalogo({
             <div className="flex items-center gap-4">
               <p
                 aria-live="polite"
-                className="font-serif text-lg text-foreground"
+                className="text-base font-semibold tracking-tight text-foreground"
               >
-                {rotuloContagem}
+                <span className="tabular-nums text-brand-strong">{total}</span>{" "}
+                {total === 1 ? "imóvel encontrado" : "imóveis encontrados"}
               </p>
               <span aria-hidden className="h-px flex-1 bg-border" />
             </div>
@@ -148,13 +147,19 @@ export default async function PaginaCatalogo({
             </section>
           </>
         ) : (
-          <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-border-strong bg-surface-card px-6 py-24 text-center shadow-[var(--shadow-soft)]">
-            <p className="font-serif text-2xl text-foreground">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border-strong bg-surface-card px-6 py-24 text-center shadow-[var(--shadow-soft)]">
+            <p className="text-xl font-semibold tracking-tight text-foreground">
               Nenhum imóvel encontrado
             </p>
             <p className="max-w-sm text-sm leading-relaxed text-subtle">
-              Tente ajustar ou limpar os filtros para ver mais opções.
+              Tente ajustar ou limpar os filtros acima para ver mais opções.
             </p>
+            <Link
+              href="/imoveis"
+              className="mt-2 inline-flex items-center rounded-full border border-border-strong bg-surface-card px-4 py-2 text-sm font-medium text-brand-strong transition-colors hover:border-brand hover:bg-brand-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/25"
+            >
+              Limpar filtros
+            </Link>
           </div>
         )}
       </main>

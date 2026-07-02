@@ -9,19 +9,22 @@ export const metadata: Metadata = { title: "Sonhômetro — MobIA" };
 
 export default function PaginaSonhometro() {
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50 px-6 py-10 font-sans dark:bg-black">
+    <div className="flex flex-1 flex-col bg-background px-6 py-12 font-sans">
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-        <header className="flex flex-col gap-2">
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+        <header className="flex flex-col gap-3">
+          <span className="w-fit rounded-full bg-gold-soft px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gold-strong">
+            Ferramenta gratuita
+          </span>
+          <h1 className="font-serif text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
             Sonhômetro
           </h1>
-          <p className="text-base text-zinc-600 dark:text-zinc-400">
+          <p className="max-w-2xl text-base leading-relaxed text-muted">
             Descubra quanto você consegue comprar hoje. Preencha seus dados e veja o valor máximo do
             imóvel, a melhor modalidade e o detalhamento — em segundos.
           </p>
         </header>
 
-        <section className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
+        <section className="rounded-2xl border border-border bg-surface-card p-6 shadow-soft sm:p-8">
           <SonhometroFormulario />
         </section>
       </main>

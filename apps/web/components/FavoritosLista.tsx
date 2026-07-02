@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { CardImovel } from "@/components/card-imovel";
+import { classesBotao } from "@/components/ui/Botao";
 import type { CardImovel as DadosCardImovel } from "@/lib/dados/imoveis";
 
 const MAX_COMPARAR = 3;
@@ -35,26 +36,23 @@ export function FavoritosLista({ imoveis }: { imoveis: DadosCardImovel[] }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950">
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface-card px-4 py-3 shadow-soft">
+        <p className="text-sm text-muted">
           Selecione de {MIN_COMPARAR} a {MAX_COMPARAR} imóveis para comparar lado a
           lado.
           {quantidade > 0 && (
-            <span className="ml-1 font-medium text-zinc-900 dark:text-zinc-100">
+            <span className="ml-1 font-semibold text-foreground">
               {quantidade} selecionado{quantidade > 1 ? "s" : ""}.
             </span>
           )}
         </p>
         {podeComparar ? (
-          <Link
-            href={`/comparar?ids=${idsQuery}`}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-300"
-          >
+          <Link href={`/comparar?ids=${idsQuery}`} className={classesBotao("primario", "md")}>
             Comparar selecionados
           </Link>
         ) : (
           <span
-            className="cursor-not-allowed rounded-lg bg-zinc-200 px-4 py-2 text-sm font-medium text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"
+            className="cursor-not-allowed rounded-xl bg-surface-strong px-5 py-2 text-sm font-semibold text-subtle"
             aria-disabled
           >
             Comparar selecionados
@@ -74,8 +72,8 @@ export function FavoritosLista({ imoveis }: { imoveis: DadosCardImovel[] }) {
               <label
                 className={`flex items-center gap-2 text-sm ${
                   bloqueado
-                    ? "cursor-not-allowed text-zinc-400 dark:text-zinc-600"
-                    : "cursor-pointer text-zinc-700 dark:text-zinc-300"
+                    ? "cursor-not-allowed text-subtle"
+                    : "cursor-pointer text-muted"
                 }`}
               >
                 <input
@@ -83,7 +81,7 @@ export function FavoritosLista({ imoveis }: { imoveis: DadosCardImovel[] }) {
                   checked={marcado}
                   disabled={bloqueado}
                   onChange={() => alternar(imovel.id)}
-                  className="h-4 w-4 rounded border-zinc-300 accent-zinc-900 dark:accent-zinc-100"
+                  className="h-4 w-4 rounded border-border-strong accent-brand"
                 />
                 Comparar
               </label>

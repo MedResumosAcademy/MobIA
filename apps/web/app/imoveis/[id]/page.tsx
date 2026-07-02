@@ -333,7 +333,7 @@ export default async function FichaImovel({ params }: ParamsFicha) {
                 {modalidadeRotulo && (
                   <p className="mt-2 text-sm text-muted">
                     Elegível para{" "}
-                    <span className="font-medium text-brand">{modalidadeRotulo}</span>
+                    <span className="font-medium text-brand-strong">{modalidadeRotulo}</span>
                   </p>
                 )}
               </div>

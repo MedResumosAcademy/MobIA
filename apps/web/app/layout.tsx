@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
+import { Search } from "lucide-react";
 import { sair } from "@/lib/auth/acoes";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import "./globals.css";
@@ -29,10 +30,11 @@ export const metadata: Metadata = {
   description: "O primeiro aplicativo que permite ao cliente montar sua própria compra.",
 };
 
-// Wordmark editorial reutilizável — "Mob" grafite, "IA" verde marca, serifado.
+// Wordmark reutilizável — "Mob" grafite, "IA" laranja marca. SANS (Geist) por
+// padrão para um traço limpo e moderno (estilo portal/Airbnb).
 function Wordmark({ className = "" }: { className?: string }) {
   return (
-    <span className={`font-serif tracking-tight ${className}`}>
+    <span className={`font-semibold tracking-tight ${className}`}>
       Mob<span className="text-brand">IA</span>
     </span>
   );
@@ -50,7 +52,7 @@ export default async function RootLayout({
   const ehCliente = sessao !== null && (perfil === null || perfil.papel === "cliente");
 
   const linkNav =
-    "text-sm font-medium text-muted transition-colors hover:text-foreground";
+    "rounded-full px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-foreground";
   const linkRodape =
     "text-sm text-muted transition-colors hover:text-foreground";
 
@@ -60,18 +62,18 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <header className="header-sticky sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-          <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
+        <header className="header-sticky sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
+          <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
             <div className="flex items-center gap-8">
               <Link
                 href="/"
-                className="text-2xl font-semibold text-foreground"
+                className="text-2xl text-foreground"
                 aria-label="MobIA — página inicial"
               >
                 <Wordmark />
               </Link>
               <nav
-                className="hidden items-center gap-7 md:flex"
+                className="hidden items-center gap-1 md:flex"
                 aria-label="Navegação principal"
               >
                 <Link href="/imoveis" className={linkNav}>
@@ -88,8 +90,17 @@ export default async function RootLayout({
               </nav>
             </div>
 
+            {/* Busca clean estilo portal — atalho para o catálogo (some no mobile). */}
+            <Link
+              href="/imoveis"
+              className="group hidden max-w-xs flex-1 items-center gap-2 rounded-full border border-border bg-surface-card px-4 py-2 text-sm text-subtle shadow-[var(--shadow-soft)] transition-colors hover:border-border-strong lg:flex"
+            >
+              <Search size={16} strokeWidth={2} className="text-brand" aria-hidden="true" />
+              <span className="truncate">Buscar imóveis por cidade, bairro…</span>
+            </Link>
+
             {sessao ? (
-              <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2 sm:gap-3">
                 {ehCliente && (
                   <Link href="/conta" className={`hidden sm:inline ${linkNav}`}>
                     Minha conta
@@ -101,7 +112,7 @@ export default async function RootLayout({
                 <form action={sair}>
                   <button
                     type="submit"
-                    className="rounded-full border border-border-strong px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-surface"
+                    className="rounded-full border border-border-strong bg-surface-card px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-surface"
                   >
                     Sair
                   </button>

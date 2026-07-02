@@ -2,15 +2,15 @@
 // Diferente do Badge (inline no corpo), o Selo é pensado para POUSAR sobre fotos:
 // fundo levemente translúcido + backdrop-blur para legibilidade sobre qualquer
 // imagem, com sombra suave. Ideal para o selo "Destaque" no topo do card.
-//   destaque = dourado/champanhe (premium) · marca = verde · neutro = marfim
-// Uso parcimonioso do dourado — reservado a chamadas especiais.
+//   destaque = âmbar (premium) · marca = laranja · neutro = off-white
+// Uso parcimonioso do âmbar — reservado a chamadas especiais.
 
 import type { ReactNode } from "react";
 
 export type VarianteSelo = "destaque" | "marca" | "neutro";
 
 const ESTILOS: Record<VarianteSelo, string> = {
-  destaque: "bg-gold/95 text-gold-contrast",
+  destaque: "bg-gold text-foreground",
   marca: "bg-brand/95 text-brand-contrast",
   neutro: "bg-background/90 text-foreground ring-1 ring-inset ring-border-strong/50",
 };

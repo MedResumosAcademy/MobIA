@@ -9,6 +9,7 @@ import { formatarReais, recalcularPlano } from "@mobia/core";
 import type { Modalidade } from "@mobia/domain";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { classesBotao } from "@/components/ui/Botao";
 import { obterImovel, type ImovelDetalhe } from "@/lib/dados/imoveis";
 import { obterParametrosVigentesDoBanco } from "@/lib/parametros";
 
@@ -109,39 +110,36 @@ export default async function PaginaComparar({
   const menorParcela = parcelas.length > 0 ? Math.min(...parcelas) : null;
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50 px-4 py-10 font-sans sm:px-6 dark:bg-black">
+    <div className="flex flex-1 flex-col bg-background px-4 py-12 font-sans sm:px-6">
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-8">
         <nav>
           <Link
             href="/favoritos"
-            className="text-sm text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+            className="text-sm text-muted transition-colors hover:text-foreground"
           >
             ← Voltar aos favoritos
           </Link>
         </nav>
 
         <header className="flex flex-col gap-2">
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+          <h1 className="font-serif text-4xl font-semibold tracking-tight text-foreground">
             Comparar imóveis
           </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm text-muted">
             Valores são estimativas com base no plano padrão (entrada mínima do
             esquema) e nos parâmetros vigentes.
           </p>
         </header>
 
         {!suficiente ? (
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-zinc-300 bg-white px-6 py-20 text-center dark:border-zinc-700 dark:bg-zinc-950">
-            <p className="text-lg font-medium text-zinc-700 dark:text-zinc-300">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border-strong bg-surface-card px-6 py-20 text-center shadow-soft">
+            <p className="text-lg font-semibold text-foreground">
               Selecione ao menos 2 imóveis para comparar
             </p>
-            <p className="max-w-md text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="max-w-md text-sm text-muted">
               Volte aos favoritos e marque de 2 a 3 imóveis.
             </p>
-            <Link
-              href="/favoritos"
-              className="mt-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-300"
-            >
+            <Link href="/favoritos" className={classesBotao("primario", "md", "mt-2")}>
               Ir aos favoritos
             </Link>
           </div>
@@ -160,19 +158,19 @@ export default async function PaginaComparar({
 function CelulaCabecalho({ item }: { item: ItemComparacao }) {
   const { imovel } = item;
   return (
-    <th className="min-w-[180px] border-b border-zinc-200 p-4 text-left align-top dark:border-zinc-800">
-      <Link href={`/imoveis/${imovel.id}`} className="flex flex-col gap-2">
-        <div className="aspect-[4/3] w-full overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-900">
+    <th className="min-w-[180px] border-b border-border p-4 text-left align-top">
+      <Link href={`/imoveis/${imovel.id}`} className="group flex flex-col gap-2">
+        <div className="aspect-[4/3] w-full overflow-hidden rounded-xl bg-surface-strong">
           {imovel.fotos[0] ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={imovel.fotos[0]}
               alt={imovel.titulo}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
             />
           ) : null}
         </div>
-        <span className="text-sm font-semibold text-zinc-950 hover:underline dark:text-zinc-50">
+        <span className="text-sm font-semibold text-foreground group-hover:text-brand-strong">
           {imovel.titulo}
         </span>
       </Link>
@@ -184,7 +182,7 @@ function LinhaRotulo({ children }: { children: React.ReactNode }) {
   return (
     <th
       scope="row"
-      className="whitespace-nowrap border-b border-zinc-100 bg-zinc-50 p-4 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
+      className="whitespace-nowrap border-b border-border bg-surface p-4 text-left text-xs font-semibold uppercase tracking-wide text-subtle"
     >
       {children}
     </th>
@@ -201,11 +199,11 @@ function TabelaComparacao({
   menorParcela: number | null;
 }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="overflow-x-auto rounded-2xl border border-border bg-surface-card shadow-soft">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr>
-            <td className="border-b border-zinc-200 p-4 dark:border-zinc-800" />
+            <td className="border-b border-border p-4" />
             {itens.map((item) => (
               <CelulaCabecalho key={item.imovel.id} item={item} />
             ))}
@@ -220,19 +218,13 @@ function TabelaComparacao({
               return (
                 <td
                   key={item.imovel.id}
-                  className="border-b border-zinc-100 p-4 align-top tabular-nums dark:border-zinc-800"
+                  className="border-b border-border p-4 align-top text-base font-bold tabular-nums"
                 >
-                  <span
-                    className={
-                      destaque
-                        ? "font-semibold text-emerald-700 dark:text-emerald-400"
-                        : "text-zinc-900 dark:text-zinc-100"
-                    }
-                  >
+                  <span className={destaque ? "text-brand-strong" : "text-foreground"}>
                     {formatarReais(item.imovel.valor)}
                   </span>
                   {destaque && (
-                    <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                    <span className="ml-2 rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand-strong">
                       Menor preço
                     </span>
                   )}
@@ -246,7 +238,7 @@ function TabelaComparacao({
             {itens.map((item) => (
               <td
                 key={item.imovel.id}
-                className="border-b border-zinc-100 p-4 align-top text-zinc-700 dark:border-zinc-800 dark:text-zinc-300"
+                className="border-b border-border p-4 align-top text-muted"
               >
                 {item.imovel.cidade}/{item.imovel.uf}
               </td>
@@ -258,7 +250,7 @@ function TabelaComparacao({
             {itens.map((item) => (
               <td
                 key={item.imovel.id}
-                className="border-b border-zinc-100 p-4 align-top text-zinc-700 dark:border-zinc-800 dark:text-zinc-300"
+                className="border-b border-border p-4 align-top text-muted"
               >
                 {item.imovel.tipo ? ROTULO_TIPO[item.imovel.tipo] : "—"}
               </td>
@@ -270,7 +262,7 @@ function TabelaComparacao({
             {itens.map((item) => (
               <td
                 key={item.imovel.id}
-                className="border-b border-zinc-100 p-4 align-top text-zinc-700 dark:border-zinc-800 dark:text-zinc-300"
+                className="border-b border-border p-4 align-top text-muted"
               >
                 {item.modalidade ? ROTULO_MODALIDADE[item.modalidade] : "—"}
               </td>
@@ -285,27 +277,22 @@ function TabelaComparacao({
                 menorParcela !== null &&
                 item.parcela === menorParcela;
               return (
-                <td
-                  key={item.imovel.id}
-                  className="p-4 align-top tabular-nums dark:border-zinc-800"
-                >
+                <td key={item.imovel.id} className="p-4 align-top tabular-nums">
                   {item.parcela === null ? (
-                    <span className="text-zinc-500 dark:text-zinc-400">
-                      Sob consulta
-                    </span>
+                    <span className="text-subtle">Sob consulta</span>
                   ) : (
                     <>
                       <span
                         className={
                           destaque
-                            ? "font-semibold text-emerald-700 dark:text-emerald-400"
-                            : "text-zinc-900 dark:text-zinc-100"
+                            ? "font-bold text-brand-strong"
+                            : "font-semibold text-foreground"
                         }
                       >
                         {formatarReais(item.parcela)}/mês
                       </span>
                       {destaque && (
-                        <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                        <span className="ml-2 rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand-strong">
                           Menor parcela
                         </span>
                       )}

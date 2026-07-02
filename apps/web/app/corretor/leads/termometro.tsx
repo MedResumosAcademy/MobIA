@@ -16,17 +16,20 @@ const ESTILOS: Record<Temperatura, EstiloTermometro> = {
   quente: {
     rotulo: "Quente",
     chamas: "🔥",
-    chip: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200",
+    // Âmbar suave — o mais frio da escala quente.
+    chip: "border-gold/40 bg-gold-soft text-gold-strong",
   },
   muito_quente: {
     rotulo: "Muito quente",
     chamas: "🔥🔥",
-    chip: "border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-200",
+    // Laranja da marca suave — intensidade intermediária.
+    chip: "border-brand/30 bg-brand-soft text-brand-strong",
   },
   pronto_para_compra: {
     rotulo: "Pronto para compra",
     chamas: "🔥🔥🔥",
-    chip: "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200",
+    // Laranja da marca sólido — o pico da escala.
+    chip: "border-transparent bg-brand text-brand-contrast",
   },
 };
 

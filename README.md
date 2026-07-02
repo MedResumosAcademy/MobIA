@@ -28,7 +28,7 @@ MobIA é um sistema imobiliário com duas faces:
 - 🎉 **MVP da experiência do cliente completo** (E1–E8): descobrir → montar a compra → descobrir quanto pode → favoritar/comparar
 - ✅ V1 (parte 1) — **Painel do corretor**: captura automática de leads (trigger materializa eventos → leads), **termômetro** 🔥 no `@mobia/core`, timeline de comportamento, painel `/corretor/leads`; **consentimento LGPD opt-in** com portão na RLS (corretor só vê clientes que consentiram) — web e mobile
 - ✅ **Redesign visual (padrão portal)**: tema claro, atributos de imóvel (m²/quartos/banheiros/vagas), cards, catálogo, ficha (2 colunas) e landing no nível de um portal imobiliário; design system com tokens da marca + `components/ui` (lucide-react)
-- ✅ **Redesign premium (editorial)**: paleta marfim/verde/dourado, tipografia serifada (Fraunces) em títulos e preços, cards e ficha com profundidade e polimento, galeria com lightbox, simulador em moldura premium — ar de revista de arquitetura
+- ✅ **Overhaul visual (nível portal)**: paleta quente laranja/âmbar (`#DB6414`/`#F2A93B`), acabamento inspirado em Airbnb/Chaves na Mão — busca no hero, pílulas de categoria, cards foto-forward com preço em sans bold, ficha com galeria em mosaico + lightbox e card de preço sticky, aplicado em TODAS as telas (cliente, corretor, ferramentas, auth) e no mobile; design system com `components/ui` (Botao, Badge, Selo, Campo, PilulasCategoria)
 - ⏭️ Próximo (V1): Coringa (motor de estratégias) e métricas de funil (CAC, conversão)
 
 > Convites de corretor/gestor: signup público sempre nasce `cliente`; promoção só via `privado.convites` (server-side). Seed de dev: `supabase/seed-dev.sql` (usuários @teste.mobia, senha `MobIA!teste1`).

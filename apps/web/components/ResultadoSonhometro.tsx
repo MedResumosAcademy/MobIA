@@ -8,6 +8,7 @@
 import { formatarReais, type CapacidadeModalidade, type ResultadoSonhometro } from "@mobia/core";
 import type { Modalidade } from "@mobia/domain";
 import Link from "next/link";
+import { classesBotao } from "@/components/ui/Botao";
 
 const ROTULO_MODALIDADE: Record<Modalidade, string> = {
   mcmv: "Minha Casa Minha Vida",
@@ -36,14 +37,14 @@ function CartaoModalidade({
 
   if (!cap.elegivel) {
     return (
-      <div className="flex flex-col gap-1 rounded-xl border border-zinc-200 bg-zinc-50 p-4 opacity-80 dark:border-zinc-800 dark:bg-zinc-900/50">
+      <div className="flex flex-col gap-1 rounded-2xl border border-border bg-surface p-4 opacity-90">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{rotulo}</span>
-          <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+          <span className="text-sm font-semibold text-muted">{rotulo}</span>
+          <span className="rounded-full bg-surface-strong px-2.5 py-0.5 text-xs font-medium text-subtle">
             Não elegível
           </span>
         </div>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">{cap.motivo ?? "Sem enquadramento."}</p>
+        <p className="text-xs text-subtle">{cap.motivo ?? "Sem enquadramento."}</p>
       </div>
     );
   }
@@ -63,27 +64,25 @@ function CartaoModalidade({
 
   return (
     <div
-      className={`flex flex-col gap-3 rounded-xl border p-4 ${
+      className={`flex flex-col gap-3 rounded-2xl border p-4 shadow-soft ${
         ehMelhor
-          ? "border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30"
-          : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+          ? "border-brand/40 bg-brand-soft ring-1 ring-brand/20"
+          : "border-border bg-surface-card"
       }`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{rotulo}</span>
+        <span className="text-sm font-semibold text-foreground">{rotulo}</span>
         {ehMelhor && (
-          <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-medium text-white">
+          <span className="rounded-full bg-brand px-2.5 py-0.5 text-xs font-semibold text-brand-contrast">
             Melhor opção
           </span>
         )}
       </div>
-      <dl className="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
+      <dl className="flex flex-col divide-y divide-border">
         {linhas.map((l) => (
           <div key={l.rotulo} className="flex items-baseline justify-between gap-4 py-1.5">
-            <dt className="text-xs text-zinc-500 dark:text-zinc-400">{l.rotulo}</dt>
-            <dd className="text-sm font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
-              {l.valor}
-            </dd>
+            <dt className="text-xs text-muted">{l.rotulo}</dt>
+            <dd className="text-sm font-semibold tabular-nums text-foreground">{l.valor}</dd>
           </div>
         ))}
       </dl>
@@ -101,38 +100,35 @@ export function ResultadoSonhometroPainel({
 
   return (
     <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
-        {temCapacidade ? (
-          <>
-            <p className="text-sm font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-              Você consegue comprar até
+      {temCapacidade ? (
+        <section className="flex flex-col items-center gap-3 rounded-2xl border border-brand/25 bg-brand-soft p-8 text-center shadow-soft">
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-strong">
+            Você consegue comprar até
+          </p>
+          <p className="text-4xl font-bold tracking-tight tabular-nums text-foreground sm:text-5xl">
+            {formatarReais(resultado.valorMaximoImovel)}
+          </p>
+          {melhor && (
+            <p className="text-sm text-muted">
+              Melhor modalidade:{" "}
+              <strong className="font-semibold text-foreground">{ROTULO_MODALIDADE[melhor]}</strong>
             </p>
-            <p className="text-4xl font-semibold tabular-nums text-emerald-900 sm:text-5xl dark:text-emerald-100">
-              {formatarReais(resultado.valorMaximoImovel)}
-            </p>
-            {melhor && (
-              <p className="text-sm text-emerald-800 dark:text-emerald-300">
-                Melhor modalidade: <strong>{ROTULO_MODALIDADE[melhor]}</strong>
-              </p>
-            )}
-          </>
-        ) : (
-          <>
-            <p className="text-lg font-semibold text-zinc-800 dark:text-zinc-200">
-              Ainda não encontramos uma opção compatível
-            </p>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Com os dados informados, nenhuma modalidade permitiu financiamento. Reveja a renda, o
-              FGTS ou fale com um corretor.
-            </p>
-          </>
-        )}
-      </section>
+          )}
+        </section>
+      ) : (
+        <section className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-8 text-center">
+          <p className="text-lg font-semibold text-foreground">
+            Ainda não encontramos uma opção compatível
+          </p>
+          <p className="text-sm text-muted">
+            Com os dados informados, nenhuma modalidade permitiu financiamento. Reveja a renda, o
+            FGTS ou fale com um corretor.
+          </p>
+        </section>
+      )}
 
-      <section aria-label="Detalhamento por modalidade" className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-          Detalhamento por modalidade
-        </h2>
+      <section aria-label="Detalhamento por modalidade" className="flex flex-col gap-4">
+        <h2 className="text-lg font-semibold text-foreground">Detalhamento por modalidade</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {resultado.porModalidade.map((cap) => (
             <CartaoModalidade
@@ -144,18 +140,15 @@ export function ResultadoSonhometroPainel({
         </div>
       </section>
 
-      <p className="text-xs leading-5 text-zinc-400 dark:text-zinc-500">
-        Este é um cálculo <strong>estimativo</strong> com base nos dados informados e nos parâmetros
-        vigentes — não constitui proposta formal de crédito. Subsídios e taxas reais podem variar
-        conforme a análise da instituição financeira.
+      <p className="text-xs leading-5 text-subtle">
+        Este é um cálculo <strong className="text-muted">estimativo</strong> com base nos dados
+        informados e nos parâmetros vigentes — não constitui proposta formal de crédito. Subsídios e
+        taxas reais podem variar conforme a análise da instituição financeira.
       </p>
 
       {temCapacidade && (
         <div>
-          <Link
-            href="/imoveis"
-            className="inline-flex rounded-lg bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-300"
-          >
+          <Link href="/imoveis" className={classesBotao("primario", "lg")}>
             Ver imóveis compatíveis
           </Link>
         </div>

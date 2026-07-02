@@ -11,6 +11,8 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { calcularESalvarCapacidade } from "@/lib/dados/sonhometro";
 import { ResultadoSonhometroPainel } from "@/components/ResultadoSonhometro";
+import { Campo, CampoSelect } from "@/components/ui/Campo";
+import { Botao, classesBotao } from "@/components/ui/Botao";
 
 // Unidades federativas (siglas) — a UF alimenta os tetos por estado do motor.
 const UFS = [
@@ -27,11 +29,9 @@ const ROTULO_ESTADO_CIVIL: Record<EstadoCivil, string> = {
   viuvo: "Viúvo(a)",
 };
 
-const CLASSE_CAMPO =
-  "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100";
+const CLASSE_LABEL = "flex flex-col gap-1.5 text-sm font-medium text-foreground";
 
-const CLASSE_LABEL =
-  "flex flex-col gap-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300";
+const CLASSE_ERRO = "text-xs text-brand-strong";
 
 // Estado bruto do formulário — tudo string (inputs). Convertemos na submissão.
 type EstadoForm = {
@@ -150,7 +150,7 @@ export function SonhometroFormulario() {
         <button
           type="button"
           onClick={() => setResultado(null)}
-          className="self-start text-sm font-medium text-zinc-600 underline underline-offset-4 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
+          className="self-start text-sm font-medium text-muted underline underline-offset-4 transition-colors hover:text-foreground"
         >
           Refazer o cálculo
         </button>
@@ -159,164 +159,166 @@ export function SonhometroFormulario() {
   }
 
   return (
-    <form onSubmit={enviar} className="flex flex-col gap-6" noValidate>
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <label className={CLASSE_LABEL}>
-          Renda mensal (R$)
-          <input
-            inputMode="decimal"
-            className={CLASSE_CAMPO}
-            placeholder="Ex.: 3.500"
-            value={form.rendaMensal}
-            onChange={(e) => set("rendaMensal", e.target.value)}
-          />
-          {erros.rendaMensal && <span className="text-xs text-red-600">{erros.rendaMensal}</span>}
-        </label>
-
-        <label className={CLASSE_LABEL}>
-          Saldo de FGTS (R$)
-          <input
-            inputMode="decimal"
-            className={CLASSE_CAMPO}
-            placeholder="Ex.: 12.000"
-            value={form.fgts}
-            onChange={(e) => set("fgts", e.target.value)}
-          />
-          {erros.fgts && <span className="text-xs text-red-600">{erros.fgts}</span>}
-        </label>
-
-        <label className={CLASSE_LABEL}>
-          Data de nascimento
-          <input
-            type="date"
-            className={CLASSE_CAMPO}
-            max={new Date().toISOString().slice(0, 10)}
-            value={form.dataNascimento}
-            onChange={(e) => set("dataNascimento", e.target.value)}
-          />
-          {erros.dataNascimento && (
-            <span className="text-xs text-red-600">{erros.dataNascimento}</span>
-          )}
-        </label>
-
-        <label className={CLASSE_LABEL}>
-          Estado civil
-          <select
-            className={CLASSE_CAMPO}
-            value={form.estadoCivil}
-            onChange={(e) => set("estadoCivil", e.target.value as EstadoCivil)}
-          >
-            {ESTADOS_CIVIS.map((ec) => (
-              <option key={ec} value={ec}>
-                {ROTULO_ESTADO_CIVIL[ec]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className={CLASSE_LABEL}>
-          Dependentes
-          <input
-            type="number"
-            min="0"
-            step="1"
-            className={CLASSE_CAMPO}
-            value={form.dependentes}
-            onChange={(e) => set("dependentes", e.target.value)}
-          />
-          {erros.dependentes && <span className="text-xs text-red-600">{erros.dependentes}</span>}
-        </label>
-
-        <div className="grid grid-cols-[1fr_5rem] gap-3">
+    <form onSubmit={enviar} className="flex flex-col gap-8" noValidate>
+      <fieldset className="flex flex-col gap-5">
+        <legend className="mb-1 flex items-center gap-2.5 text-sm font-semibold text-foreground">
+          <PassoBolha n={1} />
+          Sua renda e reservas
+        </legend>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <label className={CLASSE_LABEL}>
-            Cidade
-            <input
-              type="text"
-              className={CLASSE_CAMPO}
-              placeholder="Ex.: Fortaleza"
-              value={form.cidade}
-              onChange={(e) => set("cidade", e.target.value)}
+            Renda mensal (R$)
+            <Campo
+              inputMode="decimal"
+              placeholder="Ex.: 3.500"
+              value={form.rendaMensal}
+              onChange={(e) => set("rendaMensal", e.target.value)}
             />
-            {erros.cidade && <span className="text-xs text-red-600">{erros.cidade}</span>}
+            {erros.rendaMensal && <span className={CLASSE_ERRO}>{erros.rendaMensal}</span>}
           </label>
+
           <label className={CLASSE_LABEL}>
-            UF
-            <select
-              className={CLASSE_CAMPO}
-              value={form.uf}
-              onChange={(e) => set("uf", e.target.value)}
-            >
-              <option value="">—</option>
-              {UFS.map((uf) => (
-                <option key={uf} value={uf}>
-                  {uf}
-                </option>
-              ))}
-            </select>
-            {erros.uf && <span className="text-xs text-red-600">{erros.uf}</span>}
+            Saldo de FGTS (R$)
+            <Campo
+              inputMode="decimal"
+              placeholder="Ex.: 12.000"
+              value={form.fgts}
+              onChange={(e) => set("fgts", e.target.value)}
+            />
+            {erros.fgts && <span className={CLASSE_ERRO}>{erros.fgts}</span>}
           </label>
         </div>
-      </div>
+      </fieldset>
 
-      <fieldset className="flex flex-col gap-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-        <legend className="px-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Composição de renda (opcional)
+      <fieldset className="flex flex-col gap-5">
+        <legend className="mb-1 flex items-center gap-2.5 text-sm font-semibold text-foreground">
+          <PassoBolha n={2} />
+          Seu perfil
         </legend>
-        <p className="text-xs leading-5 text-zinc-500 dark:text-zinc-400">
-          O Minha Casa Minha Vida usa a renda <strong>familiar</strong> — some a renda de todos os
-          moradores para o enquadramento correto de faixa e subsídio.
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <label className={CLASSE_LABEL}>
+            Data de nascimento
+            <Campo
+              type="date"
+              max={new Date().toISOString().slice(0, 10)}
+              value={form.dataNascimento}
+              onChange={(e) => set("dataNascimento", e.target.value)}
+            />
+            {erros.dataNascimento && <span className={CLASSE_ERRO}>{erros.dataNascimento}</span>}
+          </label>
+
+          <label className={CLASSE_LABEL}>
+            Estado civil
+            <CampoSelect
+              value={form.estadoCivil}
+              onChange={(e) => set("estadoCivil", e.target.value as EstadoCivil)}
+            >
+              {ESTADOS_CIVIS.map((ec) => (
+                <option key={ec} value={ec}>
+                  {ROTULO_ESTADO_CIVIL[ec]}
+                </option>
+              ))}
+            </CampoSelect>
+          </label>
+
+          <label className={CLASSE_LABEL}>
+            Dependentes
+            <Campo
+              type="number"
+              min="0"
+              step="1"
+              value={form.dependentes}
+              onChange={(e) => set("dependentes", e.target.value)}
+            />
+            {erros.dependentes && <span className={CLASSE_ERRO}>{erros.dependentes}</span>}
+          </label>
+
+          <div className="grid grid-cols-[1fr_5rem] gap-3">
+            <label className={CLASSE_LABEL}>
+              Cidade
+              <Campo
+                type="text"
+                placeholder="Ex.: Fortaleza"
+                value={form.cidade}
+                onChange={(e) => set("cidade", e.target.value)}
+              />
+              {erros.cidade && <span className={CLASSE_ERRO}>{erros.cidade}</span>}
+            </label>
+            <label className={CLASSE_LABEL}>
+              UF
+              <CampoSelect value={form.uf} onChange={(e) => set("uf", e.target.value)}>
+                <option value="">—</option>
+                {UFS.map((uf) => (
+                  <option key={uf} value={uf}>
+                    {uf}
+                  </option>
+                ))}
+              </CampoSelect>
+              {erros.uf && <span className={CLASSE_ERRO}>{erros.uf}</span>}
+            </label>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5">
+        <legend className="flex items-center gap-2.5 px-1 text-sm font-semibold text-foreground">
+          <PassoBolha n={3} />
+          Composição de renda
+          <span className="font-normal text-subtle">(opcional)</span>
+        </legend>
+        <p className="text-xs leading-5 text-muted">
+          O Minha Casa Minha Vida usa a renda <strong className="text-foreground">familiar</strong> —
+          some a renda de todos os moradores para o enquadramento correto de faixa e subsídio.
         </p>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <label className={CLASSE_LABEL}>
             Renda do cônjuge (R$)
-            <input
+            <Campo
               inputMode="decimal"
-              className={CLASSE_CAMPO}
               placeholder="Opcional"
               value={form.rendaConjuge}
               onChange={(e) => set("rendaConjuge", e.target.value)}
             />
-            {erros.rendaConjuge && (
-              <span className="text-xs text-red-600">{erros.rendaConjuge}</span>
-            )}
+            {erros.rendaConjuge && <span className={CLASSE_ERRO}>{erros.rendaConjuge}</span>}
           </label>
           <label className={CLASSE_LABEL}>
             Renda de outros membros (R$)
-            <input
+            <Campo
               inputMode="decimal"
-              className={CLASSE_CAMPO}
               placeholder="Opcional"
               value={form.rendaOutrosMembros}
               onChange={(e) => set("rendaOutrosMembros", e.target.value)}
             />
             {erros.rendaOutrosMembros && (
-              <span className="text-xs text-red-600">{erros.rendaOutrosMembros}</span>
+              <span className={CLASSE_ERRO}>{erros.rendaOutrosMembros}</span>
             )}
           </label>
         </div>
       </fieldset>
 
       {erroServidor && (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-400">
+        <p className="rounded-xl border border-brand/20 bg-brand-soft px-4 py-3 text-sm text-brand-strong">
           {erroServidor}
         </p>
       )}
 
-      <div className="flex items-center gap-4">
-        <button
-          type="submit"
-          disabled={pendente}
-          className="rounded-lg bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-300"
-        >
+      <div className="flex flex-wrap items-center gap-4">
+        <Botao type="submit" tamanho="lg" disabled={pendente}>
           {pendente ? "Calculando…" : "Calcular meu limite"}
-        </button>
-        <Link
-          href="/imoveis"
-          className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
-        >
+        </Botao>
+        <Link href="/imoveis" className={classesBotao("fantasma", "lg")}>
           Ver catálogo
         </Link>
       </div>
     </form>
+  );
+}
+
+/** Bolha numerada âmbar que marca cada passo do formulário. */
+function PassoBolha({ n }: { n: number }) {
+  return (
+    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gold-soft text-xs font-bold text-gold-strong">
+      {n}
+    </span>
   );
 }

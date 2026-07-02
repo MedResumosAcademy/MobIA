@@ -16,19 +16,19 @@ export default async function PaginaLeads() {
   const leads = await listarLeads();
 
   return (
-    <div className="flex flex-1 flex-col items-center bg-zinc-50 px-6 py-16 font-sans dark:bg-black">
+    <div className="flex flex-1 flex-col items-center bg-background px-6 py-16 font-sans">
       <main className="w-full max-w-4xl">
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
           Leads
         </h1>
-        <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+        <p className="mt-2 text-muted">
           Clientes que ativaram o atendimento e interagiram com seus imóveis,
           ordenados pelo interesse.
         </p>
 
         <ul className="mt-8 flex flex-col gap-3">
           {leads.length === 0 && (
-            <li className="rounded-xl border border-dashed border-zinc-300 p-8 text-center text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+            <li className="rounded-2xl border border-dashed border-border-strong bg-surface-card p-8 text-center text-subtle">
               Nenhum lead ainda — leads aparecem quando clientes que ativaram o
               atendimento interagem com seus imóveis.
             </li>
@@ -37,28 +37,25 @@ export default async function PaginaLeads() {
             <li key={lead.id}>
               <Link
                 href={`/corretor/leads/${lead.id}`}
-                className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-4 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 rounded-2xl border border-border bg-surface-card p-4 shadow-[var(--shadow-soft)] transition-[border-color,box-shadow] hover:border-brand/30 hover:shadow-[var(--shadow-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="truncate font-medium text-zinc-950 dark:text-zinc-50">
+                    <p className="truncate font-semibold text-foreground">
                       {lead.clienteNome ?? "Cliente"}
                     </p>
                     <ChipTermometro temperatura={lead.temperatura} />
                   </div>
-                  <p className="mt-0.5 truncate text-sm text-zinc-600 dark:text-zinc-400">
+                  <p className="mt-0.5 truncate text-sm text-muted">
                     {lead.imovelTitulo}
                   </p>
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
+                  <p className="mt-1 text-xs text-subtle">
                     {lead.sinais.visitas} visita(s) · {lead.sinais.simulacoes}{" "}
                     simulação(ões) · última atividade{" "}
                     {tempoRelativo(lead.ultimoEventoEm)}
                   </p>
                 </div>
-                <span
-                  aria-hidden
-                  className="hidden text-zinc-400 dark:text-zinc-600 sm:block"
-                >
+                <span aria-hidden className="hidden text-brand sm:block">
                   →
                 </span>
               </Link>

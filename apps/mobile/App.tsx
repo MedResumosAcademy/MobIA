@@ -1632,23 +1632,23 @@ export default function App() {
 }
 
 // --- Paleta editorial "Claro & Editorial" ----------------------------------
-// Superfícies claras (marfim/areia), marca verde profundo, dourado parcimonioso.
+// Superfícies claras quentes (marfim/areia), marca laranja, âmbar parcimonioso.
 const COR = {
-  marfim: "#FAF8F3",
-  areia: "#F3EFE7",
-  areiaForte: "#ECE6DA",
+  marfim: "#FBFAF8",
+  areia: "#F6F3EE",
+  areiaForte: "#F0EBE3",
   branco: "#FFFFFF",
-  marca: "#0F6B4F",
-  marcaHover: "#0B5A42",
-  verdeSuave: "#E3EFE9",
-  dourado: "#B8894B",
-  douradoEscuro: "#8A6631",
-  grafite: "#1C1B19",
-  corpo: "#4A4843",
-  secundario: "#7A776F",
-  hairline: "#E5DFD3",
-  hairlineForte: "#D8D0C0",
-  coracao: "#B23A2E",
+  marca: "#DB6414",
+  marcaHover: "#BE550F",
+  verdeSuave: "#FDEEDD",
+  dourado: "#F2A93B",
+  douradoEscuro: "#8A5A12",
+  grafite: "#26241F",
+  corpo: "#57534C",
+  secundario: "#8A857C",
+  hairline: "#EAE6DF",
+  hairlineForte: "#DAD5CC",
+  coracao: "#DB6414",
 } as const;
 
 const styles = StyleSheet.create({

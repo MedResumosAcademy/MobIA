@@ -1,5 +1,7 @@
 import type { Unidade } from "@/lib/dados/imoveis";
 import { formatarReais } from "@mobia/core";
+import { Botao } from "@/components/ui/Botao";
+import { classesCampo } from "@/components/ui/Campo";
 import {
   atualizarUnidadeAction,
   criarUnidadeAction,
@@ -8,9 +10,8 @@ import {
 import { ROTULO_STATUS, STATUS } from "./rotulos";
 
 const rotuloClasse =
-  "flex flex-col gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400";
-const inputClasse =
-  "rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
+  "flex flex-col gap-1 text-xs font-medium text-muted";
+const inputClasse = classesCampo("py-1.5");
 
 function centavosParaReais(v: number): string {
   return (v / 100).toFixed(2).replace(".", ",");
@@ -20,12 +21,12 @@ export function Unidades({ imovelId, unidades }: { imovelId: string; unidades: U
   const criar = criarUnidadeAction.bind(null, imovelId);
 
   return (
-    <section className="mt-10 flex flex-col gap-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-      <h2 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">Unidades</h2>
+    <section className="mt-10 flex flex-col gap-4 rounded-2xl border border-border bg-surface-card p-4 shadow-[var(--shadow-soft)]">
+      <h2 className="text-lg font-semibold text-foreground">Unidades</h2>
 
       <ul className="flex flex-col gap-3">
         {unidades.length === 0 && (
-          <li className="text-sm text-zinc-500 dark:text-zinc-400">
+          <li className="text-sm text-subtle">
             Nenhuma unidade cadastrada.
           </li>
         )}
@@ -34,10 +35,12 @@ export function Unidades({ imovelId, unidades }: { imovelId: string; unidades: U
           return (
             <li
               key={u.id}
-              className="flex flex-col gap-2 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+              className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-3"
             >
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                {u.identificador} · {formatarReais(u.valor)} · {ROTULO_STATUS[u.status]}
+              <p className="text-sm text-muted">
+                <span className="font-medium text-foreground">{u.identificador}</span> ·{" "}
+                <span className="tabular-nums">{formatarReais(u.valor)}</span> ·{" "}
+                {ROTULO_STATUS[u.status]}
               </p>
               <div className="flex flex-wrap items-end gap-2">
                 <form action={atualizar} className="flex flex-wrap items-end gap-2">
@@ -67,19 +70,16 @@ export function Unidades({ imovelId, unidades }: { imovelId: string; unidades: U
                       ))}
                     </select>
                   </label>
-                  <button
-                    type="submit"
-                    className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                  >
+                  <Botao type="submit" variante="secundario" tamanho="sm">
                     Salvar
-                  </button>
+                  </Botao>
                 </form>
                 <form action={removerUnidadeAction}>
                   <input type="hidden" name="imovelId" value={imovelId} />
                   <input type="hidden" name="unidadeId" value={u.id} />
                   <button
                     type="submit"
-                    className="rounded-lg border border-red-300 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+                    className="inline-flex items-center rounded-xl border border-red-300 px-3.5 py-1.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50"
                   >
                     Remover
                   </button>
@@ -90,7 +90,7 @@ export function Unidades({ imovelId, unidades }: { imovelId: string; unidades: U
         })}
       </ul>
 
-      <form action={criar} className="flex flex-wrap items-end gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+      <form action={criar} className="flex flex-wrap items-end gap-2 border-t border-border pt-4">
         <label className={rotuloClasse}>
           Identificador
           <input name="identificador" required placeholder="905" className={inputClasse} />
@@ -117,12 +117,9 @@ export function Unidades({ imovelId, unidades }: { imovelId: string; unidades: U
             ))}
           </select>
         </label>
-        <button
-          type="submit"
-          className="rounded-lg bg-zinc-950 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200"
-        >
+        <Botao type="submit" tamanho="sm">
           Adicionar unidade
-        </button>
+        </Botao>
       </form>
     </section>
   );

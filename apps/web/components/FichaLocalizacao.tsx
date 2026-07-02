@@ -1,6 +1,9 @@
 // Localização da ficha (H-10). Endereço + mapa. Sem chave de API: usa embed
 // estático do OpenStreetMap (iframe) quando há lat/lng; caso contrário mostra
 // só o endereço + link para o Google Maps a partir de cidade/uf.
+// Visual alinhado à paleta quente (tokens): sem cores cruas do Tailwind.
+
+import { MapPin } from "lucide-react";
 
 type Props = {
   endereco: string | null;
@@ -28,17 +31,25 @@ export function FichaLocalizacao({ endereco, cidade, uf, lat, lng }: Props) {
     : `https://www.google.com/maps/search/?api=1&query=${consultaMaps}`;
 
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm text-zinc-700 dark:text-zinc-300">{enderecoLegivel}</p>
+    <div className="flex flex-col gap-4">
+      <p className="flex items-start gap-2 text-base text-muted">
+        <MapPin
+          size={18}
+          className="mt-0.5 shrink-0 text-gold"
+          strokeWidth={1.8}
+          aria-hidden="true"
+        />
+        <span>{enderecoLegivel}</span>
+      </p>
       {osmEmbed ? (
         <iframe
           title={`Mapa — ${enderecoLegivel}`}
           src={osmEmbed}
           loading="lazy"
-          className="aspect-[16/9] w-full rounded-2xl border border-zinc-200 dark:border-zinc-800"
+          className="aspect-[16/9] w-full rounded-2xl border border-border bg-surface-card shadow-[var(--shadow-soft)]"
         />
       ) : (
-        <div className="flex aspect-[16/9] w-full items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 text-sm text-zinc-400 dark:border-zinc-700 dark:bg-zinc-900">
+        <div className="flex aspect-[16/9] w-full items-center justify-center rounded-2xl border border-dashed border-border-strong bg-surface text-sm text-subtle">
           Localização aproximada — {cidade}/{uf}
         </div>
       )}
@@ -46,9 +57,10 @@ export function FichaLocalizacao({ endereco, cidade, uf, lat, lng }: Props) {
         href={linkMaps}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex w-fit items-center gap-1 text-sm font-medium text-sky-700 hover:underline dark:text-sky-400"
+        className="inline-flex w-fit items-center gap-1.5 rounded text-sm font-medium text-brand-strong transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-muted"
       >
-        Abrir no Google Maps →
+        Abrir no Google Maps
+        <span aria-hidden="true">→</span>
       </a>
     </div>
   );

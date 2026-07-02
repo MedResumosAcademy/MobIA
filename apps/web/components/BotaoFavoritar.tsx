@@ -93,7 +93,7 @@ export function BotaoFavoritar({
           <div className="mt-2 flex items-center gap-3">
             <Link
               href="/entrar"
-              className="font-medium text-brand underline"
+              className="font-medium text-brand-strong underline"
             >
               Entrar
             </Link>

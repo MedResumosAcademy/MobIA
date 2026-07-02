@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BannerConsentimento } from "@/components/BannerConsentimento";
 import { FavoritosLista } from "@/components/FavoritosLista";
+import { classesBotao } from "@/components/ui/Botao";
 import { obterSessao } from "@/lib/auth/sessao";
 import { obterConsentimento } from "@/lib/dados/consentimento";
 import { listarFavoritos } from "@/lib/dados/favoritos";
@@ -19,29 +20,26 @@ export default async function PaginaFavoritos() {
   const sessao = await obterSessao();
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50 px-6 py-10 font-sans dark:bg-black">
+    <div className="flex flex-1 flex-col bg-background px-6 py-12 font-sans">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-8">
         <header className="flex flex-col gap-2">
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+          <h1 className="font-serif text-4xl font-semibold tracking-tight text-foreground">
             Meus favoritos
           </h1>
-          <p className="text-base text-zinc-600 dark:text-zinc-400">
+          <p className="text-base leading-relaxed text-muted">
             Os imóveis que você salvou para decidir com calma.
           </p>
         </header>
 
         {!sessao ? (
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-zinc-300 bg-white px-6 py-20 text-center dark:border-zinc-700 dark:bg-zinc-950">
-            <p className="text-lg font-medium text-zinc-700 dark:text-zinc-300">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border-strong bg-surface-card px-6 py-20 text-center shadow-soft">
+            <p className="text-lg font-semibold text-foreground">
               Entre para ver seus favoritos
             </p>
-            <p className="max-w-md text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="max-w-md text-sm text-muted">
               Faça login para salvar imóveis e compará-los quando quiser.
             </p>
-            <Link
-              href="/entrar"
-              className="mt-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-300"
-            >
+            <Link href="/entrar" className={classesBotao("primario", "md", "mt-2")}>
               Entrar
             </Link>
           </div>
@@ -64,17 +62,14 @@ async function FavoritosConteudo() {
 
   if (imoveis.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-zinc-300 bg-white px-6 py-20 text-center dark:border-zinc-700 dark:bg-zinc-950">
-        <p className="text-lg font-medium text-zinc-700 dark:text-zinc-300">
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border-strong bg-surface-card px-6 py-20 text-center shadow-soft">
+        <p className="text-lg font-semibold text-foreground">
           Você ainda não favoritou nenhum imóvel
         </p>
-        <p className="max-w-md text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="max-w-md text-sm text-muted">
           Toque no coração de um imóvel para guardá-lo aqui.
         </p>
-        <Link
-          href="/imoveis"
-          className="mt-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-300"
-        >
+        <Link href="/imoveis" className={classesBotao("primario", "md", "mt-2")}>
           Ver catálogo
         </Link>
       </div>

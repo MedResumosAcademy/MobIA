@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { ImovelDetalhe } from "@/lib/dados/imoveis";
+import { Botao } from "@/components/ui/Botao";
+import { classesCampo } from "@/components/ui/Campo";
 import { CATEGORIAS, CONDICOES, MODALIDADES, TIPOS } from "./rotulos";
 
 type BaloForm = {
@@ -16,9 +18,8 @@ type Props = {
 };
 
 const rotuloClasse =
-  "flex flex-col gap-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300";
-const inputClasse =
-  "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
+  "flex flex-col gap-1.5 text-sm font-medium text-foreground";
+const inputClasse = classesCampo();
 
 function centavosParaReais(v: number): string {
   return (v / 100).toFixed(2).replace(".", ",");
@@ -258,17 +259,18 @@ export function FormularioImovel({ action, imovel }: Props) {
       </section>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <legend className="text-sm font-medium text-foreground">
           Categorias
         </legend>
         <div className="flex flex-wrap gap-3">
           {CATEGORIAS.map((c) => (
-            <label key={c.valor} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+            <label key={c.valor} className="flex items-center gap-2 text-sm text-muted">
               <input
                 type="checkbox"
                 name="categorias"
                 value={c.valor}
                 defaultChecked={imovel?.categorias.includes(c.valor) ?? false}
+                className="accent-[var(--brand)]"
               />
               {c.rotulo}
             </label>
@@ -277,17 +279,18 @@ export function FormularioImovel({ action, imovel }: Props) {
       </fieldset>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <legend className="text-sm font-medium text-foreground">
           Modalidades elegíveis
         </legend>
         <div className="flex flex-wrap gap-3">
           {MODALIDADES.map((m) => (
-            <label key={m.valor} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+            <label key={m.valor} className="flex items-center gap-2 text-sm text-muted">
               <input
                 type="checkbox"
                 name="modalidadesElegiveis"
                 value={m.valor}
                 defaultChecked={imovel?.modalidadesElegiveis.includes(m.valor) ?? false}
+                className="accent-[var(--brand)]"
               />
               {m.rotulo}
             </label>
@@ -314,12 +317,13 @@ export function FormularioImovel({ action, imovel }: Props) {
         inputName="plantasArquivos"
       />
 
-      <section className="flex flex-col gap-3 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+      <section className="flex flex-col gap-3 rounded-2xl border border-border bg-surface-card p-4 shadow-[var(--shadow-soft)]">
+        <label className="flex items-center gap-2 text-sm font-medium text-foreground">
           <input
             type="checkbox"
             checked={temEsquema}
             onChange={(e) => setTemEsquema(e.target.checked)}
+            className="accent-[var(--brand)]"
           />
           Esquema de pagamento (imóvel na planta)
         </label>
@@ -384,7 +388,7 @@ export function FormularioImovel({ action, imovel }: Props) {
               </div>
             )}
             <div className="flex flex-col gap-3">
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <span className="text-sm font-medium text-foreground">
                 Balões (reforços)
               </span>
               {baloes.map((b, i) => (
@@ -427,35 +431,35 @@ export function FormularioImovel({ action, imovel }: Props) {
                     }
                     className={inputClasse}
                   />
-                  <button
+                  <Botao
                     type="button"
+                    variante="secundario"
+                    tamanho="sm"
                     onClick={() => setBaloes(baloes.filter((_, j) => j !== i))}
-                    className="rounded-lg border border-zinc-300 px-3 text-sm text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
                   >
                     Remover
-                  </button>
+                  </Botao>
                 </div>
               ))}
-              <button
+              <Botao
                 type="button"
+                variante="secundario"
+                tamanho="sm"
+                className="self-start"
                 onClick={() =>
                   setBaloes([...baloes, { periodicidadeMeses: "12", base: "percentual", quantia: "" }])
                 }
-                className="self-start rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
               >
                 + Adicionar balão
-              </button>
+              </Botao>
             </div>
           </div>
         )}
       </section>
 
-      <button
-        type="submit"
-        className="self-start rounded-lg bg-zinc-950 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200"
-      >
+      <Botao type="submit" tamanho="lg" className="self-start">
         Salvar imóvel
-      </button>
+      </Botao>
     </form>
   );
 }
@@ -479,16 +483,16 @@ function ListaUrls({
 }) {
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{titulo}</legend>
+      <legend className="text-sm font-medium text-foreground">{titulo}</legend>
       {urls.length > 0 && (
         <ul className="flex flex-col gap-1">
           {urls.map((u, i) => (
-            <li key={i} className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+            <li key={i} className="flex items-center gap-2 text-sm text-muted">
               <span className="truncate">{u}</span>
               <button
                 type="button"
                 onClick={() => onRemover(i)}
-                className="text-red-600 dark:text-red-400"
+                className="font-medium text-red-600 hover:text-red-700"
               >
                 remover
               </button>
@@ -503,8 +507,10 @@ function ListaUrls({
           placeholder="https://..."
           className={`${inputClasse} flex-1`}
         />
-        <button
+        <Botao
           type="button"
+          variante="secundario"
+          tamanho="sm"
           onClick={() => {
             const u = valorNovo.trim();
             if (/^https?:\/\//i.test(u)) {
@@ -512,19 +518,18 @@ function ListaUrls({
               setValorNovo("");
             }
           }}
-          className="rounded-lg border border-zinc-300 px-3 text-sm text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
         >
           Adicionar
-        </button>
+        </Botao>
       </div>
-      <label className="text-sm text-zinc-600 dark:text-zinc-400">
+      <label className="text-sm text-muted">
         ou enviar arquivos
         <input
           type="file"
           name={inputName}
           multiple
           accept="image/*"
-          className="mt-1 block w-full text-sm text-zinc-600 dark:text-zinc-400"
+          className="mt-1 block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border file:border-border-strong file:bg-surface file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-foreground hover:file:bg-surface-strong"
         />
       </label>
     </fieldset>

@@ -1,10 +1,10 @@
-// Badge de vitrine — pílula editorial por categoria/tipo (MobIA "Claro & Editorial").
+// Badge de vitrine — pílula por categoria/tipo (paleta QUENTE laranja/âmbar).
 // Componente PURO: sem regra de negócio, só apresentação.
-// Variantes mapeiam a paleta editorial (tokens em globals.css):
-//   destaque    = dourado/champanhe (selo premium — uso parcimonioso)
-//   lancamento  = verde suave · alto_padrao = champanhe · mcmv = verde suave
+// Variantes mapeiam os tokens de badge (globals.css):
+//   destaque    = âmbar suave (selo premium — uso parcimonioso)
+//   lancamento  = laranja suave · alto_padrao = âmbar suave · mcmv = laranja suave
 //   neutro      = areia (tipo: casa/apartamento/terreno ou rótulos livres)
-//   marca       = verde sólido (contraste)
+//   marca       = laranja sólido (contraste)
 // Pílulas refinadas: tracking leve, hairline sutil, tipografia contida.
 
 import type { ReactNode } from "react";

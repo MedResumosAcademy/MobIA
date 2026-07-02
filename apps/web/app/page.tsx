@@ -1,20 +1,22 @@
-// Landing do MobIA — revista de arquitetura / alto padrão ("Claro & Editorial").
-// Hero editorial arejado + diferenciais + imóveis em destaque + faixa de confiança.
+// Landing do MobIA — nível Airbnb/portal: hero foto-forward com busca clara,
+// atalhos de categoria, imóveis em destaque e faixa de diferenciais enxuta.
 // Server Component: destaques vêm do banco a cada request (RLS: só disponíveis).
 
 import type { Metadata } from "next";
 import {
   SlidersHorizontal,
   Sparkles,
-  Heart,
+  Search,
   ArrowRight,
-  ShieldCheck,
+  Building2,
+  Home as HomeIcon,
+  Gem,
   KeyRound,
+  MapPin,
 } from "lucide-react";
 import Link from "next/link";
 import { CardImovel } from "@/components/card-imovel";
 import { classesBotao } from "@/components/ui/Botao";
-import { Divisor } from "@/components/ui/Divisor";
 import { idsFavoritos } from "@/lib/dados/favoritos";
 import { listarImoveis } from "@/lib/dados/imoveis";
 
@@ -24,18 +26,27 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+// Atalhos que caem direto no catálogo já filtrado (mesmas chaves da URL do /imoveis).
+const ATALHOS = [
+  { href: "/imoveis?tipo=apartamento", icone: Building2, rotulo: "Apartamentos" },
+  { href: "/imoveis?tipo=casa", icone: HomeIcon, rotulo: "Casas" },
+  { href: "/imoveis?categoria=lancamento", icone: Sparkles, rotulo: "Lançamentos" },
+  { href: "/imoveis?categoria=alto_padrao", icone: Gem, rotulo: "Alto padrão" },
+  { href: "/imoveis?categoria=mcmv", icone: KeyRound, rotulo: "Minha Casa Minha Vida" },
+];
+
 const DIFERENCIAIS = [
   {
     icone: SlidersHorizontal,
     titulo: "Compre do seu jeito",
     texto:
-      "Simule a entrada e veja a parcela mudar na hora. Você monta o plano que cabe no seu bolso — sem surpresas.",
+      "Simule a entrada e veja a parcela mudar na hora. Você monta o plano que cabe no seu bolso.",
   },
   {
     icone: Sparkles,
     titulo: "Sonhômetro",
     texto:
-      "Descubra em segundos quanto você pode comprar e veja apenas os imóveis compatíveis com a sua renda.",
+      "Descubra em segundos quanto pode comprar e veja só os imóveis compatíveis com a sua renda.",
   },
   {
     icone: KeyRound,
@@ -54,79 +65,110 @@ export default async function Home() {
 
   return (
     <div className="flex flex-1 flex-col font-sans">
-      {/* HERO editorial — composição arejada, marfim com verde-suave e detalhe dourado */}
+      {/* HERO foto-forward — fundo claro quente, detalhe âmbar sutil, busca clara */}
       <section className="relative overflow-hidden bg-surface">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-soft/70 via-surface to-surface"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-soft/60 via-surface to-surface"
         />
-        {/* Halo dourado sutil no canto — detalhe premium, uso parcimonioso */}
+        {/* Halo âmbar sutil no canto — detalhe premium, uso parcimonioso */}
         <div
           aria-hidden
           className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-gold/10 blur-3xl"
         />
-        <div className="relative mx-auto flex w-full max-w-6xl flex-col items-start gap-7 px-6 py-24 sm:py-32">
+        <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-6 py-20 text-center sm:py-28">
           <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold-soft px-3.5 py-1.5 text-[0.8rem] font-medium uppercase tracking-[0.14em] text-gold-strong">
             <Sparkles size={14} aria-hidden="true" strokeWidth={2} />
             O jeito novo de comprar imóvel
           </span>
-          <h1 className="max-w-4xl text-balance font-serif text-[2.75rem] font-semibold leading-[1.05] tracking-[-0.025em] text-foreground sm:text-6xl md:text-7xl">
-            Encontre o imóvel certo.{" "}
-            <span className="text-brand">Monte a compra do seu jeito.</span>
+          <h1 className="max-w-3xl text-balance text-4xl font-bold leading-[1.08] tracking-[-0.03em] text-foreground sm:text-5xl md:text-6xl">
+            Encontre o imóvel certo e{" "}
+            <span className="text-brand">monte a compra do seu jeito.</span>
           </h1>
-          <p className="max-w-2xl text-pretty text-lg leading-8 text-muted sm:text-xl">
-            Escolha o imóvel, simule a entrada e veja a parcela na hora. Com o
-            MobIA, você tem o controle da sua compra do começo ao fim — com a
-            elegância que uma decisão dessas merece.
+          <p className="max-w-xl text-pretty text-lg leading-8 text-muted">
+            Escolha o imóvel, simule a entrada e veja a parcela na hora. Você tem
+            o controle da sua compra do começo ao fim.
           </p>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <Link href="/imoveis" className={classesBotao("primario", "lg")}>
-              Ver imóveis
-              <ArrowRight size={18} aria-hidden="true" strokeWidth={2} />
-            </Link>
-            <Link
-              href="/sonhometro"
-              className={classesBotao("secundario", "lg")}
+
+          {/* BUSCA principal — campo de cidade + botão, leva ao catálogo (?cidade=) */}
+          <form
+            action="/imoveis"
+            method="get"
+            role="search"
+            className="mt-2 flex w-full max-w-xl flex-col gap-3 rounded-2xl border border-border bg-surface-card p-2.5 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center sm:gap-2"
+          >
+            <label className="flex flex-1 items-center gap-2.5 px-3">
+              <MapPin
+                size={20}
+                aria-hidden="true"
+                strokeWidth={2}
+                className="shrink-0 text-brand"
+              />
+              <span className="sr-only">Cidade</span>
+              <input
+                type="search"
+                name="cidade"
+                placeholder="Busque por cidade — ex.: São Paulo, Curitiba…"
+                autoComplete="address-level2"
+                className="w-full bg-transparent py-2.5 text-base text-foreground placeholder:text-subtle focus:outline-none"
+              />
+            </label>
+            <button
+              type="submit"
+              className={classesBotao("primario", "lg", "shrink-0")}
             >
-              Descubra quanto pode comprar
-            </Link>
-          </div>
+              <Search size={18} aria-hidden="true" strokeWidth={2} />
+              Buscar imóveis
+            </button>
+          </form>
+
+          <Link
+            href="/sonhometro"
+            className="group inline-flex items-center gap-1.5 text-sm font-medium text-brand-strong transition-colors hover:text-brand-hover"
+          >
+            Não sabe por onde começar? Descubra quanto pode comprar
+            <ArrowRight
+              size={16}
+              aria-hidden="true"
+              strokeWidth={2}
+              className="transition-transform group-hover:translate-x-0.5"
+            />
+          </Link>
         </div>
-        {/* Hairline dourada de fechamento do hero */}
-        <Divisor dourado className="opacity-60" />
       </section>
 
-      {/* DIFERENCIAIS — 3 blocos editoriais arejados */}
+      {/* ATALHOS DE CATEGORIA — pílulas-cartão com ícone, linkam ao catálogo filtrado */}
       <section
-        aria-label="Diferenciais MobIA"
-        className="border-b border-border bg-background"
+        aria-label="Buscar por categoria"
+        className="border-y border-border bg-background"
       >
-        <div className="mx-auto grid w-full max-w-6xl gap-x-10 gap-y-12 px-6 py-20 sm:grid-cols-3">
-          {DIFERENCIAIS.map(({ icone: Icone, titulo, texto }) => (
-            <div key={titulo} className="flex flex-col gap-4">
-              <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-surface-card text-brand shadow-[var(--shadow-soft)]">
-                <Icone size={22} aria-hidden="true" strokeWidth={1.75} />
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-center gap-3 px-6 py-8">
+          {ATALHOS.map(({ href, icone: Icone, rotulo }) => (
+            <Link
+              key={href}
+              href={href}
+              className="group inline-flex items-center gap-2.5 rounded-full border border-border-strong bg-surface-card px-4 py-2.5 text-sm font-medium text-foreground shadow-[var(--shadow-soft)] transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-[var(--shadow-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+            >
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-soft text-brand transition-colors group-hover:bg-brand group-hover:text-brand-contrast">
+                <Icone size={17} aria-hidden="true" strokeWidth={2} />
               </span>
-              <h2 className="font-serif text-2xl font-semibold tracking-[-0.01em] text-foreground">
-                {titulo}
-              </h2>
-              <p className="text-[0.95rem] leading-7 text-muted">{texto}</p>
-            </div>
+              {rotulo}
+            </Link>
           ))}
         </div>
       </section>
 
-      {/* IMÓVEIS EM DESTAQUE */}
+      {/* IMÓVEIS EM DESTAQUE — grid de CardImovel */}
       {destaques.length > 0 && (
         <section aria-label="Imóveis em destaque" className="bg-surface">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-20">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-16 sm:py-20">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div className="flex flex-col gap-2">
                 <span className="inline-flex items-center gap-2 text-[0.8rem] font-medium uppercase tracking-[0.14em] text-gold-strong">
                   <span aria-hidden className="h-px w-6 bg-gold/60" />
                   Seleção MobIA
                 </span>
-                <h2 className="font-serif text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl">
+                <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
                   Imóveis em destaque
                 </h2>
                 <p className="max-w-md text-base leading-7 text-muted">
@@ -135,7 +177,7 @@ export default async function Home() {
               </div>
               <Link
                 href="/imoveis"
-                className="group inline-flex items-center gap-1.5 text-sm font-medium text-brand transition-colors hover:text-brand-hover"
+                className="group inline-flex items-center gap-1.5 text-sm font-medium text-brand-strong transition-colors hover:text-brand-hover"
               >
                 Ver todos os imóveis
                 <ArrowRight
@@ -159,35 +201,36 @@ export default async function Home() {
         </section>
       )}
 
-      {/* FAIXA DE CONFIANÇA / FECHAMENTO — antes do rodapé (que vem do layout) */}
+      {/* DIFERENCIAIS — faixa enxuta antes do rodapé (que vem do layout) */}
       <section
-        aria-label="Confiança MobIA"
+        aria-label="Diferenciais MobIA"
         className="border-t border-border bg-background"
       >
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-6 py-20 text-center">
-          <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-gold/30 bg-gold-soft text-gold-strong">
-            <ShieldCheck size={22} aria-hidden="true" strokeWidth={1.75} />
-          </span>
-          <h2 className="max-w-2xl font-serif text-3xl font-semibold tracking-[-0.02em] text-foreground sm:text-4xl">
-            Transparência do primeiro clique à chave na mão.
-          </h2>
-          <p className="max-w-xl text-base leading-7 text-muted">
-            Sem letras miúdas, sem pressão. Você monta a compra, entende cada
-            número e decide no seu tempo — com um corretor de verdade quando
-            precisar.
-          </p>
-          <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/imoveis" className={classesBotao("primario", "lg")}>
-              Começar agora
-              <ArrowRight size={18} aria-hidden="true" strokeWidth={2} />
-            </Link>
-            <Link
-              href="/favoritos"
-              className={classesBotao("fantasma", "lg")}
-            >
-              <Heart size={17} aria-hidden="true" strokeWidth={2} />
-              Meus favoritos
-            </Link>
+        <div className="mx-auto grid w-full max-w-6xl gap-x-10 gap-y-10 px-6 py-16 sm:grid-cols-3 sm:py-20">
+          {DIFERENCIAIS.map(({ icone: Icone, titulo, texto }) => (
+            <div key={titulo} className="flex flex-col gap-3">
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-surface-card text-brand shadow-[var(--shadow-soft)]">
+                <Icone size={20} aria-hidden="true" strokeWidth={1.75} />
+              </span>
+              <h3 className="text-lg font-semibold tracking-[-0.01em] text-foreground">
+                {titulo}
+              </h3>
+              <p className="text-[0.95rem] leading-7 text-muted">{texto}</p>
+            </div>
+          ))}
+          <div className="sm:col-span-3">
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <Link href="/imoveis" className={classesBotao("primario", "lg")}>
+                Ver imóveis
+                <ArrowRight size={18} aria-hidden="true" strokeWidth={2} />
+              </Link>
+              <Link
+                href="/sonhometro"
+                className={classesBotao("secundario", "lg")}
+              >
+                Descubra quanto pode comprar
+              </Link>
+            </div>
           </div>
         </div>
       </section>
