@@ -34,12 +34,20 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <header className="flex items-center justify-between border-b border-zinc-200 bg-white px-6 py-4 font-sans dark:border-zinc-800 dark:bg-zinc-950">
-          <Link
-            href="/"
-            className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50"
-          >
-            MobIA
-          </Link>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/"
+              className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50"
+            >
+              MobIA
+            </Link>
+            <Link
+              href="/imoveis"
+              className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
+            >
+              Ver catálogo
+            </Link>
+          </div>
           {sessao ? (
             <div className="flex items-center gap-4">
               <span className="text-sm text-zinc-600 dark:text-zinc-400">{sessao.email}</span>

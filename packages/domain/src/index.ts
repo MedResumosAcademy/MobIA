@@ -14,3 +14,4 @@ export * from "./simulacao";
 export * from "./lead";
 export * from "./favorito";
 export * from "./parametros";
+export type { Database, Json } from "./database.types";

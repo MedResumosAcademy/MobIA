@@ -1,0 +1,474 @@
+// Camada de dados de imóveis — funções server-side. Mapeia snake_case⇄camelCase
+// e valida com zod de @mobia/domain. RLS multi-tenant cuida do escopo:
+// catálogo público só vê status='disponivel'; corretor/gestor só a própria org.
+// Módulo de dados server-side (NÃO é um arquivo de Server Actions: exporta
+// schemas/tipos além de funções). Importado só por Server Components e ações.
+
+import {
+  balaoSchema,
+  categoriaImovelSchema,
+  modalidadeSchema,
+  parcelaMensalEsquemaSchema,
+  percentualSchema,
+  statusImovelSchema,
+  tipoImovelSchema,
+  ufSchema,
+  type CategoriaImovel,
+  type Database,
+  type Modalidade,
+  type StatusImovel,
+  type TipoImovel,
+} from "@mobia/domain";
+import { z } from "zod";
+import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
+import { criarClientePublico } from "@/lib/supabase/publico";
+import { criarClienteServidor } from "@/lib/supabase/server";
+import { urlPublicaMidia } from "./storage";
+
+type LinhaImovel = Database["public"]["Tables"]["imoveis"]["Row"];
+type LinhaUnidade = Database["public"]["Tables"]["unidades"]["Row"];
+type InsertImovel = Database["public"]["Tables"]["imoveis"]["Insert"];
+type UpdateImovel = Database["public"]["Tables"]["imoveis"]["Update"];
+type Json = Database["public"]["Tables"]["imoveis"]["Row"]["esquema_pagamento"];
+
+// --- Tipos de saída (camelCase, prontos para a UI) ---
+
+export type CardImovel = {
+  id: string;
+  titulo: string;
+  tipo: TipoImovel | null;
+  cidade: string;
+  uf: string;
+  valor: number;
+  fotoCapa: string | null;
+};
+
+export type Unidade = {
+  id: string;
+  imovelId: string;
+  identificador: string;
+  andar: number | null;
+  posicao: string | null;
+  valor: number;
+  status: StatusImovel;
+};
+
+export type ImovelDetalhe = {
+  id: string;
+  orgId: string;
+  corretorResponsavelId: string;
+  titulo: string;
+  tipo: TipoImovel | null;
+  categorias: CategoriaImovel[];
+  status: StatusImovel;
+  condicao: string | null;
+  endereco: string | null;
+  cidade: string;
+  uf: string;
+  valor: number;
+  descricao: string | null;
+  fotos: string[];
+  plantas: string[];
+  modalidadesElegiveis: Modalidade[];
+  esquemaPagamento: EsquemaPagamentoArmazenado | null;
+  lat: number | null;
+  lng: number | null;
+  unidades: Unidade[];
+};
+
+// --- Filtros do catálogo ---
+
+export type FiltrosCatalogo = {
+  tipo?: TipoImovel;
+  categoria?: CategoriaImovel;
+  cidadeBusca?: string;
+  precoMin?: number;
+  precoMax?: number;
+};
+
+// --- Schemas de entrada (anti-forja: org_id/corretor NUNCA vêm do form) ---
+
+// Esquema de pagamento COMO PERSISTIDO no jsonb: o mesmo formato do domínio SEM
+// os campos derivados da sessão/imóvel (id/orgId/imovelId — anti-forja e nunca
+// gravados). Reconstruído como ZodObject (não via .omit sobre o schema refinado,
+// que quebra a inferência). É a forma usada tanto no cadastro (entrada) quanto
+// no read-back da ficha (mapDetalhe).
+const esquemaPagamentoArmazenadoSchema = z
+  .object({
+    modalidade: modalidadeSchema,
+    percentualMinimoAto: percentualSchema,
+    numeroParcelasMensais: z.number().int().nonnegative(),
+    parcelaMensal: parcelaMensalEsquemaSchema.optional(),
+    baloes: z.array(balaoSchema),
+  })
+  .strict()
+  .refine(
+    (e) => e.numeroParcelasMensais === 0 || e.parcelaMensal !== undefined,
+    { message: "esquema com parcelas mensais exige parcelaMensal" },
+  );
+
+export type EsquemaPagamentoArmazenado = z.infer<typeof esquemaPagamentoArmazenadoSchema>;
+
+const esquemaPagamentoEntradaSchema = esquemaPagamentoArmazenadoSchema.nullable();
+
+export const imovelEntradaSchema = z
+  .object({
+    tipo: tipoImovelSchema.nullable().optional(),
+    categorias: z.array(categoriaImovelSchema).default([]),
+    condicao: z.string().nullable().optional(),
+    endereco: z.string().nullable().optional(),
+    cidade: z.string().min(1),
+    uf: ufSchema,
+    valor: z.number().int().nonnegative(),
+    descricao: z.string().nullable().optional(),
+    fotos: z.array(z.string().url()).default([]),
+    plantas: z.array(z.string().url()).default([]),
+    modalidadesElegiveis: z.array(modalidadeSchema).default([]),
+    esquemaPagamento: esquemaPagamentoEntradaSchema.optional(),
+    lat: z.number().min(-90).max(90).nullable().optional(),
+    lng: z.number().min(-180).max(180).nullable().optional(),
+  })
+  .strict();
+
+export type ImovelEntrada = z.input<typeof imovelEntradaSchema>;
+
+// --- Helpers de coerção de enums vindos do banco (colunas text) ---
+
+function coagirTipo(v: string | null): TipoImovel | null {
+  const r = tipoImovelSchema.safeParse(v);
+  return r.success ? r.data : null;
+}
+
+function coagirStatus(v: string): StatusImovel {
+  const r = statusImovelSchema.safeParse(v);
+  return r.success ? r.data : "disponivel";
+}
+
+function coagirCategorias(vs: string[]): CategoriaImovel[] {
+  return vs
+    .map((v) => categoriaImovelSchema.safeParse(v))
+    .filter((r): r is { success: true; data: CategoriaImovel } => r.success)
+    .map((r) => r.data);
+}
+
+function coagirModalidades(vs: string[]): Modalidade[] {
+  return vs
+    .map((v) => modalidadeSchema.safeParse(v))
+    .filter((r): r is { success: true; data: Modalidade } => r.success)
+    .map((r) => r.data);
+}
+
+/** Título derivado — o banco não tem coluna própria de título. */
+function derivarTitulo(l: Pick<LinhaImovel, "tipo" | "cidade" | "uf">): string {
+  const rotulos: Record<TipoImovel, string> = {
+    casa: "Casa",
+    apartamento: "Apartamento",
+    terreno: "Terreno",
+  };
+  const tipo = coagirTipo(l.tipo);
+  const prefixo = tipo ? rotulos[tipo] : "Imóvel";
+  return `${prefixo} em ${l.cidade}/${l.uf}`;
+}
+
+function mapCard(l: LinhaImovel): CardImovel {
+  const fotoCapa = l.fotos[0] ? urlPublicaMidia("imoveis-fotos", l.fotos[0]) : null;
+  return {
+    id: l.id,
+    titulo: derivarTitulo(l),
+    tipo: coagirTipo(l.tipo),
+    cidade: l.cidade,
+    uf: l.uf,
+    valor: l.valor,
+    fotoCapa,
+  };
+}
+
+function mapUnidade(l: LinhaUnidade): Unidade {
+  return {
+    id: l.id,
+    imovelId: l.imovel_id,
+    identificador: l.identificador,
+    andar: l.andar,
+    posicao: l.posicao,
+    valor: l.valor,
+    status: coagirStatus(l.status),
+  };
+}
+
+function mapDetalhe(l: LinhaImovel, unidades: LinhaUnidade[]): ImovelDetalhe {
+  const esquema = l.esquema_pagamento
+    ? esquemaPagamentoArmazenadoSchema.safeParse(l.esquema_pagamento)
+    : null;
+  return {
+    id: l.id,
+    orgId: l.org_id,
+    corretorResponsavelId: l.corretor_responsavel_id,
+    titulo: derivarTitulo(l),
+    tipo: coagirTipo(l.tipo),
+    categorias: coagirCategorias(l.categorias),
+    status: coagirStatus(l.status),
+    condicao: l.condicao,
+    endereco: l.endereco,
+    cidade: l.cidade,
+    uf: l.uf,
+    valor: l.valor,
+    descricao: l.descricao,
+    fotos: l.fotos.map((p) => urlPublicaMidia("imoveis-fotos", p)),
+    plantas: l.plantas.map((p) => urlPublicaMidia("imoveis-plantas", p)),
+    modalidadesElegiveis: coagirModalidades(l.modalidades_elegiveis),
+    esquemaPagamento: esquema && esquema.success ? esquema.data : null,
+    lat: l.lat,
+    lng: l.lng,
+    unidades: unidades.map(mapUnidade),
+  };
+}
+
+// --- Leitura pública ---
+
+/**
+ * Catálogo público. RLS já limita a status='disponivel'. Ordena por criado_em
+ * desc. Retorna cards enxutos.
+ */
+export async function listarImoveis(
+  filtros: FiltrosCatalogo = {},
+): Promise<CardImovel[]> {
+  const supabase = criarClientePublico();
+  let query = supabase.from("imoveis").select("*").order("criado_em", { ascending: false });
+
+  if (filtros.tipo) {
+    query = query.eq("tipo", filtros.tipo);
+  }
+  if (filtros.categoria) {
+    query = query.contains("categorias", [filtros.categoria]);
+  }
+  if (filtros.cidadeBusca) {
+    query = query.ilike("cidade", `%${filtros.cidadeBusca}%`);
+  }
+  if (filtros.precoMin !== undefined) {
+    query = query.gte("valor", filtros.precoMin);
+  }
+  if (filtros.precoMax !== undefined) {
+    query = query.lte("valor", filtros.precoMax);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(`listarImoveis: ${error.message}`);
+  }
+  return (data ?? []).map(mapCard);
+}
+
+/** Imóvel + unidades. Retorna null se não visível (RLS) ou inexistente. */
+export async function obterImovel(id: string): Promise<ImovelDetalhe | null> {
+  const supabase = criarClientePublico();
+  const { data: imovel, error } = await supabase
+    .from("imoveis")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !imovel) {
+    return null;
+  }
+  const { data: unidades } = await supabase
+    .from("unidades")
+    .select("*")
+    .eq("imovel_id", id)
+    .order("identificador", { ascending: true });
+  return mapDetalhe(imovel, unidades ?? []);
+}
+
+// --- Leitura da org (corretor logado) ---
+
+/** Carteira da própria org — todos os status. RLS cuida do escopo. */
+export async function listarImoveisDaOrg(): Promise<ImovelDetalhe[]> {
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase
+    .from("imoveis")
+    .select("*")
+    .order("criado_em", { ascending: false });
+  if (error) {
+    throw new Error(`listarImoveisDaOrg: ${error.message}`);
+  }
+  return (data ?? []).map((l) => mapDetalhe(l, []));
+}
+
+// --- Escrita (escopo org via sessão) ---
+
+async function exigirCorretor(): Promise<{ usuarioId: string; orgId: string }> {
+  const sessao = await obterSessao();
+  if (!sessao) {
+    throw new Error("não autenticado");
+  }
+  const perfil = await obterPerfil(sessao.usuarioId);
+  if (!perfil || (perfil.papel !== "corretor" && perfil.papel !== "gestor") || !perfil.orgId) {
+    throw new Error("sem permissão de escrita na org");
+  }
+  return { usuarioId: sessao.usuarioId, orgId: perfil.orgId };
+}
+
+function entradaParaInsert(
+  input: z.infer<typeof imovelEntradaSchema>,
+  orgId: string,
+  corretorId: string,
+): InsertImovel {
+  return {
+    org_id: orgId,
+    corretor_responsavel_id: corretorId,
+    tipo: input.tipo ?? null,
+    categorias: input.categorias,
+    condicao: input.condicao ?? null,
+    endereco: input.endereco ?? null,
+    cidade: input.cidade,
+    uf: input.uf,
+    valor: input.valor,
+    descricao: input.descricao ?? null,
+    fotos: input.fotos,
+    plantas: input.plantas,
+    modalidades_elegiveis: input.modalidadesElegiveis,
+    esquema_pagamento: (input.esquemaPagamento ?? null) as Json,
+    lat: input.lat ?? null,
+    lng: input.lng ?? null,
+  };
+}
+
+export async function criarImovel(input: ImovelEntrada): Promise<ImovelDetalhe> {
+  const { usuarioId, orgId } = await exigirCorretor();
+  const dados = imovelEntradaSchema.parse(input);
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase
+    .from("imoveis")
+    .insert(entradaParaInsert(dados, orgId, usuarioId))
+    .select("*")
+    .single();
+  if (error || !data) {
+    throw new Error(`criarImovel: ${error?.message ?? "sem retorno"}`);
+  }
+  return mapDetalhe(data, []);
+}
+
+export async function atualizarImovel(
+  id: string,
+  input: ImovelEntrada,
+): Promise<ImovelDetalhe> {
+  await exigirCorretor();
+  const dados = imovelEntradaSchema.parse(input);
+  const supabase = await criarClienteServidor();
+  // org_id/corretor NÃO são atualizados (anti-forja); RLS garante escopo.
+  const alteracoes: UpdateImovel = {
+    tipo: dados.tipo ?? null,
+    categorias: dados.categorias,
+    condicao: dados.condicao ?? null,
+    endereco: dados.endereco ?? null,
+    cidade: dados.cidade,
+    uf: dados.uf,
+    valor: dados.valor,
+    descricao: dados.descricao ?? null,
+    fotos: dados.fotos,
+    plantas: dados.plantas,
+    modalidades_elegiveis: dados.modalidadesElegiveis,
+    esquema_pagamento: (dados.esquemaPagamento ?? null) as Json,
+    lat: dados.lat ?? null,
+    lng: dados.lng ?? null,
+    atualizado_em: new Date().toISOString(),
+  };
+  const { data, error } = await supabase
+    .from("imoveis")
+    .update(alteracoes)
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error || !data) {
+    throw new Error(`atualizarImovel: ${error?.message ?? "sem retorno"}`);
+  }
+  return mapDetalhe(data, []);
+}
+
+export async function definirStatusImovel(
+  id: string,
+  status: StatusImovel,
+): Promise<void> {
+  await exigirCorretor();
+  const s = statusImovelSchema.parse(status);
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase
+    .from("imoveis")
+    .update({ status: s, atualizado_em: new Date().toISOString() })
+    .eq("id", id);
+  if (error) {
+    throw new Error(`definirStatusImovel: ${error.message}`);
+  }
+}
+
+// --- Unidades (H-24) ---
+
+export const unidadeEntradaSchema = z
+  .object({
+    identificador: z.string().min(1),
+    andar: z.number().int().nullable().optional(),
+    posicao: z.string().nullable().optional(),
+    valor: z.number().int().nonnegative(),
+    status: statusImovelSchema.default("disponivel"),
+  })
+  .strict();
+
+export type UnidadeEntrada = z.input<typeof unidadeEntradaSchema>;
+
+export async function criarUnidade(
+  imovelId: string,
+  input: UnidadeEntrada,
+): Promise<Unidade> {
+  const { orgId } = await exigirCorretor();
+  const dados = unidadeEntradaSchema.parse(input);
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase
+    .from("unidades")
+    .insert({
+      org_id: orgId,
+      imovel_id: imovelId,
+      identificador: dados.identificador,
+      andar: dados.andar ?? null,
+      posicao: dados.posicao ?? null,
+      valor: dados.valor,
+      status: dados.status,
+    })
+    .select("*")
+    .single();
+  if (error || !data) {
+    throw new Error(`criarUnidade: ${error?.message ?? "sem retorno"}`);
+  }
+  return mapUnidade(data);
+}
+
+export async function atualizarUnidade(
+  id: string,
+  input: UnidadeEntrada,
+): Promise<Unidade> {
+  await exigirCorretor();
+  const dados = unidadeEntradaSchema.parse(input);
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase
+    .from("unidades")
+    .update({
+      identificador: dados.identificador,
+      andar: dados.andar ?? null,
+      posicao: dados.posicao ?? null,
+      valor: dados.valor,
+      status: dados.status,
+    })
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error || !data) {
+    throw new Error(`atualizarUnidade: ${error?.message ?? "sem retorno"}`);
+  }
+  return mapUnidade(data);
+}
+
+export async function removerUnidade(id: string): Promise<void> {
+  await exigirCorretor();
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.from("unidades").delete().eq("id", id);
+  if (error) {
+    throw new Error(`removerUnidade: ${error.message}`);
+  }
+}

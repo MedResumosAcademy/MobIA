@@ -3,6 +3,7 @@
 
 import { formatarReais, recalcularPlano } from "@mobia/core";
 import type { EsquemaPagamento, ParametrosFinanceiros } from "@mobia/domain";
+import Link from "next/link";
 import { obterParametrosVigentesDoBanco } from "@/lib/parametros";
 
 // H-05: parâmetros vêm do banco a cada request — alterar a tabela reflete na
@@ -75,6 +76,14 @@ export default async function Home() {
           <p className="text-lg leading-8 text-zinc-600 dark:text-zinc-400">
             O primeiro aplicativo que permite ao cliente montar sua própria compra.
           </p>
+          <div className="mt-2 flex justify-center">
+            <Link
+              href="/imoveis"
+              className="rounded-lg bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            >
+              Ver catálogo
+            </Link>
+          </div>
         </header>
 
         <section

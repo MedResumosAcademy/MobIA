@@ -18,3 +18,6 @@ build/
 .DS_Store
 *.log
 coverage/
+
+# arquivos de teste transitórios
+/tmp/mobia-*.log
