@@ -5,8 +5,12 @@ import {
   type TipoImovel,
 } from "@mobia/domain";
 import type { Metadata } from "next";
+import Link from "next/link";
+import { BannerCapacidade } from "@/components/BannerCapacidade";
 import { CardImovel } from "@/components/card-imovel";
 import { FiltrosCatalogo } from "@/components/filtros-catalogo";
+import { obterCapacidadeAtual } from "@/lib/capacidade";
+import { idsFavoritos } from "@/lib/dados/favoritos";
 import { listarImoveis, type FiltrosCatalogo as Filtros } from "@/lib/dados/imoveis";
 
 export const metadata: Metadata = { title: "Catálogo — MobIA" };
@@ -20,6 +24,8 @@ type ParametrosBusca = {
   cidade?: string;
   precoMin?: string;
   precoMax?: string;
+  /** ?todos=1 desliga o filtro de capacidade do Sonhômetro nesta visita (H-18). */
+  todos?: string;
 };
 
 /** Reais (string da URL) → centavos inteiros, ou undefined se inválido. */
@@ -50,7 +56,19 @@ export default async function PaginaCatalogo({
 }) {
   const params = await searchParams;
   const filtros = derivarFiltros(params);
-  const imoveis = await listarImoveis(filtros);
+
+  // H-18: por padrão, filtra pela capacidade do Sonhômetro (cookie/perfil). O
+  // usuário pode desligar via ?todos=1 ("Ver todos") sem perder o cálculo.
+  const verTodos = params.todos === "1";
+  const capacidade = verTodos ? null : await obterCapacidadeAtual();
+  if (capacidade !== null) {
+    filtros.capacidadeMax = capacidade;
+  }
+
+  const [imoveis, favoritos] = await Promise.all([
+    listarImoveis(filtros),
+    idsFavoritos(), // vazio se anônimo — marca os corações já favoritados
+  ]);
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 px-6 py-10 font-sans dark:bg-black">
@@ -71,13 +89,33 @@ export default async function PaginaCatalogo({
           <FiltrosCatalogo />
         </section>
 
+        {capacidade !== null ? (
+          <BannerCapacidade capacidade={capacidade} />
+        ) : (
+          <Link
+            href="/sonhometro"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-3 text-sm transition-colors hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:hover:border-zinc-600"
+          >
+            <span className="text-zinc-700 dark:text-zinc-300">
+              Descubra quanto você pode comprar e veja só os imóveis compatíveis com sua renda.
+            </span>
+            <span className="font-medium text-zinc-950 dark:text-zinc-50">
+              Abrir o Sonhômetro →
+            </span>
+          </Link>
+        )}
+
         {imoveis.length > 0 ? (
           <section
             aria-label="Resultados"
             className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
           >
             {imoveis.map((imovel) => (
-              <CardImovel key={imovel.id} imovel={imovel} />
+              <CardImovel
+                key={imovel.id}
+                imovel={imovel}
+                favoritado={favoritos.has(imovel.id)}
+              />
             ))}
           </section>
         ) : (

@@ -4,7 +4,7 @@
 // imóvel tiver esquema de pagamento — a simulação "Compre do seu jeito" via
 // @mobia/core. A "prova do motor" (H-01/H-04) segue acessível por uma aba.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
   ActivityIndicator,
@@ -21,15 +21,40 @@ import {
 } from "react-native";
 import Slider from "@react-native-community/slider";
 import type { Session } from "@supabase/supabase-js";
-import { formatarReais, obterParametrosAtuais, recalcularPlano } from "@mobia/core";
+import {
+  calcularCapacidade,
+  formatarReais,
+  obterParametrosAtuais,
+  recalcularPlano,
+} from "@mobia/core";
+import type { PerfilSonhometro, ResultadoSonhometro } from "@mobia/core";
 import type {
   EsquemaPagamento,
+  EstadoCivil,
   Modalidade,
   ParametrosFinanceiros,
   PlanoPagamentoRecalculado,
   TipoImovel,
 } from "@mobia/domain";
 import { supabase } from "./lib/supabase";
+
+// Modalidades rotuladas para o detalhamento do Sonhômetro (reusa ROTULO_MODALIDADE
+// definido abaixo). Estado civil rotulado para o formulário.
+const ROTULO_ESTADO_CIVIL: Record<EstadoCivil, string> = {
+  solteiro: "Solteiro(a)",
+  casado: "Casado(a)",
+  uniao_estavel: "União estável",
+  divorciado: "Divorciado(a)",
+  viuvo: "Viúvo(a)",
+};
+
+const ESTADOS_CIVIS_UI: EstadoCivil[] = [
+  "solteiro",
+  "casado",
+  "uniao_estavel",
+  "divorciado",
+  "viuvo",
+];
 
 // --- Prova do motor (H-01) — cenário de demonstração preservado ------------
 const VALOR_IMOVEL = 32_000_000; // R$ 320.000,00 em centavos
@@ -112,6 +137,21 @@ interface ImovelRow {
 // identificadores (id/orgId/imovelId), que reconstruímos a partir da linha.
 type EsquemaPagamentoJson = Omit<EsquemaPagamento, "id" | "orgId" | "imovelId">;
 
+// Linha crua de `cliente_profiles` (snake_case) — usada para pré-preencher o
+// Sonhômetro e recuperar a capacidade calculada ao abrir o app.
+interface PerfilProfileRow {
+  renda_mensal: number | null;
+  renda_conjuge: number | null;
+  renda_outros_membros: number | null;
+  fgts: number | null;
+  data_nascimento: string | null;
+  estado_civil: string | null;
+  dependentes: number | null;
+  cidade: string | null;
+  uf: string | null;
+  capacidade_calculada: number | null;
+}
+
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
 
 /**
@@ -129,6 +169,108 @@ function tituloDoImovel(imovel: ImovelRow): string {
   return `${tipo} em ${imovel.cidade}`;
 }
 
+// --- Favoritos (H-19) -------------------------------------------------------
+//
+// Hook compartilhado: mantém o conjunto de imóveis favoritados do cliente logado
+// e expõe alternar(imovelId). O `cliente_id` é sempre auth.uid(); `org_id` é
+// preenchido por TRIGGER a partir do imóvel — NÃO enviamos org_id. No insert,
+// registramos o evento 'favorito' (org_id também via trigger a partir do imóvel).
+
+interface FavoritosContexto {
+  favoritos: Set<string>;
+  carregando: boolean;
+  alternar: (imovelId: string) => Promise<void>;
+  recarregar: () => Promise<void>;
+}
+
+function useFavoritos(usuarioId: string): FavoritosContexto {
+  const [favoritos, setFavoritos] = useState<Set<string>>(new Set());
+  const [carregando, setCarregando] = useState(true);
+
+  const recarregar = useCallback(async () => {
+    setCarregando(true);
+    const { data, error } = await supabase.from("favoritos").select("imovel_id");
+    if (!error && data) {
+      setFavoritos(new Set(data.map((r: { imovel_id: string }) => r.imovel_id)));
+    }
+    setCarregando(false);
+  }, []);
+
+  useEffect(() => {
+    void recarregar();
+  }, [recarregar]);
+
+  const alternar = useCallback(
+    async (imovelId: string) => {
+      const jaFavorito = favoritos.has(imovelId);
+      // Atualização otimista.
+      setFavoritos((atual) => {
+        const proximo = new Set(atual);
+        if (jaFavorito) proximo.delete(imovelId);
+        else proximo.add(imovelId);
+        return proximo;
+      });
+
+      if (jaFavorito) {
+        const { error } = await supabase
+          .from("favoritos")
+          .delete()
+          .eq("cliente_id", usuarioId)
+          .eq("imovel_id", imovelId);
+        if (error) {
+          // Reverte em caso de falha.
+          setFavoritos((atual) => new Set(atual).add(imovelId));
+        }
+      } else {
+        // org_id preenchido por trigger a partir do imóvel — NÃO enviar.
+        const { error } = await supabase
+          .from("favoritos")
+          .insert({ cliente_id: usuarioId, imovel_id: imovelId });
+        if (error) {
+          setFavoritos((atual) => {
+            const proximo = new Set(atual);
+            proximo.delete(imovelId);
+            return proximo;
+          });
+        } else {
+          // Sinal de compra (E7): evento 'favorito'; org_id via trigger.
+          await supabase
+            .from("eventos")
+            .insert({ tipo: "favorito", cliente_id: usuarioId, imovel_id: imovelId });
+        }
+      }
+    },
+    [favoritos, usuarioId],
+  );
+
+  return { favoritos, carregando, alternar, recarregar };
+}
+
+/** Botão de coração reutilizável (card do catálogo e ficha). */
+function BotaoFavorito({
+  ativo,
+  onPress,
+  tamanho = 22,
+}: {
+  ativo: boolean;
+  onPress: () => void;
+  tamanho?: number;
+}) {
+  return (
+    <Pressable
+      hitSlop={10}
+      style={styles.favoritoBotao}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={ativo ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+    >
+      <Text style={[styles.favoritoIcone, { fontSize: tamanho }, ativo && styles.favoritoIconeAtivo]}>
+        {ativo ? "♥" : "♡"}
+      </Text>
+    </Pressable>
+  );
+}
+
 const FILTROS_TIPO: Array<{ valor: TipoImovel | "todos"; rotulo: string }> = [
   { valor: "todos", rotulo: "Todos" },
   { valor: "apartamento", rotulo: "Apartamentos" },
@@ -136,11 +278,24 @@ const FILTROS_TIPO: Array<{ valor: TipoImovel | "todos"; rotulo: string }> = [
   { valor: "terreno", rotulo: "Terrenos" },
 ];
 
-function TelaCatalogo({ onAbrirFicha }: { onAbrirFicha: (imovel: ImovelRow) => void }) {
+function TelaCatalogo({
+  onAbrirFicha,
+  favoritos,
+  onAlternarFavorito,
+  capacidade,
+}: {
+  onAbrirFicha: (imovel: ImovelRow) => void;
+  favoritos: Set<string>;
+  onAlternarFavorito: (imovelId: string) => void;
+  capacidade: number | null;
+}) {
   const [imoveis, setImoveis] = useState<ImovelRow[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [filtroTipo, setFiltroTipo] = useState<TipoImovel | "todos">("todos");
+  // H-18: quando há capacidade calculada, o catálogo mostra só imóveis
+  // compatíveis (valor ≤ capacidade). Toggle "ver todos" desliga o filtro.
+  const [soCompativeis, setSoCompativeis] = useState(true);
 
   useEffect(() => {
     let ativo = true;
@@ -167,8 +322,10 @@ function TelaCatalogo({ onAbrirFicha }: { onAbrirFicha: (imovel: ImovelRow) => v
     };
   }, []);
 
-  const visiveis =
-    filtroTipo === "todos" ? imoveis : imoveis.filter((i) => i.tipo === filtroTipo);
+  const filtrarCapacidade = capacidade !== null && soCompativeis;
+  const visiveis = imoveis
+    .filter((i) => filtroTipo === "todos" || i.tipo === filtroTipo)
+    .filter((i) => !filtrarCapacidade || i.valor <= capacidade);
 
   return (
     <View style={styles.tela}>
@@ -176,6 +333,22 @@ function TelaCatalogo({ onAbrirFicha }: { onAbrirFicha: (imovel: ImovelRow) => v
         <Text style={styles.tituloTela}>Imóveis</Text>
         <Text style={styles.subtituloTela}>Monte sua própria compra.</Text>
       </View>
+
+      {capacidade !== null ? (
+        <Pressable
+          style={styles.capacidadeAviso}
+          onPress={() => setSoCompativeis((v) => !v)}
+        >
+          <Text style={styles.capacidadeAvisoTexto}>
+            {soCompativeis
+              ? `Mostrando imóveis até ${formatarReais(capacidade)} (sua capacidade).`
+              : "Mostrando todos os imóveis."}
+          </Text>
+          <Text style={styles.capacidadeAvisoLink}>
+            {soCompativeis ? "Ver todos" : "Só compatíveis"}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <View style={styles.chipsLinha}>
         {FILTROS_TIPO.map((f) => {
@@ -221,6 +394,12 @@ function TelaCatalogo({ onAbrirFicha }: { onAbrirFicha: (imovel: ImovelRow) => v
                     <Text style={styles.cardFotoVaziaTexto}>Sem foto</Text>
                   </View>
                 )}
+                <View style={styles.cardFavorito}>
+                  <BotaoFavorito
+                    ativo={favoritos.has(item.id)}
+                    onPress={() => onAlternarFavorito(item.id)}
+                  />
+                </View>
                 <View style={styles.cardCorpo}>
                   <Text style={styles.cardTituloImovel}>{tituloDoImovel(item)}</Text>
                   <Text style={styles.cardLocal}>
@@ -237,7 +416,17 @@ function TelaCatalogo({ onAbrirFicha }: { onAbrirFicha: (imovel: ImovelRow) => v
   );
 }
 
-function TelaFicha({ imovel, onVoltar }: { imovel: ImovelRow; onVoltar: () => void }) {
+function TelaFicha({
+  imovel,
+  onVoltar,
+  favorito,
+  onAlternarFavorito,
+}: {
+  imovel: ImovelRow;
+  onVoltar: () => void;
+  favorito: boolean;
+  onAlternarFavorito: (imovelId: string) => void;
+}) {
   const parametros = obterParametrosAtuais();
   const esquemaJson = imovel.esquema_pagamento;
 
@@ -283,7 +472,14 @@ function TelaFicha({ imovel, onVoltar }: { imovel: ImovelRow; onVoltar: () => vo
         )}
 
         <View style={styles.fichaCabecalho}>
-          <Text style={styles.fichaTitulo}>{tituloDoImovel(imovel)}</Text>
+          <View style={styles.fichaTituloLinha}>
+            <Text style={styles.fichaTitulo}>{tituloDoImovel(imovel)}</Text>
+            <BotaoFavorito
+              ativo={favorito}
+              tamanho={26}
+              onPress={() => onAlternarFavorito(imovel.id)}
+            />
+          </View>
           <Text style={styles.fichaLocal}>
             {imovel.cidade} — {imovel.uf}
           </Text>
@@ -532,6 +728,428 @@ function SimulacaoInterativa({
   );
 }
 
+// --- Favoritos (H-19) — lista dos imóveis favoritados -----------------------
+
+function TelaFavoritos({
+  favoritos,
+  onAbrirFicha,
+  onAlternarFavorito,
+}: {
+  favoritos: Set<string>;
+  onAbrirFicha: (imovel: ImovelRow) => void;
+  onAlternarFavorito: (imovelId: string) => void;
+}) {
+  const [imoveis, setImoveis] = useState<ImovelRow[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const ids = useMemo(() => Array.from(favoritos), [favoritos]);
+
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      setCarregando(true);
+      setErro(null);
+      if (ids.length === 0) {
+        if (ativo) {
+          setImoveis([]);
+          setCarregando(false);
+        }
+        return;
+      }
+      const { data, error } = await supabase
+        .from("imoveis")
+        .select(
+          "id, org_id, tipo, cidade, uf, valor, status, descricao, fotos, plantas, modalidades_elegiveis, esquema_pagamento",
+        )
+        .in("id", ids)
+        .order("valor", { ascending: true });
+      if (!ativo) return;
+      if (error) {
+        setErro("Não foi possível carregar seus favoritos. Tente novamente.");
+      } else {
+        setImoveis((data ?? []) as ImovelRow[]);
+      }
+      setCarregando(false);
+    })();
+    return () => {
+      ativo = false;
+    };
+    // Recarrega quando o conjunto de ids muda (ex.: favoritou/desfavoritou).
+  }, [ids.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <View style={styles.tela}>
+      <View style={styles.cabecalho}>
+        <Text style={styles.tituloTela}>Favoritos</Text>
+        <Text style={styles.subtituloTela}>Os imóveis que você salvou.</Text>
+      </View>
+
+      {carregando ? (
+        <View style={styles.centralizado}>
+          <ActivityIndicator color="#18181b" />
+        </View>
+      ) : erro ? (
+        <View style={styles.centralizado}>
+          <Text style={styles.erro}>{erro}</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={imoveis}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listaConteudo}
+          ListEmptyComponent={
+            <View style={styles.centralizado}>
+              <Text style={styles.vazio}>
+                Você ainda não favoritou nenhum imóvel. Toque no coração de um imóvel para salvá-lo.
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => {
+            const foto = urlDaFoto(item.fotos[0]);
+            return (
+              <Pressable style={styles.cardImovel} onPress={() => onAbrirFicha(item)}>
+                {foto ? (
+                  <Image source={{ uri: foto }} style={styles.cardFoto} resizeMode="cover" />
+                ) : (
+                  <View style={[styles.cardFoto, styles.cardFotoVazia]}>
+                    <Text style={styles.cardFotoVaziaTexto}>Sem foto</Text>
+                  </View>
+                )}
+                <View style={styles.cardFavorito}>
+                  <BotaoFavorito ativo onPress={() => onAlternarFavorito(item.id)} />
+                </View>
+                <View style={styles.cardCorpo}>
+                  <Text style={styles.cardTituloImovel}>{tituloDoImovel(item)}</Text>
+                  <Text style={styles.cardLocal}>
+                    {item.cidade} — {item.uf}
+                  </Text>
+                  <Text style={styles.cardValor}>{formatarReais(item.valor)}</Text>
+                </View>
+              </Pressable>
+            );
+          }}
+        />
+      )}
+    </View>
+  );
+}
+
+// --- Sonhômetro (H-16/H-17/H-18) --------------------------------------------
+//
+// Formulário → calcularCapacidade(@mobia/core) com obterParametrosAtuais() →
+// "Você consegue comprar até R$ X" + melhor modalidade + detalhamento. Persiste
+// a capacidade em cliente_profiles (upsert do próprio) e registra o evento
+// 'sonhometro_completo'. A capacidade fica disponível para o catálogo filtrar.
+
+/** Converte "R$ 3.500,00" / "3500" / "3.500,50" digitado em centavos. */
+function reaisParaCentavos(texto: string): number {
+  const limpo = texto.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+  const valor = Number.parseFloat(limpo);
+  if (!Number.isFinite(valor) || valor < 0) return 0;
+  return Math.round(valor * 100);
+}
+
+const UF_REGEX = /^[A-Za-z]{2}$/;
+const NASC_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+function TelaSonhometro({
+  usuarioId,
+  perfilInicial,
+  onCapacidade,
+}: {
+  usuarioId: string;
+  perfilInicial: PerfilProfileRow | null;
+  onCapacidade: (valor: number) => void;
+}) {
+  const parametros = obterParametrosAtuais();
+
+  const [renda, setRenda] = useState(
+    perfilInicial?.renda_mensal != null ? formatarReais(perfilInicial.renda_mensal) : "",
+  );
+  const [rendaConjuge, setRendaConjuge] = useState(
+    perfilInicial?.renda_conjuge != null ? formatarReais(perfilInicial.renda_conjuge) : "",
+  );
+  const [rendaOutros, setRendaOutros] = useState(
+    perfilInicial?.renda_outros_membros != null
+      ? formatarReais(perfilInicial.renda_outros_membros)
+      : "",
+  );
+  const [fgts, setFgts] = useState(
+    perfilInicial?.fgts != null ? formatarReais(perfilInicial.fgts) : "",
+  );
+  const [nascimento, setNascimento] = useState(perfilInicial?.data_nascimento ?? "");
+  const [estadoCivil, setEstadoCivil] = useState<EstadoCivil>(
+    (perfilInicial?.estado_civil as EstadoCivil | null) ?? "solteiro",
+  );
+  const [dependentes, setDependentes] = useState(
+    perfilInicial?.dependentes != null ? String(perfilInicial.dependentes) : "0",
+  );
+  const [cidade, setCidade] = useState(perfilInicial?.cidade ?? "");
+  const [uf, setUf] = useState(perfilInicial?.uf?.trim() ?? "");
+
+  const [resultado, setResultado] = useState<ResultadoSonhometro | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  async function calcular() {
+    setErro(null);
+    const rendaMensal = reaisParaCentavos(renda);
+    if (rendaMensal <= 0) {
+      setErro("Informe sua renda mensal.");
+      return;
+    }
+    if (!NASC_REGEX.test(nascimento)) {
+      setErro("Informe a data de nascimento no formato AAAA-MM-DD.");
+      return;
+    }
+    if (!UF_REGEX.test(uf) || cidade.trim() === "") {
+      setErro("Informe cidade e UF (ex.: Fortaleza / CE).");
+      return;
+    }
+    const dep = Number.parseInt(dependentes, 10);
+    if (!Number.isFinite(dep) || dep < 0) {
+      setErro("Número de dependentes inválido.");
+      return;
+    }
+
+    const perfil: PerfilSonhometro = {
+      rendaMensal,
+      rendaConjuge: reaisParaCentavos(rendaConjuge) || undefined,
+      rendaOutrosMembros: reaisParaCentavos(rendaOutros) || undefined,
+      fgts: reaisParaCentavos(fgts),
+      dataNascimento: nascimento,
+      estadoCivil,
+      dependentes: dep,
+      cidadeUF: `${cidade.trim()}-${uf.toUpperCase()}`,
+    };
+
+    let calc: ResultadoSonhometro;
+    try {
+      calc = calcularCapacidade(perfil, parametros);
+    } catch {
+      setErro("Não foi possível calcular com os dados informados. Revise e tente novamente.");
+      return;
+    }
+    setResultado(calc);
+    onCapacidade(calc.valorMaximoImovel);
+
+    // Persiste o perfil e a capacidade (upsert do próprio; usuario_id = auth.uid()).
+    setSalvando(true);
+    const { error: erroPerfil } = await supabase.from("cliente_profiles").upsert(
+      {
+        usuario_id: usuarioId,
+        renda_mensal: perfil.rendaMensal,
+        renda_conjuge: perfil.rendaConjuge ?? null,
+        renda_outros_membros: perfil.rendaOutrosMembros ?? null,
+        fgts: perfil.fgts,
+        data_nascimento: perfil.dataNascimento,
+        estado_civil: perfil.estadoCivil,
+        dependentes: perfil.dependentes,
+        cidade: cidade.trim(),
+        uf: uf.toUpperCase(),
+        capacidade_calculada: calc.valorMaximoImovel,
+      },
+      { onConflict: "usuario_id" },
+    );
+    if (!erroPerfil) {
+      await supabase.from("eventos").insert({
+        tipo: "sonhometro_completo",
+        cliente_id: usuarioId,
+        metadata: { capacidade_calculada: calc.valorMaximoImovel },
+      });
+    }
+    setSalvando(false);
+  }
+
+  return (
+    <View style={styles.tela}>
+      <View style={styles.cabecalho}>
+        <Text style={styles.tituloTela}>Sonhômetro</Text>
+        <Text style={styles.subtituloTela}>Descubra quanto você pode comprar.</Text>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.sonhoConteudo} keyboardShouldPersistTaps="handled">
+        <View style={styles.card}>
+          <Text style={styles.cardTitulo}>Seu perfil</Text>
+
+          <Text style={styles.campoRotulo}>Renda mensal</Text>
+          <TextInput
+            style={styles.campo}
+            value={renda}
+            onChangeText={setRenda}
+            keyboardType="numeric"
+            placeholder="R$ 3.500,00"
+            placeholderTextColor="#a1a1aa"
+          />
+
+          <Text style={styles.campoRotulo}>Renda do cônjuge (opcional)</Text>
+          <TextInput
+            style={styles.campo}
+            value={rendaConjuge}
+            onChangeText={setRendaConjuge}
+            keyboardType="numeric"
+            placeholder="R$ 0,00"
+            placeholderTextColor="#a1a1aa"
+          />
+
+          <Text style={styles.campoRotulo}>Renda de outros membros (opcional)</Text>
+          <TextInput
+            style={styles.campo}
+            value={rendaOutros}
+            onChangeText={setRendaOutros}
+            keyboardType="numeric"
+            placeholder="R$ 0,00"
+            placeholderTextColor="#a1a1aa"
+          />
+
+          <Text style={styles.campoRotulo}>Saldo de FGTS</Text>
+          <TextInput
+            style={styles.campo}
+            value={fgts}
+            onChangeText={setFgts}
+            keyboardType="numeric"
+            placeholder="R$ 0,00"
+            placeholderTextColor="#a1a1aa"
+          />
+
+          <Text style={styles.campoRotulo}>Data de nascimento (AAAA-MM-DD)</Text>
+          <TextInput
+            style={styles.campo}
+            value={nascimento}
+            onChangeText={setNascimento}
+            autoCapitalize="none"
+            placeholder="1990-05-20"
+            placeholderTextColor="#a1a1aa"
+          />
+
+          <Text style={styles.campoRotulo}>Estado civil</Text>
+          <View style={styles.simChipsLinha}>
+            {ESTADOS_CIVIS_UI.map((ec) => {
+              const ativo = ec === estadoCivil;
+              return (
+                <Pressable
+                  key={ec}
+                  style={[styles.chip, ativo && styles.chipAtivo]}
+                  onPress={() => setEstadoCivil(ec)}
+                >
+                  <Text style={[styles.chipTexto, ativo && styles.chipTextoAtivo]}>
+                    {ROTULO_ESTADO_CIVIL[ec]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Text style={styles.campoRotulo}>Dependentes</Text>
+          <TextInput
+            style={styles.campo}
+            value={dependentes}
+            onChangeText={setDependentes}
+            keyboardType="number-pad"
+            placeholder="0"
+            placeholderTextColor="#a1a1aa"
+          />
+
+          <View style={styles.linhaCampos}>
+            <View style={styles.campoFlex}>
+              <Text style={styles.campoRotulo}>Cidade</Text>
+              <TextInput
+                style={styles.campo}
+                value={cidade}
+                onChangeText={setCidade}
+                placeholder="Fortaleza"
+                placeholderTextColor="#a1a1aa"
+              />
+            </View>
+            <View style={styles.campoUf}>
+              <Text style={styles.campoRotulo}>UF</Text>
+              <TextInput
+                style={styles.campo}
+                value={uf}
+                onChangeText={(t) => setUf(t.toUpperCase())}
+                autoCapitalize="characters"
+                maxLength={2}
+                placeholder="CE"
+                placeholderTextColor="#a1a1aa"
+              />
+            </View>
+          </View>
+
+          {erro ? <Text style={styles.erro}>{erro}</Text> : null}
+
+          <Pressable
+            style={[styles.botao, salvando && styles.botaoDesabilitado]}
+            onPress={calcular}
+            disabled={salvando}
+          >
+            <Text style={styles.botaoTexto}>{salvando ? "Calculando…" : "Calcular"}</Text>
+          </Pressable>
+        </View>
+
+        {resultado ? <ResultadoSonhometroCard resultado={resultado} parametros={parametros} /> : null}
+      </ScrollView>
+    </View>
+  );
+}
+
+function ResultadoSonhometroCard({
+  resultado,
+  parametros,
+}: {
+  resultado: ResultadoSonhometro;
+  parametros: ParametrosFinanceiros;
+}) {
+  const elegiveis = resultado.porModalidade.filter((m) => m.elegivel);
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardTitulo}>Sua capacidade</Text>
+      <Text style={styles.sonhoDestaque}>
+        Você consegue comprar até {formatarReais(resultado.valorMaximoImovel)}
+      </Text>
+      {resultado.melhorModalidade ? (
+        <Text style={styles.cardDescricao}>
+          Melhor modalidade: {ROTULO_MODALIDADE[resultado.melhorModalidade]}
+        </Text>
+      ) : (
+        <Text style={styles.cardDescricao}>
+          Não encontramos uma modalidade elegível com os dados informados.
+        </Text>
+      )}
+
+      <View style={styles.linha}>
+        <Text style={styles.rotulo}>Parcela máxima (renda)</Text>
+        <Text style={styles.valor}>{formatarReais(resultado.detalhamento.parcelaMax)}</Text>
+      </View>
+      <View style={styles.linha}>
+        <Text style={styles.rotulo}>Prazo máximo pela idade</Text>
+        <Text style={styles.valor}>{resultado.detalhamento.prazoMax} meses</Text>
+      </View>
+      <View style={styles.linha}>
+        <Text style={styles.rotulo}>FGTS aplicável na entrada</Text>
+        <Text style={styles.valor}>{formatarReais(resultado.detalhamento.entradaDisponivel)}</Text>
+      </View>
+
+      {elegiveis.length > 0 ? (
+        <>
+          <Text style={styles.sonhoSubtitulo}>Por modalidade</Text>
+          {elegiveis.map((m) => (
+            <View key={m.modalidade} style={styles.linha}>
+              <Text style={styles.rotulo}>{ROTULO_MODALIDADE[m.modalidade]}</Text>
+              <Text style={styles.valor}>{formatarReais(m.valorMaximoImovel)}</Text>
+            </View>
+          ))}
+        </>
+      ) : null}
+
+      <Text style={styles.disclaimer}>
+        Estimativa (parâmetros {parametros.vigenciaInicio}, v{parametros.versao}) — não constitui
+        proposta formal de crédito.
+      </Text>
+    </View>
+  );
+}
+
 // --- Login (H-04) — preservado ---------------------------------------------
 
 function TelaLogin() {
@@ -657,47 +1275,102 @@ function TelaProvaDoMotor() {
 
 // --- Shell autenticado: catálogo → ficha, com aba da prova do motor --------
 
-type Aba = "catalogo" | "motor";
+type Aba = "catalogo" | "favoritos" | "sonhometro" | "motor";
+
+const ABAS: Array<{ valor: Aba; rotulo: string }> = [
+  { valor: "catalogo", rotulo: "Imóveis" },
+  { valor: "favoritos", rotulo: "Favoritos" },
+  { valor: "sonhometro", rotulo: "Sonhômetro" },
+  { valor: "motor", rotulo: "Motor" },
+];
 
 function AppAutenticado({ sessao }: { sessao: Session }) {
+  const usuarioId = sessao.user.id;
   const [aba, setAba] = useState<Aba>("catalogo");
   const [imovelAberto, setImovelAberto] = useState<ImovelRow | null>(null);
+
+  const { favoritos, alternar } = useFavoritos(usuarioId);
+
+  // Capacidade calculada do Sonhômetro (centavos) — recuperada do perfil no
+  // banco ao abrir e atualizada quando o cliente recalcula. Alimenta o filtro
+  // de compatibilidade do catálogo (H-18).
+  const [capacidade, setCapacidade] = useState<number | null>(null);
+  const [perfil, setPerfil] = useState<PerfilProfileRow | null>(null);
+
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      const { data } = await supabase
+        .from("cliente_profiles")
+        .select(
+          "renda_mensal, renda_conjuge, renda_outros_membros, fgts, data_nascimento, estado_civil, dependentes, cidade, uf, capacidade_calculada",
+        )
+        .eq("usuario_id", usuarioId)
+        .maybeSingle();
+      if (!ativo) return;
+      if (data) {
+        setPerfil(data as PerfilProfileRow);
+        if ((data as PerfilProfileRow).capacidade_calculada != null) {
+          setCapacidade((data as PerfilProfileRow).capacidade_calculada);
+        }
+      }
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, [usuarioId]);
 
   return (
     <View style={styles.appRoot}>
       <View style={styles.conteudoRoot}>
         {imovelAberto ? (
-          <TelaFicha imovel={imovelAberto} onVoltar={() => setImovelAberto(null)} />
+          <TelaFicha
+            imovel={imovelAberto}
+            onVoltar={() => setImovelAberto(null)}
+            favorito={favoritos.has(imovelAberto.id)}
+            onAlternarFavorito={alternar}
+          />
         ) : aba === "catalogo" ? (
-          <TelaCatalogo onAbrirFicha={setImovelAberto} />
+          <TelaCatalogo
+            onAbrirFicha={setImovelAberto}
+            favoritos={favoritos}
+            onAlternarFavorito={alternar}
+            capacidade={capacidade}
+          />
+        ) : aba === "favoritos" ? (
+          <TelaFavoritos
+            favoritos={favoritos}
+            onAbrirFicha={setImovelAberto}
+            onAlternarFavorito={alternar}
+          />
+        ) : aba === "sonhometro" ? (
+          <TelaSonhometro
+            usuarioId={usuarioId}
+            perfilInicial={perfil}
+            onCapacidade={setCapacidade}
+          />
         ) : (
           <TelaProvaDoMotor />
         )}
       </View>
 
       <View style={styles.tabBar}>
-        <Pressable
-          style={styles.tabItem}
-          onPress={() => {
-            setImovelAberto(null);
-            setAba("catalogo");
-          }}
-        >
-          <Text style={[styles.tabTexto, aba === "catalogo" && !imovelAberto && styles.tabAtivo]}>
-            Imóveis
-          </Text>
-        </Pressable>
-        <Pressable
-          style={styles.tabItem}
-          onPress={() => {
-            setImovelAberto(null);
-            setAba("motor");
-          }}
-        >
-          <Text style={[styles.tabTexto, aba === "motor" && !imovelAberto && styles.tabAtivo]}>
-            Motor
-          </Text>
-        </Pressable>
+        {ABAS.map((item) => (
+          <Pressable
+            key={item.valor}
+            style={styles.tabItem}
+            onPress={() => {
+              setImovelAberto(null);
+              setAba(item.valor);
+            }}
+          >
+            <Text
+              style={[styles.tabTexto, aba === item.valor && !imovelAberto && styles.tabAtivo]}
+            >
+              {item.rotulo}
+            </Text>
+          </Pressable>
+        ))}
         <Pressable style={styles.tabItem} onPress={() => supabase.auth.signOut()}>
           <Text style={styles.tabTexto}>Sair</Text>
         </Pressable>
@@ -835,6 +1508,82 @@ const styles = StyleSheet.create({
   cardCorpo: {
     padding: 16,
   },
+  cardFavorito: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.9)",
+  },
+  favoritoBotao: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  favoritoIcone: {
+    color: "#71717a",
+    lineHeight: 28,
+  },
+  favoritoIconeAtivo: {
+    color: "#dc2626",
+  },
+  capacidadeAviso: {
+    marginHorizontal: 20,
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#f0fdf4",
+    borderWidth: 1,
+    borderColor: "#bbf7d0",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+  },
+  capacidadeAvisoTexto: {
+    flexShrink: 1,
+    fontSize: 12,
+    color: "#166534",
+  },
+  capacidadeAvisoLink: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#166534",
+  },
+  fichaTituloLinha: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  sonhoConteudo: {
+    paddingBottom: 40,
+  },
+  sonhoDestaque: {
+    marginTop: 8,
+    marginBottom: 4,
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#18181b",
+  },
+  sonhoSubtitulo: {
+    marginTop: 14,
+    marginBottom: 2,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#3f3f46",
+  },
+  linhaCampos: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  campoFlex: {
+    flex: 1,
+  },
+  campoUf: {
+    width: 80,
+  },
   cardTituloImovel: {
     fontSize: 16,
     fontWeight: "600",
@@ -883,6 +1632,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   fichaTitulo: {
+    flexShrink: 1,
     fontSize: 22,
     fontWeight: "600",
     color: "#18181b",

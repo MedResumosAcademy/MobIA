@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import { sair } from "@/lib/auth/acoes";
-import { obterSessao } from "@/lib/auth/sessao";
+import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,6 +26,10 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const sessao = await obterSessao();
+  // "Favoritos" é feature de cliente. Perfil ausente ⇒ tratado como cliente
+  // (mesma degradação de obterPerfil). Corretor/gestor não veem o link.
+  const perfil = sessao ? await obterPerfil(sessao.usuarioId) : null;
+  const ehCliente = sessao !== null && (perfil === null || perfil.papel === "cliente");
 
   return (
     <html
@@ -47,6 +51,20 @@ export default async function RootLayout({
             >
               Ver catálogo
             </Link>
+            <Link
+              href="/sonhometro"
+              className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
+            >
+              Sonhômetro
+            </Link>
+            {ehCliente && (
+              <Link
+                href="/favoritos"
+                className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
+              >
+                Favoritos
+              </Link>
+            )}
           </div>
           {sessao ? (
             <div className="flex items-center gap-4">

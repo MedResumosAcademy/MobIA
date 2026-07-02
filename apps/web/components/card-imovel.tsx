@@ -1,6 +1,7 @@
 import { formatarReais } from "@mobia/core";
 import type { TipoImovel } from "@mobia/domain";
 import Link from "next/link";
+import { BotaoFavoritar } from "@/components/BotaoFavoritar";
 import type { CardImovel as DadosCardImovel } from "@/lib/dados/imoveis";
 
 const ROTULOS_TIPO: Record<TipoImovel, string> = {
@@ -9,14 +10,30 @@ const ROTULOS_TIPO: Record<TipoImovel, string> = {
   terreno: "Terreno",
 };
 
-export function CardImovel({ imovel }: { imovel: DadosCardImovel }) {
+export function CardImovel({
+  imovel,
+  favoritado = false,
+  aoAlternar = false,
+}: {
+  imovel: DadosCardImovel;
+  /** Se o cliente logado já favoritou (marca o coração). */
+  favoritado?: boolean;
+  /** Em /favoritos: ao desfavoritar, recarrega para o card sumir. */
+  aoAlternar?: boolean;
+}) {
   const rotuloTipo = imovel.tipo ? ROTULOS_TIPO[imovel.tipo] : "Imóvel";
 
   return (
-    <Link
-      href={`/imoveis/${imovel.id}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950"
-    >
+    // O coração é irmão do Link (não filho): botão dentro de <a> é HTML inválido
+    // e o clique navegaria. O wrapper relativo ancora o overlay do coração.
+    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950">
+      <BotaoFavoritar
+        imovelId={imovel.id}
+        inicialFavoritado={favoritado}
+        variante="card"
+        atualizarAoAlternar={aoAlternar}
+      />
+      <Link href={`/imoveis/${imovel.id}`} className="flex flex-1 flex-col">
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900">
         {imovel.fotoCapa ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -62,6 +79,7 @@ export function CardImovel({ imovel }: { imovel: DadosCardImovel }) {
           {formatarReais(imovel.valor)}
         </p>
       </div>
-    </Link>
+      </Link>
+    </div>
   );
 }

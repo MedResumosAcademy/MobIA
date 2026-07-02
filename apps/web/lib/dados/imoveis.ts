@@ -84,6 +84,12 @@ export type FiltrosCatalogo = {
   cidadeBusca?: string;
   precoMin?: number;
   precoMax?: number;
+  /**
+   * Teto de valor (centavos) vindo da capacidade do Sonhômetro (H-18): só
+   * imóveis com valor <= capacidade. Compõe com precoMax (ambos aplicados,
+   * vence o mais restritivo). Omitir = catálogo completo ("ver todos").
+   */
+  capacidadeMax?: number;
 };
 
 // --- Schemas de entrada (anti-forja: org_id/corretor NUNCA vêm do form) ---
@@ -170,7 +176,8 @@ function derivarTitulo(l: Pick<LinhaImovel, "tipo" | "cidade" | "uf">): string {
   return `${prefixo} em ${l.cidade}/${l.uf}`;
 }
 
-function mapCard(l: LinhaImovel): CardImovel {
+/** Mapeia uma linha de imóvel para o card enxuto da UI. Reusado por favoritos.ts. */
+export function mapCardImovel(l: LinhaImovel): CardImovel {
   const fotoCapa = l.fotos[0] ? urlPublicaMidia("imoveis-fotos", l.fotos[0]) : null;
   return {
     id: l.id,
@@ -250,12 +257,16 @@ export async function listarImoveis(
   if (filtros.precoMax !== undefined) {
     query = query.lte("valor", filtros.precoMax);
   }
+  if (filtros.capacidadeMax !== undefined) {
+    // Compõe com precoMax: dois lte("valor", ...) ⇒ vence o mais restritivo.
+    query = query.lte("valor", filtros.capacidadeMax);
+  }
 
   const { data, error } = await query;
   if (error) {
     throw new Error(`listarImoveis: ${error.message}`);
   }
-  return (data ?? []).map(mapCard);
+  return (data ?? []).map(mapCardImovel);
 }
 
 /** Imóvel + unidades. Retorna null se não visível (RLS) ou inexistente. */

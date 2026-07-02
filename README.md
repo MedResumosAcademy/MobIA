@@ -24,7 +24,9 @@ MobIA é um sistema imobiliário com duas faces:
 - ✅ E0.2/E0.3: Supabase (projeto "MobIA - Dev", sa-east-1) — 11 tabelas multi-tenant com RLS, isolamento provado com 2 orgs (matriz 22/22), auth web (Next 16 + @supabase/ssr) e mobile (Expo), parâmetros financeiros no banco (H-05: muda sem deploy)
 - ✅ MVP E1/E2/E8: catálogo com filtros (`/imoveis`), ficha com simulação do plano calculada pelo motor (`/imoveis/[id]`), cadastro de imóveis pelo corretor com upload de fotos/plantas (`/corretor/imoveis`), Storage por org; catálogo + ficha também no mobile
 - ✅ MVP E3/E4 — "Compre do seu jeito": slider de entrada recalculando o plano **em tempo real no cliente** (via `@mobia/core`, sem ida ao servidor), toggle de modalidade elegível e timeline visual reativa — web e mobile. Invariante do plano verificado em 51/51 posições do slider
-- ⏭️ Próximo: E5 (Sonhômetro — capacidade de compra) e E6 (favoritos/comparação)
+- ✅ MVP E5/E6 — **Sonhômetro** (`/sonhometro`): quiz de capacidade → "você consegue comprar até R$ X" + detalhamento por modalidade, catálogo passa a filtrar por capacidade; **favoritos** (coração no card/ficha, `/favoritos`) e **comparação** de imóveis (`/comparar`) — web e mobile
+- 🎉 **MVP da experiência do cliente completo** (E1–E8): descobrir → montar a compra → descobrir quanto pode → favoritar/comparar
+- ⏭️ Próximo (V1): painel do corretor com leads, timeline e termômetro 🔥
 
 > Convites de corretor/gestor: signup público sempre nasce `cliente`; promoção só via `privado.convites` (server-side). Seed de dev: `supabase/seed-dev.sql` (usuários @teste.mobia, senha `MobIA!teste1`).
 

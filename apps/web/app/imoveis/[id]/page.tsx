@@ -7,6 +7,7 @@ import type { EsquemaPagamento, Modalidade, ParametrosFinanceiros } from "@mobia
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BotaoFavoritar } from "@/components/BotaoFavoritar";
 import { FichaGaleria } from "@/components/FichaGaleria";
 import { FichaLocalizacao } from "@/components/FichaLocalizacao";
 import {
@@ -14,6 +15,7 @@ import {
   type OpcaoModalidade,
 } from "@/components/SimuladorCompra";
 import { registrarEvento } from "@/lib/dados/eventos";
+import { idsFavoritos } from "@/lib/dados/favoritos";
 import { obterImovel, type ImovelDetalhe } from "@/lib/dados/imoveis";
 import { obterParametrosVigentesDoBanco } from "@/lib/parametros";
 
@@ -126,6 +128,7 @@ export default async function FichaImovel({ params }: ParamsFicha) {
   await registrarEvento("visita_ficha", { imovelId: imovel.id });
 
   const parametros = await obterParametrosVigentesDoBanco();
+  const favoritos = await idsFavoritos(); // vazio se anônimo
   const configSimulador = montarConfigSimulador(imovel, parametros);
   const modalidadeRotulo = imovel.esquemaPagamento
     ? ROTULO_MODALIDADE[imovel.esquemaPagamento.modalidade]
@@ -147,9 +150,16 @@ export default async function FichaImovel({ params }: ParamsFicha) {
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
             {imovel.titulo}
           </h1>
-          <p className="text-2xl font-medium tabular-nums text-emerald-700 dark:text-emerald-400">
-            {formatarReais(imovel.valor)}
-          </p>
+          <div className="flex flex-wrap items-center gap-4">
+            <p className="text-2xl font-medium tabular-nums text-emerald-700 dark:text-emerald-400">
+              {formatarReais(imovel.valor)}
+            </p>
+            <BotaoFavoritar
+              imovelId={imovel.id}
+              inicialFavoritado={favoritos.has(imovel.id)}
+              variante="ficha"
+            />
+          </div>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             {imovel.cidade}/{imovel.uf}
             {imovel.condicao ? ` · ${imovel.condicao}` : ""}
