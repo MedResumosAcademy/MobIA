@@ -4,14 +4,19 @@
 // para executarComando (Server Action) e renderiza as respostas: balões,
 // cards de eventos, avisos com nível e link de continuação.
 //
-// VOZ em 3 níveis (melhor disponível vence):
+// VOZ é PUSH-TO-TALK verdadeiro nos 2 modos: gravar começa no clique e SÓ
+// termina quando o usuário clica de novo (botão vira quadrado de parar, com
+// timer mm:ss), quando bate o limite de 60s (avisa e envia o que tem) ou no
+// X (cancela e descarta). NADA para sozinho no primeiro silêncio.
 //   1. GRAVADOR — se o servidor transcreve (prop transcricaoDisponivel, i.e.
 //      GROQ_API_KEY presente) e o navegador tem MediaRecorder: grava o áudio
-//      (webm/opus com fallback de mimeType), mostra pulso + timer + cancelar
-//      (X) e, ao parar, POSTa em /api/transcrever (Groq Whisper) — o texto
-//      transcrito entra no input e é ENVIADO automaticamente.
-//   2. WEB SPEECH — senão, a Web Speech API nativa de sempre (lang pt-BR,
-//      interimResults no input em tempo real, envia ao terminar).
+//      (webm/opus com fallback de mimeType, SEM timeslice) e, ao parar, POSTa
+//      em /api/transcrever (Groq Whisper) — o texto entra no input e é enviado.
+//   2. WEB SPEECH — senão, a Web Speech API com continuous + interimResults;
+//      os resultados FINAIS acumulam num buffer (refs) e o interim aparece no
+//      input. O Chrome dispara onend sozinho após silêncio — enquanto o
+//      usuário não clicou parar, o onend RELIGA o reconhecimento (keep-alive)
+//      preservando o buffer. Só envia no clique de parar (ou aos 60s).
 //   3. SÓ TEXTO — senão, o mic é desabilitado com um aviso gentil; o chat
 //      segue 100% funcional por texto.
 // Erros de permissão/transcrição viram mensagem da assistente no chat. pt-BR.
@@ -131,6 +136,17 @@ function formatarTempo(segundos: number): string {
   return `${m}:${s}`;
 }
 
+/** Teto de uma captura de voz: aos 60s avisamos e enviamos o que já foi dito. */
+const LIMITE_VOZ_MS = 60_000;
+
+/** Junta pedaços de fala com espaço único (transcripts variam no espaçamento). */
+function montarFala(...pedacos: string[]): string {
+  return pedacos.join(" ").replace(/\s+/g, " ").trim();
+}
+
+/** Chave do localStorage da dica de primeira vez do mic. */
+const CHAVE_DICA_MIC = "imobia:dica-mic-vista";
+
 // O suporte do navegador não muda durante a sessão — useSyncExternalStore com
 // assinatura vazia lê o valor real no client e um chute otimista no servidor
 // (mesmo markup da hidratação), sem setState em efeito.
@@ -147,9 +163,9 @@ function lerModoVoz(transcricaoDisponivel: boolean): ModoVoz {
 
 const SUGESTOES = [
   "Minha agenda de hoje",
-  "Agendar visita com Sofia amanha as 15h",
+  "Passa a Sofia para proposta",
+  "Fechei com a Camila por 780 mil",
   "Avisos importantes",
-  "Novo negocio com Carlos de 450 mil",
   "Me lembra de ligar para a Patricia amanha as 9h",
 ] as const;
 
@@ -201,19 +217,33 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
   );
   const [pendente, iniciar] = useTransition();
 
+  // Dica de primeira vez do mic — lida do localStorage só no client (efeito).
+  const [mostrarDica, setMostrarDica] = useState(false);
+
   const proximoId = useRef(1);
   const reconhecimento = useRef<ReconhecimentoVoz | null>(null);
-  const transcricaoFinal = useRef("");
+  // Web Speech (push-to-talk com keep-alive): o buffer NUNCA se perde entre
+  // re-inícios — finais de sessões anteriores + finais da sessão atual + interim.
+  const finaisAnteriores = useRef("");
+  const finaisDaSessao = useRef("");
+  const parcialVoz = useRef("");
+  /** true = o usuário (ou o limite de 60s / cancelar) mandou parar: NÃO religar. */
+  const paradaSolicitada = useRef(false);
+  /** O que fazer quando o reconhecimento terminar de vez. */
+  const encerramentoVoz = useRef<"enviar" | "descartar" | "manter">("enviar");
   const gravador = useRef<MediaRecorder | null>(null);
   const trilhaAudio = useRef<MediaStream | null>(null);
   const pedacos = useRef<Blob[]>([]);
   const cancelado = useRef(false);
   const cronometro = useRef<ReturnType<typeof setInterval> | null>(null);
+  const limite = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fimDaLista = useRef<HTMLDivElement | null>(null);
 
-  // Limpa gravação/reconhecimento/cronômetro ao desmontar.
+  // Limpa gravação/reconhecimento/timers ao desmontar.
   useEffect(() => {
     return () => {
+      paradaSolicitada.current = true;
+      encerramentoVoz.current = "descartar";
       reconhecimento.current?.stop();
       cancelado.current = true;
       if (gravador.current && gravador.current.state !== "inactive") {
@@ -223,8 +253,25 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
       if (cronometro.current !== null) {
         clearInterval(cronometro.current);
       }
+      if (limite.current !== null) {
+        clearTimeout(limite.current);
+      }
     };
   }, []);
+
+  // Mostra a dica do mic só na primeira vez (persistida no localStorage).
+  useEffect(() => {
+    if (modoVoz === "nenhum") {
+      return;
+    }
+    try {
+      if (window.localStorage.getItem(CHAVE_DICA_MIC) === null) {
+        setMostrarDica(true);
+      }
+    } catch {
+      // localStorage indisponível (modo privado etc.) — segue sem dica.
+    }
+  }, [modoVoz]);
 
   // Rola para a última mensagem a cada novidade.
   useEffect(() => {
@@ -260,14 +307,39 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
     });
   }
 
-  // —— Voz nível 1: gravar áudio e transcrever no servidor (Groq Whisper) ——
+  // —— Timers compartilhados dos 2 modos (cronômetro mm:ss + teto de 60s) ——
 
-  function pararCronometro() {
+  function iniciarTimers(aoAtingirLimite: () => void) {
+    setSegundos(0);
+    cronometro.current = setInterval(() => setSegundos((s) => s + 1), 1000);
+    limite.current = setTimeout(aoAtingirLimite, LIMITE_VOZ_MS);
+  }
+
+  function pararTimers() {
     if (cronometro.current !== null) {
       clearInterval(cronometro.current);
       cronometro.current = null;
     }
+    if (limite.current !== null) {
+      clearTimeout(limite.current);
+      limite.current = null;
+    }
   }
+
+  /** Some com a dica de primeira vez e persiste que o mic já foi usado. */
+  function marcarDicaComoVista() {
+    if (!mostrarDica) {
+      return;
+    }
+    setMostrarDica(false);
+    try {
+      window.localStorage.setItem(CHAVE_DICA_MIC, "1");
+    } catch {
+      // sem localStorage a dica só some nesta sessão — sem problema.
+    }
+  }
+
+  // —— Voz nível 1: gravar áudio e transcrever no servidor (Groq Whisper) ——
 
   async function transcreverEEnviar(audio: Blob) {
     if (audio.size === 0) {
@@ -329,7 +401,7 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
       stream.getTracks().forEach((t) => t.stop());
       trilhaAudio.current = null;
       gravador.current = null;
-      pararCronometro();
+      pararTimers();
       setGravando(false);
       if (!cancelado.current) {
         const audio = new Blob(pedacos.current, { type: rec.mimeType || "audio/webm" });
@@ -338,10 +410,17 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
       pedacos.current = [];
     };
     gravador.current = rec;
-    setSegundos(0);
     setGravando(true);
-    cronometro.current = setInterval(() => setSegundos((s) => s + 1), 1000);
-    rec.start();
+    // Teto de 60s: avisa e envia o que foi gravado até aqui. Fora isso, a
+    // gravação SÓ para no clique do usuário (botão de parar ou X) — sem
+    // timeslice, sem detecção de silêncio, sem auto-stop.
+    iniciarTimers(() => {
+      avisarNoChat("Chegamos ao limite de 60s de gravação — vou enviar o que você falou até aqui.");
+      if (gravador.current && gravador.current.state !== "inactive") {
+        gravador.current.stop();
+      }
+    });
+    rec.start(); // sem timeslice: um único blob no stop
   }
 
   /** Descarta a gravação em andamento sem transcrever (botão X). */
@@ -352,12 +431,14 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
     }
   }
 
-  // —— Voz nível 2: Web Speech API (como sempre foi) ——
-  function alternarVoz() {
-    if (gravando) {
-      reconhecimento.current?.stop();
-      return;
-    }
+  // —— Voz nível 2: Web Speech API em push-to-talk com keep-alive ——
+  //
+  // continuous + interimResults; os FINAIS acumulam em refs e o interim vai
+  // para o input. O Chrome encerra a sessão sozinho após um silêncio — o
+  // onend RELIGA o reconhecimento (preservando o buffer) enquanto o usuário
+  // não clicou parar. Só enviamos no clique de parar (ou no teto de 60s).
+
+  function iniciarVoz() {
     const Construtor = obterConstrutorVoz();
     if (!Construtor) {
       // Na prática inalcançável (modoVoz "web-speech" implica suporte).
@@ -367,8 +448,12 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
     const rec = new Construtor();
     rec.lang = "pt-BR";
     rec.interimResults = true;
-    rec.continuous = false;
-    transcricaoFinal.current = "";
+    rec.continuous = true;
+    finaisAnteriores.current = "";
+    finaisDaSessao.current = "";
+    parcialVoz.current = "";
+    paradaSolicitada.current = false;
+    encerramentoVoz.current = "enviar";
 
     rec.onresult = (evento) => {
       let final = "";
@@ -376,54 +461,128 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
       for (let i = 0; i < evento.results.length; i += 1) {
         const resultado = evento.results[i];
         if (resultado.isFinal) {
-          final += resultado[0].transcript;
+          final += ` ${resultado[0].transcript}`;
         } else {
-          parcial += resultado[0].transcript;
+          parcial += ` ${resultado[0].transcript}`;
         }
       }
-      transcricaoFinal.current = final;
-      // Transcrição (parcial + final) aparece no input em tempo real.
-      setTexto((final + parcial).trim());
+      finaisDaSessao.current = final;
+      parcialVoz.current = parcial;
+      // Buffer acumulado + finais desta sessão + interim, ao vivo no input.
+      setTexto(montarFala(finaisAnteriores.current, final, parcial));
     };
 
     rec.onerror = (evento) => {
-      transcricaoFinal.current = "";
-      setGravando(false);
+      // no-speech (silêncio) e aborted são esperados no keep-alive: o onend
+      // religa o reconhecimento sem perder o buffer. Erros fatais param de
+      // ouvir SEM enviar — o texto já ouvido fica no input para o usuário.
+      if (evento.error === "no-speech" || evento.error === "aborted") {
+        return;
+      }
+      paradaSolicitada.current = true;
+      encerramentoVoz.current = "manter";
       if (evento.error === "not-allowed" || evento.error === "service-not-allowed") {
         avisarNoChat(
           "Preciso da permissão do microfone para te ouvir — libere nas configurações do navegador ou digite o comando.",
         );
-      } else if (evento.error !== "aborted" && evento.error !== "no-speech") {
+      } else {
         avisarNoChat("Não consegui te ouvir direito — tente de novo ou digite o comando.");
       }
     };
 
     rec.onend = () => {
+      // Consolida a sessão que terminou no buffer — inclui um interim que o
+      // navegador não chegou a finalizar (quando finaliza, o último onresult
+      // já o moveu para os finais e zerou o parcial; não há duplicação).
+      finaisAnteriores.current = montarFala(
+        finaisAnteriores.current,
+        finaisDaSessao.current,
+        parcialVoz.current,
+      );
+      finaisDaSessao.current = "";
+      parcialVoz.current = "";
+      if (!paradaSolicitada.current) {
+        // Silêncio derrubou a sessão, mas o usuário NÃO clicou parar:
+        // keep-alive — religa preservando o buffer acumulado.
+        try {
+          rec.start();
+          return;
+        } catch {
+          // Não conseguiu religar — encerra de vez com o que já foi ouvido.
+        }
+      }
+      pararTimers();
       setGravando(false);
       reconhecimento.current = null;
-      const dito = transcricaoFinal.current.trim();
-      if (dito !== "") {
-        enviar(dito); // envia automaticamente o que foi falado
+      const dito = finaisAnteriores.current;
+      finaisAnteriores.current = "";
+      if (encerramentoVoz.current === "descartar") {
+        setTexto("");
+        return;
       }
+      setTexto(dito);
+      if (encerramentoVoz.current === "enviar" && dito !== "") {
+        enviar(dito); // só chega aqui por clique do usuário ou teto de 60s
+      }
+      // "manter" (erro fatal): o texto fica no input para revisar/enviar.
     };
 
     reconhecimento.current = rec;
     setGravando(true);
     setTexto("");
+    // Teto de 60s: avisa e envia o que foi dito até aqui.
+    iniciarTimers(() => {
+      avisarNoChat("Chegamos ao limite de 60s — vou enviar o que você falou até aqui.");
+      paradaSolicitada.current = true;
+      encerramentoVoz.current = "enviar";
+      reconhecimento.current?.stop();
+    });
     rec.start();
+  }
+
+  /** Clique do usuário no botão de parar: encerra e ENVIA o acumulado. */
+  function pararVozEEnviar() {
+    paradaSolicitada.current = true;
+    encerramentoVoz.current = "enviar";
+    reconhecimento.current?.stop();
+  }
+
+  /** Botão X no modo Web Speech: encerra e DESCARTA o acumulado. */
+  function cancelarVoz() {
+    paradaSolicitada.current = true;
+    encerramentoVoz.current = "descartar";
+    reconhecimento.current?.stop();
   }
 
   // —— Mic: despacha para o melhor nível disponível ——
   function alternarMic() {
+    if (!gravando) {
+      marcarDicaComoVista();
+    }
     if (modoVoz === "gravador") {
       if (gravando) {
-        gravador.current?.stop(); // onstop transcreve e envia
+        if (gravador.current && gravador.current.state !== "inactive") {
+          gravador.current.stop(); // onstop transcreve e envia
+        }
       } else {
         void iniciarGravacao();
       }
       return;
     }
-    alternarVoz();
+    if (gravando) {
+      pararVozEEnviar();
+    } else {
+      iniciarVoz();
+    }
+  }
+
+  /** Botão X (qualquer modo): descarta a captura em andamento. */
+  function cancelarCaptura() {
+    if (modoVoz === "gravador") {
+      cancelarGravacao();
+    } else {
+      cancelarVoz();
+    }
   }
 
   const suportaVoz = modoVoz !== "nenhum";
@@ -497,18 +656,14 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
             !suportaVoz
               ? "Voz indisponível neste navegador"
               : gravando
-                ? modoVoz === "gravador"
-                  ? "Parar a gravação e enviar"
-                  : "Parar de ouvir"
+                ? "Parar a gravação e enviar"
                 : "Falar com a assistente"
           }
           title={
             !suportaVoz
               ? "Seu navegador não suporta voz — digite o comando"
               : gravando
-                ? modoVoz === "gravador"
-                  ? "Parar a gravação e enviar"
-                  : "Parar de ouvir"
+                ? "Parar a gravação e enviar"
                 : "Falar com a assistente"
           }
           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors ${
@@ -517,14 +672,14 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
               : "bg-brand-soft text-brand-strong hover:bg-brand-soft/70"
           } disabled:cursor-not-allowed disabled:opacity-40`}
         >
-          {gravando && modoVoz === "gravador" ? (
+          {gravando ? (
             <Square className="h-4 w-4 fill-current" aria-hidden />
           ) : (
             <Mic className="h-5 w-5" aria-hidden />
           )}
         </button>
 
-        {gravando && modoVoz === "gravador" && (
+        {gravando && (
           <>
             <span
               className="shrink-0 text-xs font-semibold tabular-nums text-brand-strong"
@@ -534,7 +689,7 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
             </span>
             <button
               type="button"
-              onClick={cancelarGravacao}
+              onClick={cancelarCaptura}
               aria-label="Cancelar gravação"
               title="Cancelar gravação"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-subtle transition-colors hover:border-brand/40 hover:text-foreground"
@@ -551,9 +706,7 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
             transcrevendo
               ? "Transcrevendo o áudio…"
               : gravando
-                ? modoVoz === "gravador"
-                  ? "Gravando…"
-                  : "Ouvindo…"
+                ? "Gravando…"
                 : "Digite ou fale seu comando…"
           }
           aria-label="Mensagem para a assistente"
@@ -574,14 +727,17 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
       {/* Estados de voz abaixo do input */}
       {gravando && (
         <p className="px-5 pb-4 text-xs font-medium text-brand-strong" aria-live="polite">
-          {modoVoz === "gravador"
-            ? "Gravando… fale seu comando e toque no botão para parar e enviar (X cancela)."
-            : "Ouvindo… fale seu comando — envio sozinha quando você terminar."}
+          {`Gravando… toque para enviar (${formatarTempo(segundos)}) — o X cancela.`}
         </p>
       )}
       {transcrevendo && (
         <p className="px-5 pb-4 text-xs font-medium text-brand-strong" aria-live="polite">
           Transcrevendo o que você falou…
+        </p>
+      )}
+      {!gravando && !transcrevendo && suportaVoz && mostrarDica && (
+        <p className="px-5 pb-4 text-xs text-subtle">
+          Toque no microfone, fale com calma e toque de novo para enviar.
         </p>
       )}
       {!suportaVoz && (

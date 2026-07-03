@@ -377,6 +377,419 @@ describe("interpretarComando — ajuda (fallback)", () => {
   });
 });
 
+describe("interpretarComando — mudar_etapa", () => {
+  it("'move o negócio da Sofia para visita'", () => {
+    expect(interpretarComando("move o negócio da Sofia para visita", AGORA)).toEqual({
+      intencao: "mudar_etapa",
+      contato: "Sofia",
+      etapa: "visita",
+    });
+  });
+
+  it("'passa a Larissa pra proposta'", () => {
+    expect(interpretarComando("passa a Larissa pra proposta", AGORA)).toEqual({
+      intencao: "mudar_etapa",
+      contato: "Larissa",
+      etapa: "proposta",
+    });
+  });
+
+  it("'coloca o Carlos em fechamento'", () => {
+    expect(interpretarComando("coloca o Carlos em fechamento", AGORA)).toEqual({
+      intencao: "mudar_etapa",
+      contato: "Carlos",
+      etapa: "fechamento",
+    });
+  });
+
+  it("sujeito: 'a Larissa foi para proposta'", () => {
+    expect(interpretarComando("a Larissa foi para proposta", AGORA)).toEqual({
+      intencao: "mudar_etapa",
+      contato: "Larissa",
+      etapa: "proposta",
+    });
+  });
+
+  it("sujeito com negócio: 'o negócio da Camila passou pra fechamento'", () => {
+    expect(interpretarComando("o negócio da Camila passou pra fechamento", AGORA)).toEqual({
+      intencao: "mudar_etapa",
+      contato: "Camila",
+      etapa: "fechamento",
+    });
+  });
+
+  it("'avança o negócio da Patricia' ⇒ próxima etapa", () => {
+    expect(interpretarComando("avança o negócio da Patricia", AGORA)).toEqual({
+      intencao: "mudar_etapa",
+      contato: "Patricia",
+      etapa: "proxima",
+    });
+  });
+
+  it("'passa a Sofia para a próxima etapa' ⇒ proxima", () => {
+    expect(interpretarComando("passa a Sofia para a próxima etapa", AGORA)).toEqual({
+      intencao: "mudar_etapa",
+      contato: "Sofia",
+      etapa: "proxima",
+    });
+  });
+
+  it("sinônimos: 'início' ⇒ novo; 'fechar' ⇒ fechamento (caixa/acento)", () => {
+    expect(interpretarComando("muda a Camila para o início", AGORA)).toEqual({
+      intencao: "mudar_etapa",
+      contato: "Camila",
+      etapa: "novo",
+    });
+    expect(interpretarComando("MOVE A SOFIA PARA FECHAR", AGORA)).toEqual({
+      intencao: "mudar_etapa",
+      contato: "SOFIA",
+      etapa: "fechamento",
+    });
+  });
+
+  it("fronteira: 'cria uma tarefa: mover a Sofia para proposta' continua criar_tarefa", () => {
+    expect(interpretarComando("cria uma tarefa: mover a Sofia para proposta", AGORA)).toEqual({
+      intencao: "criar_tarefa",
+      titulo: "mover a Sofia para proposta",
+    });
+  });
+
+  it("fronteira: 'me lembra de passar a Sofia para proposta amanhã' continua lembrete", () => {
+    expect(
+      interpretarComando("me lembra de passar a Sofia para proposta amanhã", AGORA),
+    ).toEqual({
+      intencao: "criar_lembrete",
+      titulo: "passar a Sofia para proposta",
+      inicioISO: "2026-07-04T09:00:00-03:00",
+    });
+  });
+});
+
+describe("interpretarComando — marcar_resultado", () => {
+  it("'fechei com a Sofia' ⇒ ganho sem valor", () => {
+    expect(interpretarComando("fechei com a Sofia", AGORA)).toEqual({
+      intencao: "marcar_resultado",
+      contato: "Sofia",
+      resultado: "ganho",
+    });
+  });
+
+  it("'Fechei com a Sofia por 480 mil' ⇒ ganho com valor em centavos", () => {
+    expect(interpretarComando("Fechei com a Sofia por 480 mil", AGORA)).toEqual({
+      intencao: "marcar_resultado",
+      contato: "Sofia",
+      resultado: "ganho",
+      valor: 48_000_000,
+    });
+  });
+
+  it("'ganhei o negócio do Carlos'", () => {
+    expect(interpretarComando("ganhei o negócio do Carlos", AGORA)).toEqual({
+      intencao: "marcar_resultado",
+      contato: "Carlos",
+      resultado: "ganho",
+    });
+  });
+
+  it("'vendi o Carlos'", () => {
+    expect(interpretarComando("vendi o Carlos", AGORA)).toEqual({
+      intencao: "marcar_resultado",
+      contato: "Carlos",
+      resultado: "ganho",
+    });
+  });
+
+  it("'venda concluída com a Maria por 1,2 milhão'", () => {
+    expect(interpretarComando("venda concluída com a Maria por 1,2 milhão", AGORA)).toEqual({
+      intencao: "marcar_resultado",
+      contato: "Maria",
+      resultado: "ganho",
+      valor: 120_000_000,
+    });
+  });
+
+  it("'Vendemos pra Maria Souza por 1,2 milhão' (plural + nome composto)", () => {
+    expect(interpretarComando("Vendemos pra Maria Souza por 1,2 milhão", AGORA)).toEqual({
+      intencao: "marcar_resultado",
+      contato: "Maria Souza",
+      resultado: "ganho",
+      valor: 120_000_000,
+    });
+  });
+
+  it("'perdemos a Larissa' ⇒ perdido", () => {
+    expect(interpretarComando("perdemos a Larissa", AGORA)).toEqual({
+      intencao: "marcar_resultado",
+      contato: "Larissa",
+      resultado: "perdido",
+    });
+  });
+
+  it("'o João desistiu' ⇒ perdido", () => {
+    expect(interpretarComando("o João desistiu", AGORA)).toEqual({
+      intencao: "marcar_resultado",
+      contato: "João",
+      resultado: "perdido",
+    });
+  });
+
+  it("'a Camila cancelou' ⇒ perdido", () => {
+    expect(interpretarComando("a Camila cancelou", AGORA)).toEqual({
+      intencao: "marcar_resultado",
+      contato: "Camila",
+      resultado: "perdido",
+    });
+  });
+
+  it("fronteira: 'registra que a Camila cancelou' continua registrar_nota", () => {
+    expect(interpretarComando("registra que a Camila cancelou", AGORA)).toEqual({
+      intencao: "registrar_nota",
+      contato: "Camila",
+      nota: "cancelou",
+    });
+  });
+
+  it("fronteira: 'me lembra que fechei com a Sofia' continua lembrete", () => {
+    expect(interpretarComando("me lembra que fechei com a Sofia", AGORA).intencao).toBe(
+      "criar_lembrete",
+    );
+  });
+});
+
+describe("interpretarComando — atualizar_valor", () => {
+  it("'muda o valor do negócio da Sofia para 500 mil'", () => {
+    expect(interpretarComando("muda o valor do negócio da Sofia para 500 mil", AGORA)).toEqual({
+      intencao: "atualizar_valor",
+      contato: "Sofia",
+      valor: 50_000_000,
+    });
+  });
+
+  it("'atualiza o valor da proposta do Henrique para 950 mil'", () => {
+    expect(
+      interpretarComando("atualiza o valor da proposta do Henrique para 950 mil", AGORA),
+    ).toEqual({
+      intencao: "atualizar_valor",
+      contato: "Henrique",
+      valor: 95_000_000,
+    });
+  });
+
+  it("'o negócio do Carlos agora é 1,2 milhão'", () => {
+    expect(interpretarComando("o negócio do Carlos agora é 1,2 milhão", AGORA)).toEqual({
+      intencao: "atualizar_valor",
+      contato: "Carlos",
+      valor: 120_000_000,
+    });
+  });
+
+  it("fronteira: 'muda a Sofia para contato' é mudar_etapa, não atualizar_valor", () => {
+    expect(interpretarComando("muda a Sofia para contato", AGORA)).toEqual({
+      intencao: "mudar_etapa",
+      contato: "Sofia",
+      etapa: "contato",
+    });
+  });
+
+  it("fronteira: 'novo negocio com Ana Paula de 450 mil' continua criar_negocio", () => {
+    expect(interpretarComando("novo negocio com Ana Paula de 450 mil", AGORA).intencao).toBe(
+      "criar_negocio",
+    );
+  });
+});
+
+describe("interpretarComando — atualizar_contato_info", () => {
+  it("'o telefone da Sofia é (11) 98888-7777' ⇒ telefone só com dígitos", () => {
+    expect(interpretarComando("o telefone da Sofia é (11) 98888-7777", AGORA)).toEqual({
+      intencao: "atualizar_contato_info",
+      contato: "Sofia",
+      telefone: "11988887777",
+    });
+  });
+
+  it("'anota o telefone da Patricia: 11 97777-1234'", () => {
+    expect(interpretarComando("anota o telefone da Patricia: 11 97777-1234", AGORA)).toEqual({
+      intencao: "atualizar_contato_info",
+      contato: "Patricia",
+      telefone: "11977771234",
+    });
+  });
+
+  it("'O WhatsApp da Camila mudou para 21 99999-0000'", () => {
+    expect(interpretarComando("O WhatsApp da Camila mudou para 21 99999-0000", AGORA)).toEqual({
+      intencao: "atualizar_contato_info",
+      contato: "Camila",
+      telefone: "21999990000",
+    });
+  });
+
+  it("'anota o email do Carlos: carlos@exemplo.com'", () => {
+    expect(interpretarComando("anota o email do Carlos: carlos@exemplo.com", AGORA)).toEqual({
+      intencao: "atualizar_contato_info",
+      contato: "Carlos",
+      email: "carlos@exemplo.com",
+    });
+  });
+
+  it("'o e-mail da Sofia é sofia.almeida@exemplo.com.br' (domínio composto)", () => {
+    expect(
+      interpretarComando("o e-mail da Sofia é sofia.almeida@exemplo.com.br", AGORA),
+    ).toEqual({
+      intencao: "atualizar_contato_info",
+      contato: "Sofia",
+      email: "sofia.almeida@exemplo.com.br",
+    });
+  });
+
+  it("fronteira: 'anota no negócio da Sofia: email novo do porteiro' continua nota", () => {
+    expect(
+      interpretarComando("anota no negócio da Sofia: email novo do porteiro", AGORA),
+    ).toEqual({
+      intencao: "registrar_nota",
+      contato: "Sofia",
+      nota: "email novo do porteiro",
+    });
+  });
+
+  it("sem telefone nem email reconhecíveis ⇒ ajuda", () => {
+    expect(interpretarComando("o telefone da Sofia é antigo", AGORA).intencao).toBe("ajuda");
+  });
+});
+
+describe("interpretarComando — concluir_tarefa", () => {
+  it("'conclui a tarefa de ligar para a Sofia' ⇒ título + contato", () => {
+    expect(interpretarComando("conclui a tarefa de ligar para a Sofia", AGORA)).toEqual({
+      intencao: "concluir_tarefa",
+      titulo: "ligar para a Sofia",
+      contato: "Sofia",
+    });
+  });
+
+  it("'Terminei a tarefa enviar proposta' ⇒ só título", () => {
+    expect(interpretarComando("Terminei a tarefa enviar proposta", AGORA)).toEqual({
+      intencao: "concluir_tarefa",
+      titulo: "enviar proposta",
+    });
+  });
+
+  it("'Já fiz a tarefa de ligar para a Patricia'", () => {
+    expect(interpretarComando("Já fiz a tarefa de ligar para a Patricia", AGORA)).toEqual({
+      intencao: "concluir_tarefa",
+      titulo: "ligar para a Patricia",
+      contato: "Patricia",
+    });
+  });
+
+  it("'marca como feita a tarefa enviar proposta'", () => {
+    expect(interpretarComando("marca como feita a tarefa enviar proposta", AGORA)).toEqual({
+      intencao: "concluir_tarefa",
+      titulo: "enviar proposta",
+    });
+  });
+
+  it("'marca a tarefa ligar pra Camila como concluída'", () => {
+    expect(interpretarComando("marca a tarefa ligar pra Camila como concluída", AGORA)).toEqual({
+      intencao: "concluir_tarefa",
+      titulo: "ligar pra Camila",
+      contato: "Camila",
+    });
+  });
+
+  it("'Tarefa da Patricia concluída' ⇒ só contato", () => {
+    expect(interpretarComando("Tarefa da Patricia concluída", AGORA)).toEqual({
+      intencao: "concluir_tarefa",
+      contato: "Patricia",
+    });
+  });
+
+  it("'conclui a tarefa da Camila' ⇒ só contato", () => {
+    expect(interpretarComando("conclui a tarefa da Camila", AGORA)).toEqual({
+      intencao: "concluir_tarefa",
+      contato: "Camila",
+    });
+  });
+
+  it("fronteira: 'criar tarefa revisar contrato' continua criar_tarefa", () => {
+    expect(interpretarComando("criar tarefa revisar contrato", AGORA)).toEqual({
+      intencao: "criar_tarefa",
+      titulo: "revisar contrato",
+    });
+  });
+});
+
+describe("descreverComando — novas intenções", () => {
+  it("mudar_etapa: contato e rótulo da etapa", () => {
+    const frase = descreverComando({ intencao: "mudar_etapa", contato: "Sofia", etapa: "visita" });
+    expect(frase).toContain("Sofia");
+    expect(frase).toContain("Visita");
+  });
+
+  it("mudar_etapa proxima: fala em próxima etapa", () => {
+    const frase = descreverComando({
+      intencao: "mudar_etapa",
+      contato: "Patricia",
+      etapa: "proxima",
+    });
+    expect(frase).toContain("Patricia");
+    expect(frase).toContain("próxima etapa");
+  });
+
+  it("marcar_resultado ganho com valor em reais", () => {
+    const frase = descreverComando({
+      intencao: "marcar_resultado",
+      contato: "Sofia",
+      resultado: "ganho",
+      valor: 48_000_000,
+    });
+    expect(frase).toContain("Sofia");
+    expect(frase).toContain("ganho");
+    expect(frase).toContain("480.000,00");
+  });
+
+  it("marcar_resultado perdido", () => {
+    const frase = descreverComando({
+      intencao: "marcar_resultado",
+      contato: "Larissa",
+      resultado: "perdido",
+    });
+    expect(frase).toContain("Larissa");
+    expect(frase).toContain("perdido");
+  });
+
+  it("atualizar_valor: valor formatado em reais", () => {
+    const frase = descreverComando({
+      intencao: "atualizar_valor",
+      contato: "Sofia",
+      valor: 50_000_000,
+    });
+    expect(frase).toContain("Sofia");
+    expect(frase).toContain("500.000,00");
+  });
+
+  it("atualizar_contato_info: telefone formatado e email", () => {
+    const frase = descreverComando({
+      intencao: "atualizar_contato_info",
+      contato: "Sofia",
+      telefone: "11988887777",
+      email: "sofia@exemplo.com",
+    });
+    expect(frase).toContain("Sofia");
+    expect(frase).toContain("(11) 98888-7777");
+    expect(frase).toContain("sofia@exemplo.com");
+  });
+
+  it("concluir_tarefa: título e contato", () => {
+    const frase = descreverComando({
+      intencao: "concluir_tarefa",
+      titulo: "enviar proposta",
+      contato: "Sofia",
+    });
+    expect(frase).toContain("Concluir tarefa");
+    expect(frase).toContain('"enviar proposta"');
+    expect(frase).toContain("Sofia");
+  });
+});
+
 describe("descreverComando", () => {
   it("evento: dia da semana, data curta, hora e local", () => {
     const cmd = interpretarComando("agendar visita com Sofia amanhã às 15h no Térreo", AGORA);

@@ -25,6 +25,11 @@
 //   - "registra que a <contato> ...": o contato é UMA palavra (nomes compostos
 //     exigem a forma "anota no negócio da <contato>: ..." ou "... que ...").
 //   - Valor monetário devolvido em CENTAVOS (convenção do produto).
+//   - Gestão do negócio (mudar_etapa, marcar_resultado, atualizar_valor,
+//     atualizar_contato_info, concluir_tarefa): contexto de lembrete ("me
+//     lembra de/que…") tem prioridade e devolve o comando ao interpretador de
+//     lembrete; "anota NO negócio da X: …" continua nota, "anota o email do
+//     X: …" vira atualizar_contato_info; telefone é normalizado para dígitos.
 
 import { formatarReais } from "./modalidades";
 
@@ -50,6 +55,9 @@ export interface DataHoraExtraida {
   inicioISO?: string;
 }
 
+/** Etapas do funil de negócios (mesmo domínio do kanban). */
+export type EtapaNegocioAssistente = "novo" | "contato" | "visita" | "proposta" | "fechamento";
+
 /** União discriminada de tudo que o assistente entende. */
 export type ComandoInterpretado =
   | { intencao: "consultar_agenda"; dia: string }
@@ -65,6 +73,11 @@ export type ComandoInterpretado =
   | { intencao: "criar_tarefa"; titulo: string; contato?: string; venceEm?: string }
   | { intencao: "criar_negocio"; contato: string; valor?: number; origem?: string }
   | { intencao: "registrar_nota"; contato: string; nota: string }
+  | { intencao: "mudar_etapa"; contato: string; etapa: EtapaNegocioAssistente | "proxima" }
+  | { intencao: "marcar_resultado"; contato: string; resultado: "ganho" | "perdido"; valor?: number }
+  | { intencao: "atualizar_valor"; contato: string; valor: number }
+  | { intencao: "atualizar_contato_info"; contato: string; telefone?: string; email?: string }
+  | { intencao: "concluir_tarefa"; contato?: string; titulo?: string }
   | { intencao: "consultar_avisos" }
   | { intencao: "ajuda"; motivo?: string };
 
@@ -464,6 +477,264 @@ function interpretarNegocio(ctx: Contexto): ComandoInterpretado | null {
   return null;
 }
 
+// --- gestão do negócio: mudar_etapa / marcar_resultado / atualizar_valor -----
+
+// Contexto de lembrete ("me lembra de/que…", "lembrete…", "não me deixa
+// esquecer…") tem prioridade sobre as intenções de gestão: "me lembra que
+// fechei com a Sofia" é um LEMBRETE, não um resultado.
+const RE_CONTEXTO_LEMBRETE =
+  /\b(?:me\s+)?lembr\w*\s+(?:de|que)\b|\blembrete\b|\bdeix[ae]\s+esquecer\b/;
+
+const SINONIMOS_ETAPA =
+  "fechamento|fechar|final|proposta|visita|contato|novo|inicio|proxima(?:\\s+etapa)?";
+
+const RE_ETAPA_VERBO = new RegExp(
+  String.raw`\b(?:mov|mud|pass|coloc|bot|jog|avanc|lev|arrast|empurr)\w*\s+(?:(?:o|a)\s+)?(?:(?:negocio|negociacao|card|cliente|ficha)\s+)?(?:d[aoe]s?\s+)?(?<c>.+?)\s+(?:para|pra|em)\s+(?:a\s+etapa\s+(?:d[eao]\s+)?|[ao]\s+)?(?<e>${SINONIMOS_ETAPA})\b`,
+  "d",
+);
+const RE_ETAPA_SUJEITO = new RegExp(
+  String.raw`^\s*(?:(?:o|a)\s+)?(?:(?:negocio|negociacao)\s+)?(?:d[aoe]s?\s+)?(?<c>\S+(?:\s+\S+){0,2}?)\s+(?:foi|passou|mudou|avancou|subiu)\s+(?:para|pra)\s+(?:a\s+etapa\s+(?:d[eao]\s+)?|[ao]\s+)?(?<e>${SINONIMOS_ETAPA})\b`,
+  "d",
+);
+const RE_ETAPA_AVANCAR =
+  /\b(?:avanc|adiant|progr)\w*\s+(?:(?:o|a)\s+)?(?:(?:negocio|negociacao|card)\s+)?(?:d[aoe]s?\s+)?(?<c>.+)$/d;
+const CORTES_ETAPA_AVANCAR: readonly RegExp[] = [
+  ...CORTES_PONTUACAO,
+  /\bde\s+etapa\b/,
+  /\buma\s+etapa\b/,
+  /\bno\s+funil\b/,
+  /\bpara\b/,
+  /\bpra\b/,
+];
+
+function mapearEtapa(bruto: string): EtapaNegocioAssistente | "proxima" {
+  const s = bruto.trim();
+  if (s.startsWith("proxima")) return "proxima";
+  if (s === "fechar" || s === "final") return "fechamento";
+  if (s === "inicio") return "novo";
+  return s as EtapaNegocioAssistente;
+}
+
+function interpretarMudarEtapa(ctx: Contexto): ComandoInterpretado | null {
+  if (RE_CONTEXTO_LEMBRETE.test(ctx.norm)) return null;
+  for (const re of [RE_ETAPA_VERBO, RE_ETAPA_SUJEITO]) {
+    const m = re.exec(ctx.norm);
+    const faixaC = m?.indices?.groups?.["c"];
+    const faixaE = m?.indices?.groups?.["e"];
+    if (faixaC && faixaE) {
+      const contato = polir(ctx.original.slice(faixaC[0], faixaC[1]), { tirarArtigo: true });
+      if (contato) {
+        return {
+          intencao: "mudar_etapa",
+          contato,
+          etapa: mapearEtapa(ctx.norm.slice(faixaE[0], faixaE[1])),
+        };
+      }
+    }
+  }
+  const contato = extrairCampo(ctx.original, ctx.norm, RE_ETAPA_AVANCAR, "c", CORTES_ETAPA_AVANCAR, {
+    tirarArtigo: true,
+  });
+  if (contato) return { intencao: "mudar_etapa", contato, etapa: "proxima" };
+  return null;
+}
+
+const RE_GANHO_FECHAR =
+  /\bfech(?:ei|amos|ou)\b\s*(?:o\s+negocio\s+|a\s+venda\s+|negocio\s+)?(?:com\s+)?(?:d[aoe]s?\s+)?(?<c>.+)$/d;
+const RE_GANHO_VENDER =
+  /\b(?:ganh(?:ei|amos|ou)|vend(?:i|emos|eu))\b\s*(?:(?:o|a)\s+)?(?:(?:negocio|negociacao|venda|imovel|apartamento|casa|apto)\s+)?(?:d[aoe]s?\s+)?(?:(?:para|pra|com)\s+)?(?<c>.+)$/d;
+const RE_GANHO_VENDA =
+  /\bvenda\s+(?:foi\s+)?(?:concluida|fechada|realizada|feita|ganha)\s+(?:com\s+)?(?<c>.+)$/d;
+const RE_PERDA_VERBO =
+  /\bperd(?:i|emos|eu)\b\s*(?:(?:o|a)\s+)?(?:(?:negocio|negociacao|venda|cliente)\s+)?(?:d[aoe]s?\s+)?(?:(?:para|pra|com)\s+)?(?<c>.+)$/d;
+const RE_PERDA_SUJEITO =
+  /^\s*(?:(?:o|a)\s+)?(?:cliente\s+)?(?<c>\S+(?:\s+\S+){0,2}?)\s+(?:desistiu|cancelou|recuou|nao\s+quis(?:\s+mais)?)\b/d;
+const CORTES_RESULTADO: readonly RegExp[] = [
+  ...CORTES_TEMPO,
+  ...CORTES_PONTUACAO,
+  /\bpor\b/,
+  /\br\$/,
+  /\d/,
+];
+
+function interpretarResultado(ctx: Contexto): ComandoInterpretado | null {
+  if (RE_CONTEXTO_LEMBRETE.test(ctx.norm)) return null;
+  const pares: readonly [RegExp, "ganho" | "perdido"][] = [
+    [RE_GANHO_FECHAR, "ganho"],
+    [RE_GANHO_VENDER, "ganho"],
+    [RE_GANHO_VENDA, "ganho"],
+    [RE_PERDA_VERBO, "perdido"],
+    [RE_PERDA_SUJEITO, "perdido"],
+  ];
+  for (const [re, resultado] of pares) {
+    const contato = extrairCampo(ctx.original, ctx.norm, re, "c", CORTES_RESULTADO, {
+      tirarArtigo: true,
+    });
+    if (!contato) continue;
+    const valor = extrairValorMonetario(ctx.original);
+    return {
+      intencao: "marcar_resultado",
+      contato,
+      resultado,
+      ...(valor !== null ? { valor } : {}),
+    };
+  }
+  return null;
+}
+
+const RE_VALOR_VERBO =
+  /\b(?:mud|atualiz|alter|corrig|ajust|troc|arrum|coloc)\w*\s+o\s+valor\s+(?:d[aoe]s?\s+(?:negocio|negociacao|proposta|venda)\s+)?(?:d[aoe]s?\s+)?(?<c>.+)$/d;
+const RE_VALOR_AGORA =
+  /\b(?:o\s+)?negocio\s+d[aoe]s?\s+(?<c>.+?)\s+(?:agora\s+(?:e|eh|esta(?:\s+em)?|vale|custa)|(?:esta(?:\s+em)?|vale|custa)(?:\s+agora)?|passou\s+a\s+valer|subiu\s+para|caiu\s+para)\s+(?:de\s+|por\s+|em\s+)?(?=\S)/d;
+const CORTES_VALOR: readonly RegExp[] = [
+  ...CORTES_PONTUACAO,
+  /\bpara\b/,
+  /\bpra\b/,
+  /\bem\b/,
+  /\bagora\b/,
+  /\br\$/,
+  /\d/,
+];
+
+function interpretarAtualizarValor(ctx: Contexto): ComandoInterpretado | null {
+  if (RE_CONTEXTO_LEMBRETE.test(ctx.norm)) return null;
+  for (const re of [RE_VALOR_VERBO, RE_VALOR_AGORA]) {
+    const contato = extrairCampo(ctx.original, ctx.norm, re, "c", CORTES_VALOR, {
+      tirarArtigo: true,
+    });
+    if (!contato) continue;
+    const valor = extrairValorMonetario(ctx.original);
+    if (valor === null) continue;
+    return { intencao: "atualizar_valor", contato, valor };
+  }
+  return null;
+}
+
+// --- atualizar_contato_info ---------------------------------------------------
+
+const RE_INFO_FONE_CONTATO =
+  /\b(?:telefone|celular|whatsapp|zap|numero)\s+(?:d[aoe]s?\s+)?(?<c>.+)$/d;
+const RE_INFO_EMAIL_CONTATO = /\be-?mail\s+(?:d[aoe]s?\s+)?(?<c>.+)$/d;
+const CORTES_INFO: readonly RegExp[] = [
+  /\b(?:e|eh|mudou|agora|passou|virou|sera)\b/,
+  /[:;,=]/,
+  /[\d(+@]/,
+];
+const RE_FONE = /(?:\+?55[\s.-]*)?(?:\(?\d{2}\)?[\s.-]*)?\d{4,5}[\s.-]?\d{4}\b/;
+const RE_EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+
+function interpretarContatoInfo(ctx: Contexto): ComandoInterpretado | null {
+  if (RE_CONTEXTO_LEMBRETE.test(ctx.norm)) return null;
+  const mencionaFone = /\b(?:telefone|celular|whatsapp|zap|numero)\b/.test(ctx.norm);
+  const mencionaEmail = /\be-?mail\b/.test(ctx.norm);
+  if (!mencionaFone && !mencionaEmail) return null;
+
+  let telefone: string | undefined;
+  if (mencionaFone) {
+    const m = RE_FONE.exec(ctx.norm);
+    if (m) {
+      const digitos = m[0].replace(/\D/g, "");
+      if (digitos.length >= 8 && digitos.length <= 13) telefone = digitos;
+    }
+  }
+  const email = mencionaEmail ? RE_EMAIL.exec(ctx.original)?.[0] : undefined;
+  if (telefone === undefined && email === undefined) return null;
+
+  const contato =
+    (mencionaFone
+      ? extrairCampo(ctx.original, ctx.norm, RE_INFO_FONE_CONTATO, "c", CORTES_INFO, {
+          tirarArtigo: true,
+        })
+      : undefined) ??
+    (mencionaEmail
+      ? extrairCampo(ctx.original, ctx.norm, RE_INFO_EMAIL_CONTATO, "c", CORTES_INFO, {
+          tirarArtigo: true,
+        })
+      : undefined);
+  if (!contato) return null;
+
+  return {
+    intencao: "atualizar_contato_info",
+    contato,
+    ...(telefone !== undefined ? { telefone } : {}),
+    ...(email !== undefined ? { email } : {}),
+  };
+}
+
+// --- concluir_tarefa -----------------------------------------------------------
+
+const RE_CONCLUIR_MARCA_ANTES =
+  /\bmarc\w*\s+(?:a\s+)?tarefa\s+(?:de\s+)?(?<t>.+?)\s+como\s+(?:feit[ao]|concluid[ao]|pront[ao])\b/d;
+const RE_CONCLUIR_MARCA_DEPOIS =
+  /\bmarc\w*\s+como\s+(?:feit[ao]|concluid[ao]|pront[ao])\s+(?:a\s+)?(?:tarefa\s+)?(?:de\s+)?(?<t>.+)$/d;
+const RE_CONCLUIR_VERBO =
+  /\b(?:conclu\w+|termin\w+|finaliz\w+|encerr\w+|acabei|ja\s+fiz|fiz)\s+(?:com\s+)?(?:a\s+|essa\s+|aquela\s+|uma\s+)?tarefa\s*[:,-]?\s*(?<t>.+)$/d;
+const RE_CONCLUIR_SUJEITO =
+  /\btarefa\s+d[aoe]s?\s+(?<c>.+?)\s+(?:foi\s+|esta\s+)?(?:concluida|feita|finalizada|encerrada|pronta|resolvida|ok)\b/d;
+const CORTES_CONCLUIR: readonly RegExp[] = [
+  ...CORTES_TEMPO,
+  ...CORTES_PONTUACAO,
+  /\bno\s+negocio\b/,
+];
+
+function interpretarConcluirTarefa(ctx: Contexto): ComandoInterpretado | null {
+  if (RE_CONTEXTO_LEMBRETE.test(ctx.norm)) return null;
+  for (const re of [RE_CONCLUIR_MARCA_ANTES, RE_CONCLUIR_MARCA_DEPOIS, RE_CONCLUIR_VERBO]) {
+    const m = re.exec(ctx.norm);
+    const faixaT = m?.indices?.groups?.["t"];
+    if (!faixaT) continue;
+    let [ini, fim] = faixaT;
+    let trechoNorm = ctx.norm.slice(ini, fim);
+
+    // "conclui a tarefa DA Patricia" ⇒ só contato (não há título).
+    const mPosse = /^d[ao]s?\s+/.exec(trechoNorm);
+    if (mPosse) {
+      const posIni = ini + mPosse[0].length;
+      const corte = cortar(ctx.norm.slice(posIni, fim), CORTES_CONCLUIR);
+      const contato = polir(ctx.original.slice(posIni, posIni + corte), { tirarArtigo: true });
+      if (contato) return { intencao: "concluir_tarefa", contato };
+      continue;
+    }
+
+    // "tarefa DE ligar…" ⇒ o "de" é conector, não faz parte do título.
+    const mDe = /^de\s+/.exec(trechoNorm);
+    if (mDe) {
+      ini += mDe[0].length;
+      trechoNorm = trechoNorm.slice(mDe[0].length);
+    }
+    const corte = cortar(trechoNorm, CORTES_CONCLUIR);
+    const titulo = polir(ctx.original.slice(ini, ini + corte));
+    if (!titulo) continue;
+
+    const contato =
+      extrairCampo(ctx.original, ctx.norm, RE_TAREFA_CONTATO_NEGOCIO, "c", [
+        ...CORTES_TEMPO,
+        ...CORTES_PONTUACAO,
+        /\bcomo\b/,
+      ], { tirarArtigo: true }) ??
+      extrairCampo(ctx.original, ctx.norm, RE_TAREFA_CONTATO_LIGAR, "c", [
+        ...CORTES_TEMPO,
+        ...CORTES_PONTUACAO,
+        /\bno\s+negocio\b/,
+        /\bcomo\b/,
+      ], { tirarArtigo: true });
+
+    return {
+      intencao: "concluir_tarefa",
+      titulo,
+      ...(contato !== undefined ? { contato } : {}),
+    };
+  }
+
+  const mSujeito = RE_CONCLUIR_SUJEITO.exec(ctx.norm);
+  const faixaC = mSujeito?.indices?.groups?.["c"];
+  if (faixaC) {
+    const contato = polir(ctx.original.slice(faixaC[0], faixaC[1]), { tirarArtigo: true });
+    if (contato) return { intencao: "concluir_tarefa", contato };
+  }
+  return null;
+}
+
 // --- criar_lembrete ----------------------------------------------------------
 
 const RES_LEMBRETE: readonly RegExp[] = [
@@ -585,12 +856,20 @@ export function interpretarComando(texto: string, agoraISO: string): ComandoInte
   };
   // Ordem importa: âncoras mais específicas primeiro (ex.: "criar tarefa ...
   // no negócio da X" precisa vencer o padrão de negócio; "me lembra de marcar
-  // visita" precisa vencer o de evento).
+  // visita" precisa vencer o de evento; "tarefa da Patricia concluída" precisa
+  // vencer "tarefa: …"; "vendi o negócio para o Carlos" precisa vencer o de
+  // criar negócio; "anota o email do Carlos: …" NÃO é nota porque nota exige
+  // "no negócio/ficha/cliente…" — por isso contato_info pode vir depois.
   return (
     interpretarNota(ctx) ??
+    interpretarConcluirTarefa(ctx) ??
     interpretarTarefa(ctx) ??
+    interpretarMudarEtapa(ctx) ??
+    interpretarResultado(ctx) ??
+    interpretarAtualizarValor(ctx) ??
     interpretarNegocio(ctx) ??
     interpretarLembrete(ctx) ??
+    interpretarContatoInfo(ctx) ??
     interpretarEvento(ctx) ??
     interpretarAvisos(ctx) ??
     interpretarAgenda(ctx) ??
@@ -609,14 +888,14 @@ const MESES_CURTOS = [
 ] as const;
 
 /** "2026-07-04" ⇒ "sáb, 4 de jul". */
-function formatarDiaCurto(dataISO: string): string {
+export function formatarDiaCurto(dataISO: string): string {
   const { ano, mes, dia } = parseInstante(dataISO);
   const semana = DIAS_CURTOS[diaDaSemana(ano, mes, dia)] ?? "";
   return `${semana}, ${dia} de ${MESES_CURTOS[mes - 1] ?? ""}`;
 }
 
 /** "2026-07-04T15:30:00-03:00" ⇒ "sáb, 4 de jul às 15h30". */
-function formatarInstanteCurto(inicioISO: string): string {
+export function formatarInstanteCurto(inicioISO: string): string {
   const { ano, mes, dia, hora, minuto } = parseInstante(inicioISO);
   const hm = minuto === 0 ? `${hora}h` : `${hora}h${pad2(minuto)}`;
   return `${formatarDiaCurto(paraDataISO(ano, mes, dia))} às ${hm}`;
@@ -624,6 +903,25 @@ function formatarInstanteCurto(inicioISO: string): string {
 
 function minusculaInicial(s: string): string {
   return s.charAt(0).toLowerCase() + s.slice(1);
+}
+
+const ROTULO_ETAPA: Record<EtapaNegocioAssistente, string> = {
+  novo: "Novo",
+  contato: "Contato",
+  visita: "Visita",
+  proposta: "Proposta",
+  fechamento: "Fechamento",
+};
+
+/** "11988887777" ⇒ "(11) 98888-7777" (deixa como está se não for 10/11 dígitos). */
+export function formatarFone(digitos: string): string {
+  if (digitos.length === 11) {
+    return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 7)}-${digitos.slice(7)}`;
+  }
+  if (digitos.length === 10) {
+    return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 6)}-${digitos.slice(6)}`;
+  }
+  return digitos;
 }
 
 /** Frase curta em pt-BR para a UI confirmar o comando antes de executar. */
@@ -652,6 +950,30 @@ export function descreverComando(cmd: ComandoInterpretado): string {
       );
     case "registrar_nota":
       return `Anotar no negócio de ${cmd.contato}: "${cmd.nota}"`;
+    case "mudar_etapa":
+      return cmd.etapa === "proxima"
+        ? `Avançar o negócio de ${cmd.contato} para a próxima etapa`
+        : `Mover o negócio de ${cmd.contato} para a etapa ${ROTULO_ETAPA[cmd.etapa]}`;
+    case "marcar_resultado":
+      return (
+        `Marcar o negócio de ${cmd.contato} como ${cmd.resultado}` +
+        (cmd.valor !== undefined ? ` por ${formatarReais(cmd.valor)}` : "")
+      );
+    case "atualizar_valor":
+      return `Atualizar o valor do negócio de ${cmd.contato} para ${formatarReais(cmd.valor)}`;
+    case "atualizar_contato_info": {
+      const partes = [
+        ...(cmd.telefone !== undefined ? [`telefone ${formatarFone(cmd.telefone)}`] : []),
+        ...(cmd.email !== undefined ? [`email ${cmd.email}`] : []),
+      ];
+      return `Atualizar contato de ${cmd.contato}: ${partes.join(" e ")}`;
+    }
+    case "concluir_tarefa":
+      return (
+        "Concluir tarefa" +
+        (cmd.titulo !== undefined ? ` "${cmd.titulo}"` : "") +
+        (cmd.contato !== undefined ? ` (negócio de ${cmd.contato})` : "")
+      );
     case "consultar_avisos":
       return "Mostrar avisos e prioridades";
     case "ajuda":

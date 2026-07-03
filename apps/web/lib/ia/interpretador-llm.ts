@@ -82,6 +82,33 @@ const SCHEMA_COMANDO = z.discriminatedUnion("intencao", [
     contato: z.string(),
     nota: z.string(),
   }),
+  z.object({
+    intencao: z.literal("mudar_etapa"),
+    contato: z.string(),
+    etapa: z.enum(["novo", "contato", "visita", "proposta", "fechamento", "proxima"]),
+  }),
+  z.object({
+    intencao: z.literal("marcar_resultado"),
+    contato: z.string(),
+    resultado: z.enum(["ganho", "perdido"]),
+    valor: opcional(z.number().describe("Valor em CENTAVOS de real (inteiro)")),
+  }),
+  z.object({
+    intencao: z.literal("atualizar_valor"),
+    contato: z.string(),
+    valor: z.number().describe("Valor em CENTAVOS de real (inteiro)"),
+  }),
+  z.object({
+    intencao: z.literal("atualizar_contato_info"),
+    contato: z.string(),
+    telefone: opcional(z.string().describe("Só dígitos, ex.: 11988887777")),
+    email: opcional(z.string()),
+  }),
+  z.object({
+    intencao: z.literal("concluir_tarefa"),
+    contato: opcional(z.string()),
+    titulo: opcional(z.string()),
+  }),
   z.object({ intencao: z.literal("consultar_avisos") }),
   z.object({ intencao: z.literal("ajuda"), motivo: opcional(z.string()) }),
 ]);
@@ -168,6 +195,58 @@ function normalizar(saida: SaidaLlm): ComandoInterpretado | null {
       return contato && nota ? { intencao: "registrar_nota", contato, nota } : null;
     }
 
+    case "mudar_etapa": {
+      const contato = texto(saida.contato);
+      return contato ? { intencao: "mudar_etapa", contato, etapa: saida.etapa } : null;
+    }
+
+    case "marcar_resultado": {
+      const contato = texto(saida.contato);
+      if (!contato) return null;
+      const valor = saida.valor ?? undefined;
+      if (valor !== undefined && (!Number.isInteger(valor) || valor < 0)) return null;
+      return {
+        intencao: "marcar_resultado",
+        contato,
+        resultado: saida.resultado,
+        ...(valor !== undefined ? { valor } : {}),
+      };
+    }
+
+    case "atualizar_valor": {
+      const contato = texto(saida.contato);
+      if (!contato || !Number.isInteger(saida.valor) || saida.valor < 0) return null;
+      return { intencao: "atualizar_valor", contato, valor: saida.valor };
+    }
+
+    case "atualizar_contato_info": {
+      const contato = texto(saida.contato);
+      if (!contato) return null;
+      // Telefone SÓ dígitos (mesma normalização do motor); fora de 8–13 ⇒ fora.
+      const digitos = texto(saida.telefone)?.replace(/\D/g, "");
+      const telefone = digitos && digitos.length >= 8 && digitos.length <= 13 ? digitos : undefined;
+      const emailBruto = texto(saida.email);
+      const email = emailBruto && /^\S+@\S+\.\S+$/.test(emailBruto) ? emailBruto : undefined;
+      if (telefone === undefined && email === undefined) return null;
+      return {
+        intencao: "atualizar_contato_info",
+        contato,
+        ...(telefone !== undefined ? { telefone } : {}),
+        ...(email !== undefined ? { email } : {}),
+      };
+    }
+
+    case "concluir_tarefa": {
+      const contato = texto(saida.contato);
+      const titulo = texto(saida.titulo);
+      if (contato === undefined && titulo === undefined) return null;
+      return {
+        intencao: "concluir_tarefa",
+        ...(contato !== undefined ? { contato } : {}),
+        ...(titulo !== undefined ? { titulo } : {}),
+      };
+    }
+
     case "consultar_avisos":
       return { intencao: "consultar_avisos" };
 
@@ -224,10 +303,16 @@ function montarSystem(agoraISO: string): string {
     '{"intencao":"criar_tarefa","titulo":string,"contato"?:string,"venceEm"?:"YYYY-MM-DD"}',
     '{"intencao":"criar_negocio","contato":string,"valor"?:number,"origem"?:string}',
     '{"intencao":"registrar_nota","contato":string,"nota":string}',
+    '{"intencao":"mudar_etapa","contato":string,"etapa":"novo"|"contato"|"visita"|"proposta"|"fechamento"|"proxima"}',
+    '{"intencao":"marcar_resultado","contato":string,"resultado":"ganho"|"perdido","valor"?:number}',
+    '{"intencao":"atualizar_valor","contato":string,"valor":number}',
+    '{"intencao":"atualizar_contato_info","contato":string,"telefone"?:string,"email"?:string}',
+    '{"intencao":"concluir_tarefa","contato"?:string,"titulo"?:string}',
     '{"intencao":"consultar_avisos"}',
     '{"intencao":"ajuda","motivo"?:string}',
     "Regras rígidas:",
     "- Datas relativas (amanhã, sexta, dia 10) SEMPRE resolvem para o FUTURO, no formato YYYY-MM-DD; instantes em ISO com o mesmo offset do agora.",
+    '- Funil: mover/avançar negócio de etapa = mudar_etapa ("avança" sem etapa dita = "proxima"); fechar/vender = marcar_resultado ganho; perder/cliente desistiu = marcar_resultado perdido.',
     "- Evento/lembrete sem hora explícita: use 09:00.",
     "- Valores monetários SEMPRE em CENTAVOS de real, inteiro (ex.: 850 mil reais = 85000000).",
     '- "origem" é o CANAL do lead (ex.: indicação, Instagram, portal); NUNCA o imóvel — omita se o pedido não citar o canal.',
