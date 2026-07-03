@@ -815,6 +815,93 @@ export type Database = {
           },
         ]
       }
+      newsletter_edicoes: {
+        Row: {
+          assunto: string
+          atualizado_em: string
+          autor_id: string | null
+          criado_em: string
+          enviada_em: string | null
+          id: string
+          imovel_ids: string[]
+          introducao: string | null
+          org_id: string | null
+          status: string
+          titulo: string
+        }
+        Insert: {
+          assunto: string
+          atualizado_em?: string
+          autor_id?: string | null
+          criado_em?: string
+          enviada_em?: string | null
+          id?: string
+          imovel_ids?: string[]
+          introducao?: string | null
+          org_id?: string | null
+          status?: string
+          titulo: string
+        }
+        Update: {
+          assunto?: string
+          atualizado_em?: string
+          autor_id?: string | null
+          criado_em?: string
+          enviada_em?: string | null
+          id?: string
+          imovel_ids?: string[]
+          introducao?: string | null
+          org_id?: string | null
+          status?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_edicoes_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_edicoes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newsletter_inscricoes: {
+        Row: {
+          cancelado_em: string | null
+          consentiu_em: string
+          criado_em: string
+          email: string
+          id: string
+          nome: string | null
+          origem: string
+        }
+        Insert: {
+          cancelado_em?: string | null
+          consentiu_em?: string
+          criado_em?: string
+          email: string
+          id?: string
+          nome?: string | null
+          origem?: string
+        }
+        Update: {
+          cancelado_em?: string | null
+          consentiu_em?: string
+          criado_em?: string
+          email?: string
+          id?: string
+          nome?: string | null
+          origem?: string
+        }
+        Relationships: []
+      }
       organizacoes: {
         Row: {
           assentos: number
@@ -1161,7 +1248,7 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      newsletter_total_inscritos: { Args: never; Returns: number }
     }
     Enums: {
       [_ in never]: never

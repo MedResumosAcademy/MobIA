@@ -22,6 +22,8 @@ import {
   XCircle,
   Target,
   CheckCircle2,
+  Mail,
+  ArrowRight,
 } from "lucide-react";
 import { formatarReais } from "@imobia/core";
 import { ETAPAS_NEGOCIO, type EtapaNegocio, type Temperatura } from "@imobia/domain";
@@ -32,6 +34,7 @@ import {
   listarMetasComProgresso,
   type MetaComProgresso,
 } from "@/lib/dados/metas";
+import { totalInscritos } from "@/lib/dados/newsletter";
 import { EditorMetas } from "./EditorMetas";
 
 export const metadata: Metadata = { title: "Dashboard gerencial — ImobIA" };
@@ -113,10 +116,11 @@ export default async function PaginaEquipe() {
     redirect("/corretor?aviso=area-restrita-gestor");
   }
 
-  const [dashboard, nomeOrg, metas] = await Promise.all([
+  const [dashboard, nomeOrg, metas, inscritosNewsletter] = await Promise.all([
     dashboardGerencial("org"),
     obterNomeOrg(),
     listarMetasComProgresso("org"),
+    totalInscritos(),
   ]);
   const { metricas, tarefas, leadsPorTemperatura } = dashboard;
   const leadsTotal =
@@ -195,6 +199,33 @@ export default async function PaginaEquipe() {
               leadsPorTemperatura={leadsPorTemperatura}
               total={leadsTotal}
             />
+          </div>
+        </section>
+
+        {/* Newsletter (ESCOPO §V2, item 16) — atalho para a central de edições */}
+        <section className="mt-10">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface-card p-6 shadow-[var(--shadow-soft)]">
+            <div className="flex items-center gap-4">
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                <Mail className="h-5 w-5" aria-hidden />
+              </span>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Newsletter</h2>
+                <p className="text-sm text-muted">
+                  <span className="font-semibold tabular-nums text-foreground">
+                    {inscritosNewsletter}
+                  </span>{" "}
+                  inscrito(s) ativo(s) — crie edições com os imóveis da sua carteira.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/corretor/newsletter"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border-strong bg-surface-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-brand/40 hover:bg-surface"
+            >
+              Gerenciar
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
           </div>
         </section>
 

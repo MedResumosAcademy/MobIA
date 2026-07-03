@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import { Search } from "lucide-react";
+import { NewsletterCaptura } from "@/components/NewsletterCaptura";
 import { sair } from "@/lib/auth/acoes";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import "./globals.css";
@@ -157,7 +158,7 @@ export default async function RootLayout({
         <footer className="border-t border-border bg-surface">
           {/* Filete dourado editorial no topo do rodapé */}
           <div className="h-px w-full bg-gold/60" aria-hidden="true" />
-          <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr]">
+          <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-10 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-[1.3fr_0.9fr_0.9fr_1.4fr]">
             <div className="max-w-sm">
               <p className="text-xl font-semibold text-foreground">
                 <Wordmark />
@@ -213,6 +214,17 @@ export default async function RootLayout({
                 </Link>
               )}
             </nav>
+
+            {/* Captura pública da newsletter (LGPD: consentimento explícito). */}
+            <section aria-label="Novidades" className="flex flex-col gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-subtle">
+                Novidades
+              </p>
+              <p className="text-sm text-muted">
+                As melhores oportunidades de imóveis, direto no seu e-mail.
+              </p>
+              <NewsletterCaptura compacto />
+            </section>
           </div>
           <div className="border-t border-border">
             <p className="mx-auto w-full max-w-7xl px-4 py-5 text-xs text-subtle sm:px-6">

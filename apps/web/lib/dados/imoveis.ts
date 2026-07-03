@@ -393,12 +393,32 @@ export async function obterImovel(id: string): Promise<ImovelDetalhe | null> {
 
 // --- Leitura da org (corretor logado) ---
 
-/** Carteira da própria org — todos os status. RLS cuida do escopo. */
+/**
+ * org_id do perfil logado — null quando não logado ou sem org. Necessário
+ * porque a RLS SOZINHA não escopa a leitura por org: a policy do catálogo
+ * público deixa QUALQUER autenticado ver 'disponivel' de todas as orgs.
+ */
+async function orgDoUsuario(): Promise<string | null> {
+  const sessao = await obterSessao();
+  if (!sessao) {
+    return null;
+  }
+  const perfil = await obterPerfil(sessao.usuarioId);
+  return perfil?.orgId ?? null;
+}
+
+/** Carteira da própria org — todos os status. Filtro EXPLÍCITO por org_id
+ *  (a RLS do catálogo exporia 'disponivel' de outras orgs); sem org ⇒ []. */
 export async function listarImoveisDaOrg(): Promise<ImovelDetalhe[]> {
+  const orgId = await orgDoUsuario();
+  if (!orgId) {
+    return [];
+  }
   const supabase = await criarClienteServidor();
   const { data, error } = await supabase
     .from("imoveis")
     .select("*")
+    .eq("org_id", orgId)
     .order("criado_em", { ascending: false });
   if (error) {
     throw new Error(`listarImoveisDaOrg: ${error.message}`);
@@ -407,13 +427,20 @@ export async function listarImoveisDaOrg(): Promise<ImovelDetalhe[]> {
 }
 
 /**
- * Agrega os imóveis da própria org por UF — TODOS os status (RLS server-side).
- * Uso interno futuro (dashboards). Mesma forma de saída de agregarImoveisPorUf,
- * incluindo o total geral sob uf="__total".
+ * Agrega os imóveis da própria org por UF — TODOS os status, filtro explícito
+ * por org_id (sem org ⇒ []). Uso interno futuro (dashboards). Mesma forma de
+ * saída de agregarImoveisPorUf, incluindo o total geral sob uf="__total".
  */
 export async function agregarImoveisDaOrgPorUf(): Promise<AgregadoUf[]> {
+  const orgId = await orgDoUsuario();
+  if (!orgId) {
+    return [];
+  }
   const supabase = await criarClienteServidor();
-  const { data, error } = await supabase.from("imoveis").select("uf, cidade, valor");
+  const { data, error } = await supabase
+    .from("imoveis")
+    .select("uf, cidade, valor")
+    .eq("org_id", orgId);
   if (error) {
     throw new Error(`agregarImoveisDaOrgPorUf: ${error.message}`);
   }
@@ -459,18 +486,24 @@ export async function agregarImoveisDaOrgPorUf(): Promise<AgregadoUf[]> {
 }
 
 /**
- * Imóvel + unidades da própria org — TODOS os status (RLS server-side).
- * Gêmeo org-scoped de obterImovel (público, só status='disponivel'): use este
- * quando a origem já é a lista autorizada da org (ex.: Coringa), para que um
- * imóvel reservado/vendido visível no SELECT não falhe na ação. Retorna null se
- * fora do escopo (RLS) ou inexistente.
+ * Imóvel + unidades da própria org — TODOS os status, filtro explícito por
+ * org_id (id vem do cliente; sem o filtro, 'disponivel' de outra org passaria
+ * pela policy pública). Gêmeo org-scoped de obterImovel: use este quando a
+ * origem já é a lista autorizada da org (ex.: Coringa), para que um imóvel
+ * reservado/vendido visível no SELECT não falhe na ação. Retorna null se
+ * fora do escopo (org/RLS) ou inexistente.
  */
 export async function obterImovelDaOrg(id: string): Promise<ImovelDetalhe | null> {
+  const orgId = await orgDoUsuario();
+  if (!orgId) {
+    return null;
+  }
   const supabase = await criarClienteServidor();
   const { data: imovel, error } = await supabase
     .from("imoveis")
     .select("*")
     .eq("id", id)
+    .eq("org_id", orgId)
     .maybeSingle();
   if (error || !imovel) {
     return null;

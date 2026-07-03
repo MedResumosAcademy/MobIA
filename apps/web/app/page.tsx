@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { CardImovel } from "@/components/card-imovel";
+import { NewsletterCaptura } from "@/components/NewsletterCaptura";
 import { classesBotao } from "@/components/ui/Botao";
 import { idsFavoritos } from "@/lib/dados/favoritos";
 import { listarImoveis } from "@/lib/dados/imoveis";
@@ -231,6 +232,28 @@ export default async function Home() {
                 Descubra quanto pode comprar
               </Link>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* NEWSLETTER — captura pública antes do rodapé (consentimento LGPD). */}
+      <section aria-label="Newsletter ImobIA" className="border-t border-border bg-surface">
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-6 py-16 sm:py-20 lg:grid-cols-[1.1fr_1fr]">
+          <div className="flex flex-col gap-3">
+            <span className="inline-flex items-center gap-2 text-[0.8rem] font-medium uppercase tracking-[0.14em] text-gold-strong">
+              <span aria-hidden className="h-px w-6 bg-gold/60" />
+              Newsletter ImobIA
+            </span>
+            <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
+              Receba as melhores oportunidades
+            </h2>
+            <p className="max-w-md text-base leading-7 text-muted">
+              Uma curadoria de imóveis e novidades do mercado, direto no seu
+              e-mail — sem spam, cancele quando quiser.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface-card p-6 shadow-[var(--shadow-soft)] sm:p-8">
+            <NewsletterCaptura />
           </div>
         </div>
       </section>

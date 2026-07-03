@@ -22,4 +22,5 @@ export * from "./perfil";
 export * from "./comunidade";
 export * from "./onboarding";
 export * from "./agenda";
+export * from "./newsletter";
 export type { Database, Json } from "./database.types";
