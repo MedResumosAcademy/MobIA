@@ -53,7 +53,6 @@ export function Botao({
   ...props
 }: Props) {
   return (
-    // eslint-disable-next-line react/button-has-type
     <button type={type} className={classesBotao(variante, tamanho, className)} {...props} />
   );
 }

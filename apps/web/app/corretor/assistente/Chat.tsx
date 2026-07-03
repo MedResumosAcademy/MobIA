@@ -147,6 +147,41 @@ function montarFala(...pedacos: string[]): string {
 /** Chave do localStorage da dica de primeira vez do mic. */
 const CHAVE_DICA_MIC = "imobia:dica-mic-vista";
 
+// Dica de primeira vez do mic — estado EXTERNO (localStorage) lido via
+// useSyncExternalStore (sem setState em efeito). No servidor assume "vista"
+// (sem dica) e o client corrige na hidratação. Se o localStorage falhar
+// (modo privado), o flag de sessão faz a dica sumir mesmo assim.
+const ouvintesDicaMic = new Set<() => void>();
+let dicaMicVistaNaSessao = false;
+
+function dicaMicVista(): boolean {
+  if (dicaMicVistaNaSessao) {
+    return true;
+  }
+  try {
+    return window.localStorage.getItem(CHAVE_DICA_MIC) !== null;
+  } catch {
+    return true; // sem localStorage não insistimos na dica
+  }
+}
+
+function persistirDicaMicVista() {
+  dicaMicVistaNaSessao = true;
+  try {
+    window.localStorage.setItem(CHAVE_DICA_MIC, "1");
+  } catch {
+    // sem localStorage a dica some só nesta sessão — sem problema.
+  }
+  ouvintesDicaMic.forEach((avisar) => avisar());
+}
+
+function assinarDicaMic(avisar: () => void) {
+  ouvintesDicaMic.add(avisar);
+  return () => {
+    ouvintesDicaMic.delete(avisar);
+  };
+}
+
 // O suporte do navegador não muda durante a sessão — useSyncExternalStore com
 // assinatura vazia lê o valor real no client e um chute otimista no servidor
 // (mesmo markup da hidratação), sem setState em efeito.
@@ -222,8 +257,9 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
   );
   const [pendente, iniciar] = useTransition();
 
-  // Dica de primeira vez do mic — lida do localStorage só no client (efeito).
-  const [mostrarDica, setMostrarDica] = useState(false);
+  // Dica de primeira vez do mic — estado externo (localStorage) sem efeito.
+  const dicaVista = useSyncExternalStore(assinarDicaMic, dicaMicVista, () => true);
+  const mostrarDica = !dicaVista;
 
   const proximoId = useRef(1);
   const reconhecimento = useRef<ReconhecimentoVoz | null>(null);
@@ -263,20 +299,6 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
       }
     };
   }, []);
-
-  // Mostra a dica do mic só na primeira vez (persistida no localStorage).
-  useEffect(() => {
-    if (modoVoz === "nenhum") {
-      return;
-    }
-    try {
-      if (window.localStorage.getItem(CHAVE_DICA_MIC) === null) {
-        setMostrarDica(true);
-      }
-    } catch {
-      // localStorage indisponível (modo privado etc.) — segue sem dica.
-    }
-  }, [modoVoz]);
 
   // Rola para a última mensagem a cada novidade.
   useEffect(() => {
@@ -336,12 +358,7 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
     if (!mostrarDica) {
       return;
     }
-    setMostrarDica(false);
-    try {
-      window.localStorage.setItem(CHAVE_DICA_MIC, "1");
-    } catch {
-      // sem localStorage a dica só some nesta sessão — sem problema.
-    }
+    persistirDicaMicVista();
   }
 
   // —— Voz nível 1: gravar áudio e transcrever no servidor (Groq Whisper) ——

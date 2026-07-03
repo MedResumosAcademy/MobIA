@@ -131,6 +131,7 @@ export default async function Home() {
           entrada escalonada, cards flutuantes e prova social na base. */}
       <section className="relative flex min-h-[85vh] flex-col overflow-hidden bg-foreground">
         {/* Foto de fundo (LCP) — decorativa; Ken Burns desligado em reduced-motion */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- foto remota com srcset próprio (padrão do repo) */}
         <img
           src={FOTO_HERO}
           srcSet={FOTO_HERO_SRCSET}
@@ -244,6 +245,7 @@ export default async function Home() {
                 >
                   {imovel.fotoCapa !== null && (
                     <span className="relative mb-3 block overflow-hidden rounded-xl">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- foto remota (padrão do repo) */}
                       <img
                         src={imovel.fotoCapa}
                         alt=""

@@ -47,10 +47,14 @@ export function FiltrosPipeline({
   const [busca, setBusca] = useState(buscaAtual);
   const primeiroRender = useRef(true);
 
-  // Mantém o input sincronizado se a URL mudar por fora (ex.: botão limpar).
-  useEffect(() => {
+  // Mantém o input sincronizado se a URL mudar por fora (ex.: botão limpar) —
+  // ajuste DURANTE o render comparando o valor anterior (padrão do React;
+  // setState em efeito dispara render em cascata).
+  const [buscaDaUrlAnterior, setBuscaDaUrlAnterior] = useState(buscaAtual);
+  if (buscaDaUrlAnterior !== buscaAtual) {
+    setBuscaDaUrlAnterior(buscaAtual);
     setBusca(buscaAtual);
-  }, [buscaAtual]);
+  }
 
   function navegarCom(mut: (p: URLSearchParams) => void) {
     const p = new URLSearchParams(params.toString());

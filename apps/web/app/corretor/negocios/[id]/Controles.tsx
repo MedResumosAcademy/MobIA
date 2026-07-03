@@ -49,10 +49,13 @@ export function ControlesNegocio({ id, etapaAtual, fechado }: Props) {
   const [etapaLocal, setEtapaLocal] = useState<EtapaNegocio | null>(null);
   const timerEtapa = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Quando a etapa do servidor muda (após refresh), o valor local se dissolve.
-  useEffect(() => {
+  // Quando a etapa do servidor muda (após refresh), o valor local se dissolve —
+  // ajuste DURANTE o render (padrão do React; sem setState em efeito).
+  const [etapaServidorAnterior, setEtapaServidorAnterior] = useState(etapaAtual);
+  if (etapaServidorAnterior !== etapaAtual) {
+    setEtapaServidorAnterior(etapaAtual);
     setEtapaLocal(null);
-  }, [etapaAtual]);
+  }
 
   useEffect(() => {
     return () => {

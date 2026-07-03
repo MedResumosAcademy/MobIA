@@ -16,6 +16,8 @@ import { registrarEvento } from "@/lib/dados/eventos";
 export async function registrarSimulacaoAction(
   imovelId: string,
   entrada: number,
+  // Reservado para o evento detalhar a modalidade simulada (assinatura estável).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _modalidade: Modalidade,
 ): Promise<void> {
   try {

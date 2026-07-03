@@ -111,7 +111,7 @@ export function PilulasCategoria(props: Props) {
             <a
               key={op.valor}
               href={props.hrefDe(op.valor)}
-              aria-pressed={ativa}
+              aria-current={ativa ? "true" : undefined}
               className={classesPilula(ativa)}
             >
               {conteudo}

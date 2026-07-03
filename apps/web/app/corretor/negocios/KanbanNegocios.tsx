@@ -64,7 +64,8 @@ export function KanbanNegocios({
         setErro(r.erro);
         // Desfaz o otimismo em caso de falha.
         setOtimista((o) => {
-          const { [id]: _, ...resto } = o;
+          const resto = { ...o };
+          delete resto[id];
           return resto;
         });
       }
@@ -176,10 +177,13 @@ function CartaoNegocio({
   const [etapaLocal, setEtapaLocal] = useState<EtapaNegocio | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Quando a etapa efetiva muda (otimismo/servidor), o valor local se dissolve.
-  useEffect(() => {
+  // Quando a etapa efetiva muda (otimismo/servidor), o valor local se dissolve —
+  // ajuste DURANTE o render (padrão do React; sem setState em efeito).
+  const [etapaEfetivaAnterior, setEtapaEfetivaAnterior] = useState(etapaEfetiva);
+  if (etapaEfetivaAnterior !== etapaEfetiva) {
+    setEtapaEfetivaAnterior(etapaEfetiva);
     setEtapaLocal(null);
-  }, [etapaEfetiva]);
+  }
 
   useEffect(() => {
     return () => {

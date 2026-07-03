@@ -82,7 +82,7 @@ export function PlanoPagamentoVisual({ plano }: { plano: PlanoPagamentoRecalcula
   return (
     <div aria-label="Linha do tempo do plano de pagamento" className="w-full">
       <ol className="flex flex-col gap-3 sm:flex-row sm:gap-0">
-        {marcos.map((marco, i) => (
+        {marcos.map((marco) => (
           <li
             key={marco.chave}
             className="relative flex flex-1 flex-col gap-2 sm:items-center sm:text-center"
