@@ -6,7 +6,8 @@
 
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { obterSessao } from "@/lib/auth/sessao";
+import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
+import { desempenhoCarteira } from "@/lib/dados/carteira";
 import { obterPerfilCorretor } from "@/lib/dados/perfil";
 import { VitrinePerfil } from "../VitrinePerfil";
 
@@ -29,10 +30,21 @@ export default async function PaginaPerfilCorretor({
     notFound();
   }
 
+  // Carteira é ferramenta de gestão: só o próprio corretor ou gestor/admin
+  // da org enxergam os números de desempenho do colega.
+  const perfilViewer = await obterPerfil(sessao.usuarioId);
+  const podeVerCarteira =
+    perfil.ehProprio ||
+    perfilViewer?.papel === "gestor" ||
+    perfilViewer?.papel === "admin";
+  const carteira = podeVerCarteira
+    ? await desempenhoCarteira(perfil.corretorId)
+    : null;
+
   return (
     <div className="flex flex-1 flex-col items-center bg-background px-6 py-16 font-sans">
       <main className="w-full max-w-5xl">
-        <VitrinePerfil perfil={perfil} />
+        <VitrinePerfil perfil={perfil} carteira={carteira} />
       </main>
     </div>
   );

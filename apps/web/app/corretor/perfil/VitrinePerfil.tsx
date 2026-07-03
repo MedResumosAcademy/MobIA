@@ -24,9 +24,18 @@ import {
   Trophy,
   Lock,
   Award,
+  Calculator,
+  Heart,
+  Plus,
+  SlidersHorizontal,
 } from "lucide-react";
 import { formatarReais } from "@imobia/core";
+import type { StatusImovel } from "@imobia/domain";
 import type { PerfilCorretor } from "@/lib/dados/perfil";
+import type {
+  DesempenhoCarteira,
+  ImovelDesempenho,
+} from "@/lib/dados/carteira";
 import { Badge } from "@/components/ui/Badge";
 import { Selo } from "@/components/ui/Selo";
 import { EditarPerfil } from "./EditarPerfil";
@@ -114,10 +123,16 @@ function soDigitos(v: string): string {
 export function VitrinePerfil({
   perfil,
   visaoPublica = false,
+  carteira = null,
 }: {
   perfil: PerfilCorretor;
   /** Renderiza a vitrine exatamente como um colega a vê (esconde ações do dono). */
   visaoPublica?: boolean;
+  /**
+   * Desempenho da carteira (ferramenta de gestão, não vitrine). As PÁGINAS
+   * decidem quem vê: null ⇒ a seção não é renderizada.
+   */
+  carteira?: DesempenhoCarteira | null;
 }) {
   const {
     nome,
@@ -445,6 +460,88 @@ export function VitrinePerfil({
         />
       </section>
 
+      {/* ————— CARTEIRA DE IMÓVEIS (gestão; só quando a página passa carteira) ————— */}
+      {carteira != null && (
+        <section className="mt-10">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">
+                Carteira de imóveis
+              </h2>
+              <p className="mt-1 text-sm text-muted tabular-nums">
+                {carteira.totais.imoveis}{" "}
+                {carteira.totais.imoveis === 1 ? "imóvel" : "imóveis"} ·{" "}
+                {carteira.totais.visualizacoes} visualizações ·{" "}
+                {carteira.totais.simulacoes} simulações ·{" "}
+                {carteira.totais.favoritos} favoritos
+              </p>
+            </div>
+            {/* CTAs de gestão levam à carteira do VIEWER — só fazem sentido no próprio perfil. */}
+            {donoAqui && (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/corretor/imoveis/novo"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-brand-contrast shadow-[var(--shadow-soft)] transition-colors hover:bg-brand-hover"
+                >
+                  <Plus className="h-4 w-4" aria-hidden />
+                  Adicionar imóvel
+                </Link>
+                <Link
+                  href="/corretor/imoveis"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-border-strong bg-surface-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-brand/40 hover:bg-surface"
+                >
+                  <SlidersHorizontal className="h-4 w-4" aria-hidden />
+                  Gerenciar
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {carteira.imoveis.length === 0 ? (
+            <div className="mt-4 flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border-strong bg-surface-card p-10 text-center">
+              <Home className="h-8 w-8 text-subtle" aria-hidden />
+              <p className="text-sm font-medium text-foreground">
+                {donoAqui
+                  ? "Você ainda não tem imóveis na carteira"
+                  : "Este corretor ainda não tem imóveis na carteira"}
+              </p>
+              <p className="text-sm text-subtle">
+                {donoAqui
+                  ? "Cadastre seu primeiro imóvel e acompanhe as interações aqui."
+                  : "Os imóveis e as interações da carteira aparecerão aqui."}
+              </p>
+              {donoAqui && (
+                <Link
+                  href="/corretor/imoveis/novo"
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-brand-contrast shadow-[var(--shadow-soft)] transition-colors hover:bg-brand-hover"
+                >
+                  <Plus className="h-4 w-4" aria-hidden />
+                  Adicionar imóvel
+                </Link>
+              )}
+            </div>
+          ) : (
+            <>
+              <p className="mt-4 text-xs font-medium uppercase tracking-[0.08em] text-subtle">
+                Mais acessados
+              </p>
+              <ol className="mt-2 flex flex-col gap-3">
+                {carteira.imoveis.slice(0, 6).map((im) => (
+                  <li key={im.imovelId}>
+                    <CardImovelCarteira imovel={im} />
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+
+          <p className="mt-3 text-xs text-subtle">
+            Interações de clientes que autorizaram o compartilhamento de dados
+            (LGPD).
+          </p>
+        </section>
+      )}
+
       {/* ————— HISTÓRICO DE VENDAS ————— */}
       <section className="mt-10">
         <h2 className="text-lg font-semibold text-foreground">Histórico de vendas</h2>
@@ -501,6 +598,82 @@ export function VitrinePerfil({
 
       <div className="h-8" />
     </div>
+  );
+}
+
+// —— Card de imóvel da carteira (linha clicável → ficha pública) ——————————————
+const SELO_STATUS: Record<
+  StatusImovel,
+  { rotulo: string; variante: "marca" | "destaque" | "neutro" }
+> = {
+  disponivel: { rotulo: "Disponível", variante: "marca" },
+  reservado: { rotulo: "Reservado", variante: "destaque" },
+  vendido: { rotulo: "Vendido", variante: "neutro" },
+};
+
+function CardImovelCarteira({ imovel }: { imovel: ImovelDesempenho }) {
+  const selo = SELO_STATUS[imovel.status];
+  return (
+    <Link
+      href={`/imoveis/${imovel.imovelId}`}
+      className="flex items-center gap-4 rounded-2xl border border-border bg-surface-card p-3 shadow-[var(--shadow-soft)] transition-colors hover:border-brand/40 hover:bg-surface sm:p-4"
+    >
+      {/* Thumb */}
+      {imovel.fotoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imovel.fotoUrl}
+          alt=""
+          className="h-16 w-20 shrink-0 rounded-xl object-cover sm:h-18 sm:w-24"
+        />
+      ) : (
+        <span
+          className="flex h-16 w-20 shrink-0 items-center justify-center rounded-xl bg-surface-strong text-subtle sm:h-18 sm:w-24"
+          aria-hidden
+        >
+          <Home className="h-6 w-6" />
+        </span>
+      )}
+
+      {/* Título + local + preço */}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <p className="truncate font-medium text-foreground">{imovel.titulo}</p>
+          <Selo variante={selo.variante}>{selo.rotulo}</Selo>
+        </div>
+        <p className="mt-0.5 truncate text-sm text-subtle">
+          {imovel.cidade}/{imovel.uf}
+        </p>
+        <p className="mt-1 text-sm font-semibold tabular-nums text-brand-strong">
+          {formatarReais(imovel.valor)}
+        </p>
+      </div>
+
+      {/* Contadores de interação */}
+      <div className="flex shrink-0 items-center gap-3 text-sm text-muted sm:gap-4">
+        <span
+          className="inline-flex items-center gap-1.5 tabular-nums"
+          title="Visualizações"
+        >
+          <Eye className="h-4 w-4 text-brand" aria-hidden />
+          {imovel.visualizacoes}
+        </span>
+        <span
+          className="inline-flex items-center gap-1.5 tabular-nums"
+          title="Simulações"
+        >
+          <Calculator className="h-4 w-4 text-brand" aria-hidden />
+          {imovel.simulacoes}
+        </span>
+        <span
+          className="inline-flex items-center gap-1.5 tabular-nums"
+          title="Favoritos"
+        >
+          <Heart className="h-4 w-4 text-brand" aria-hidden />
+          {imovel.favoritos}
+        </span>
+      </div>
+    </Link>
   );
 }
 

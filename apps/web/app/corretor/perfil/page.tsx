@@ -6,6 +6,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { obterSessao } from "@/lib/auth/sessao";
+import { desempenhoCarteira } from "@/lib/dados/carteira";
 import { obterPerfilCorretor } from "@/lib/dados/perfil";
 import { VitrinePerfil } from "./VitrinePerfil";
 
@@ -29,11 +30,21 @@ export default async function PaginaMeuPerfil({
 
   // ?visao=publica ⇒ o dono vê a própria vitrine como um colega a vê.
   const { visao } = await searchParams;
+  const visaoPublica = visao === "publica";
+
+  // Carteira é ferramenta de gestão do dono — não aparece na visão pública.
+  const carteira = visaoPublica
+    ? null
+    : await desempenhoCarteira(perfil.corretorId);
 
   return (
     <div className="flex flex-1 flex-col items-center bg-background px-6 py-16 font-sans">
       <main className="w-full max-w-5xl">
-        <VitrinePerfil perfil={perfil} visaoPublica={visao === "publica"} />
+        <VitrinePerfil
+          perfil={perfil}
+          visaoPublica={visaoPublica}
+          carteira={carteira}
+        />
       </main>
     </div>
   );
