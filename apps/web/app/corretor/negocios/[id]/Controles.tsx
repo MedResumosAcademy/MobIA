@@ -6,7 +6,7 @@
 // cada ação, router.refresh() re-renderiza o Server Component pai. A autoridade
 // de escopo é a RLS (0011) — aqui só orquestramos a interação.
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { EtapaNegocio } from "@imobia/domain";
 import { Botao } from "@/components/ui/Botao";
@@ -40,21 +40,64 @@ export function ControlesNegocio({ id, etapaAtual, fechado }: Props) {
   const [motivo, setMotivo] = useState("");
   const [tipoNota, setTipoNota] = useState("nota");
   const [textoNota, setTextoNota] = useState("");
+  // Mensagem da última falha de ação (sessão expirada, RLS, rede) — as actions
+  // retornam { ok, erro } em vez de lançar, para não cair no error boundary.
+  const [erro, setErro] = useState<string | null>(null);
+  // Valor local do select de etapa com commit em debounce (a11y): atravessar
+  // as opções por seta não comita cada etapa intermediária, e o campo não
+  // fica disabled sob o foco durante a ação (evita perder o foco).
+  const [etapaLocal, setEtapaLocal] = useState<EtapaNegocio | null>(null);
+  const timerEtapa = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Quando a etapa do servidor muda (após refresh), o valor local se dissolve.
+  useEffect(() => {
+    setEtapaLocal(null);
+  }, [etapaAtual]);
+
+  useEffect(() => {
+    return () => {
+      if (timerEtapa.current) clearTimeout(timerEtapa.current);
+    };
+  }, []);
+
+  function aoTrocarEtapa(etapa: EtapaNegocio) {
+    if (pendente) return; // ignora enquanto a ação está no ar (sem disabled)
+    setEtapaLocal(etapa);
+    if (timerEtapa.current) clearTimeout(timerEtapa.current);
+    timerEtapa.current = setTimeout(() => {
+      timerEtapa.current = null;
+      if (etapa !== etapaAtual) {
+        mover(etapa);
+      }
+    }, 300);
+  }
 
   const indice = ETAPAS_ORDEM.indexOf(etapaAtual);
 
   function mover(etapa: EtapaNegocio) {
     iniciar(async () => {
-      await moverEtapaAction(formData({ id, etapa }));
+      const res = await moverEtapaAction(formData({ id, etapa }));
+      if (!res.ok) {
+        setErro(res.erro);
+        setEtapaLocal(null); // reverte o select para a etapa do servidor
+        return;
+      }
+      setErro(null);
       router.refresh();
     });
   }
 
   function definir(resultado: "ganho" | "perdido") {
     iniciar(async () => {
-      await definirResultadoAction(
+      const res = await definirResultadoAction(
         formData(resultado === "perdido" ? { id, resultado, motivo } : { id, resultado }),
       );
+      if (!res.ok) {
+        // Mantém o painel e o motivo digitado — o corretor não perde o texto.
+        setErro(res.erro);
+        return;
+      }
+      setErro(null);
       setMostrarPerda(false);
       setMotivo("");
       router.refresh();
@@ -66,7 +109,15 @@ export function ControlesNegocio({ id, etapaAtual, fechado }: Props) {
       return;
     }
     iniciar(async () => {
-      await adicionarAtividadeAction(formData({ id, tipo: tipoNota, descricao: textoNota }));
+      const res = await adicionarAtividadeAction(
+        formData({ id, tipo: tipoNota, descricao: textoNota }),
+      );
+      if (!res.ok) {
+        // Mantém a descrição digitada para tentar de novo.
+        setErro(res.erro);
+        return;
+      }
+      setErro(null);
       setTextoNota("");
       router.refresh();
     });
@@ -74,6 +125,14 @@ export function ControlesNegocio({ id, etapaAtual, fechado }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
+      {erro !== null && (
+        <p
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-800"
+        >
+          {erro}
+        </p>
+      )}
       {!fechado && (
         <section className="rounded-2xl border border-border bg-surface-card p-6 shadow-[var(--shadow-soft)]">
           <h2 className="text-lg font-semibold text-foreground">Etapa</h2>
@@ -87,9 +146,10 @@ export function ControlesNegocio({ id, etapaAtual, fechado }: Props) {
               ← Retroceder
             </Botao>
             <CampoSelect
-              value={etapaAtual}
-              disabled={pendente}
-              onChange={(e) => mover(e.target.value as EtapaNegocio)}
+              value={etapaLocal ?? etapaAtual}
+              aria-busy={pendente || undefined}
+              aria-label="Etapa do negócio"
+              onChange={(e) => aoTrocarEtapa(e.target.value as EtapaNegocio)}
               className="w-auto py-2"
             >
               {ETAPAS_ORDEM.map((etapa) => (

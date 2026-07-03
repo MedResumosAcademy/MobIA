@@ -11,6 +11,7 @@ import type {
   TipoImovel,
 } from "@imobia/domain";
 import type { Metadata } from "next";
+import { after } from "next/server";
 import { ChevronRight, FileText, MapPin, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -65,9 +66,30 @@ export async function generateMetadata({ params }: ParamsFicha): Promise<Metadat
   const { id } = await params;
   const imovel = await obterImovel(id);
   if (!imovel) {
-    return { title: "Imóvel não encontrado — ImobIA" };
+    return { title: "Imóvel não encontrado" };
   }
-  return { title: `${imovel.titulo} — ImobIA` };
+  // O sufixo do title vem do template "%s — ImobIA" do root; og/twitter não
+  // herdam o template, então recebem o título completo explícito.
+  const titulo = `${imovel.titulo} — ImobIA`;
+  const descricao = [
+    `${formatarReais(imovel.valor)} · ${imovel.cidade}/${imovel.uf}`,
+    imovel.descricao?.slice(0, 140),
+  ]
+    .filter(Boolean)
+    .join(" — ");
+  // fotos[] já vem como URL pública absoluta do Storage (urlPublicaMidia).
+  // Sem foto, o spread omite images e o crawler usa a opengraph-image padrão.
+  const fotoCapa = imovel.fotos[0];
+  return {
+    title: imovel.titulo,
+    description: descricao,
+    openGraph: {
+      title: titulo,
+      description: descricao,
+      ...(fotoCapa ? { images: [fotoCapa] } : {}),
+    },
+    twitter: { card: "summary_large_image", title: titulo, description: descricao },
+  };
 }
 
 function ehPdf(url: string): boolean {
@@ -152,11 +174,20 @@ export default async function FichaImovel({ params }: ParamsFicha) {
     notFound();
   }
 
-  // Sinal de interesse (E7) — no-op se anônimo/corretor.
-  await registrarEvento("visita_ficha", { imovelId: imovel.id });
+  // Sinal de interesse (E7) — no-op se anônimo/corretor. A promise INICIA já
+  // (cookies lidos ainda na renderização) e é entregue ao after(): o INSERT
+  // não bloqueia o TTFB da página mais visitada do funil. O catch é essencial:
+  // registrarEvento lança em falha de INSERT e isso não pode derrubar a ficha.
+  after(
+    registrarEvento("visita_ficha", { imovelId: imovel.id }).catch((e) => {
+      console.warn("visita_ficha:", e);
+    }),
+  );
 
-  const parametros = await obterParametrosVigentesDoBanco();
-  const favoritos = await idsFavoritos(); // vazio se anônimo
+  const [parametros, favoritos] = await Promise.all([
+    obterParametrosVigentesDoBanco(),
+    idsFavoritos(), // vazio se anônimo
+  ]);
   const configSimulador = montarConfigSimulador(imovel, parametros);
   const modalidadeRotulo = imovel.esquemaPagamento
     ? ROTULO_MODALIDADE[imovel.esquemaPagamento.modalidade]

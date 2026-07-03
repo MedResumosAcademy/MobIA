@@ -35,9 +35,10 @@ import {
   type MetaComProgresso,
 } from "@/lib/dados/metas";
 import { totalInscritos } from "@/lib/dados/newsletter";
+import { plural } from "@/lib/plural";
 import { EditorMetas } from "./EditorMetas";
 
-export const metadata: Metadata = { title: "Dashboard gerencial — ImobIA" };
+export const metadata: Metadata = { title: "Dashboard gerencial" };
 export const dynamic = "force-dynamic";
 
 // Rótulos das etapas do funil (o domínio guarda só as chaves; UI define texto).
@@ -193,7 +194,9 @@ export default async function PaginaEquipe() {
               Distribuição de temperatura
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Como estão distribuídos os {leadsTotal} lead(s) consentido(s).
+              Como estão distribuídos os {leadsTotal}{" "}
+              {plural(leadsTotal, "lead que autorizou", "leads que autorizaram")}{" "}
+              atendimento.
             </p>
             <DistribuicaoTemperatura
               leadsPorTemperatura={leadsPorTemperatura}
@@ -215,7 +218,8 @@ export default async function PaginaEquipe() {
                   <span className="font-semibold tabular-nums text-foreground">
                     {inscritosNewsletter}
                   </span>{" "}
-                  inscrito(s) ativo(s) — crie edições com os imóveis da sua carteira.
+                  {plural(inscritosNewsletter, "inscrito ativo", "inscritos ativos")} —
+                  crie edições com os imóveis da sua carteira.
                 </p>
               </div>
             </div>
@@ -257,13 +261,21 @@ function FaixaKpis({
         icone={<Handshake className="h-5 w-5" aria-hidden />}
         rotulo="Em aberto"
         valor={reaisCompacto(metricas.emAberto.valor)}
-        detalhe={`${metricas.emAberto.quantidade} negócio(s) ativo(s)`}
+        detalhe={`${metricas.emAberto.quantidade} ${plural(
+          metricas.emAberto.quantidade,
+          "negócio ativo",
+          "negócios ativos",
+        )}`}
       />
       <CardKpi
         icone={<Trophy className="h-5 w-5" aria-hidden />}
         rotulo="Ganhos no mês"
         valor={reaisCompacto(metricas.ganhosNoMes.valor)}
-        detalhe={`${metricas.ganhosNoMes.quantidade} venda(s) fechada(s)`}
+        detalhe={`${metricas.ganhosNoMes.quantidade} ${plural(
+          metricas.ganhosNoMes.quantidade,
+          "venda fechada",
+          "vendas fechadas",
+        )}`}
         destaque
       />
       <CardKpi
@@ -290,11 +302,11 @@ function FaixaKpis({
         icone={<Users className="h-5 w-5" aria-hidden />}
         rotulo="Leads"
         valor={String(leadsTotal)}
-        detalhe="clientes consentidos"
+        detalhe="clientes que autorizaram atendimento"
       />
       <CardKpi
         icone={<Flame className="h-5 w-5 text-brand" aria-hidden />}
-        rotulo="Prontos p/ compra"
+        rotulo="Prontos para compra"
         valor={String(prontosParaCompra)}
         detalhe="🔥🔥🔥 no auge do interesse"
         destaque
@@ -601,7 +613,7 @@ function Ranking({ linhas }: { linhas: DashboardGerencial["metricas"]["ranking"]
     );
   }
   return (
-    <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface-card shadow-[var(--shadow-soft)]">
+    <div className="mt-4 overflow-x-auto rounded-2xl border border-border bg-surface-card shadow-[var(--shadow-soft)]">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase tracking-[0.08em] text-subtle">
@@ -737,7 +749,7 @@ function DistribuicaoTemperatura({
     <div className="mt-4 rounded-2xl border border-border bg-surface-card p-6 shadow-[var(--shadow-soft)]">
       {total === 0 ? (
         <p className="py-6 text-center text-sm text-subtle">
-          Nenhum lead consentido ainda.
+          Nenhum lead autorizou atendimento ainda.
         </p>
       ) : (
         <div className="flex flex-col gap-4">

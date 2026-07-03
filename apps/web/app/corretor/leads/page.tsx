@@ -6,10 +6,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { listarLeads } from "@/lib/dados/leads";
+import { plural } from "@/lib/plural";
 import { ChipTermometro } from "./termometro";
 import { tempoRelativo } from "./tempo";
 
-export const metadata: Metadata = { title: "Leads — ImobIA" };
+export const metadata: Metadata = { title: "Leads" };
 export const dynamic = "force-dynamic";
 
 export default async function PaginaLeads() {
@@ -50,8 +51,11 @@ export default async function PaginaLeads() {
                     {lead.imovelTitulo}
                   </p>
                   <p className="mt-1 text-xs text-subtle">
-                    {lead.sinais.visitas} visita(s) · {lead.sinais.simulacoes}{" "}
-                    simulação(ões) · última atividade{" "}
+                    {lead.sinais.visitas}{" "}
+                    {plural(lead.sinais.visitas, "visita", "visitas")} ·{" "}
+                    {lead.sinais.simulacoes}{" "}
+                    {plural(lead.sinais.simulacoes, "simulação", "simulações")} ·
+                    última atividade{" "}
                     {tempoRelativo(lead.ultimoEventoEm)}
                   </p>
                 </div>

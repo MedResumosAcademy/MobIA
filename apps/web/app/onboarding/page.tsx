@@ -11,7 +11,10 @@ import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { dadosIniciaisOnboarding, statusOnboarding } from "@/lib/dados/onboarding";
 import { WizardOnboarding } from "./WizardOnboarding";
 
-export const metadata: Metadata = { title: "Bem-vindo(a) ao ImobIA" };
+export const metadata: Metadata = {
+  title: "Boas-vindas à ImobIA",
+  robots: { index: false, follow: false },
+};
 export const dynamic = "force-dynamic";
 
 export default async function PaginaOnboarding() {

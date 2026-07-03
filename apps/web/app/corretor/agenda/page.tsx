@@ -31,7 +31,7 @@ import { ExcluirEvento } from "./ExcluirEvento";
 import { NovoEvento } from "./NovoEvento";
 import { formatarDiaLongo, formatarHora, ROTULOS_TIPO_EVENTO } from "./formato";
 
-export const metadata: Metadata = { title: "Minha agenda — ImobIA" };
+export const metadata: Metadata = { title: "Minha agenda" };
 export const dynamic = "force-dynamic";
 
 const VARIANTE_TIPO: Record<TipoEventoAgenda, VarianteBadge> = {

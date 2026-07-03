@@ -10,7 +10,7 @@ import { desempenhoCarteira } from "@/lib/dados/carteira";
 import { obterPerfilCorretor } from "@/lib/dados/perfil";
 import { VitrinePerfil } from "./VitrinePerfil";
 
-export const metadata: Metadata = { title: "Meu perfil — ImobIA" };
+export const metadata: Metadata = { title: "Meu perfil" };
 export const dynamic = "force-dynamic";
 
 export default async function PaginaMeuPerfil({

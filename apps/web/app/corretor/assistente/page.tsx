@@ -7,7 +7,7 @@ import { Sparkles } from "lucide-react";
 import { iaDisponivel } from "@/lib/ia/interpretador-llm";
 import { Chat } from "./Chat";
 
-export const metadata: Metadata = { title: "Assistente — ImobIA" };
+export const metadata: Metadata = { title: "Assistente" };
 
 export default function PaginaAssistente() {
   return (

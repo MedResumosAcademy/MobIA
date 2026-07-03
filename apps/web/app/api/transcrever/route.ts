@@ -13,8 +13,12 @@
 
 import { NextResponse } from "next/server";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
+import { permitido } from "@/lib/seguranca/limitador";
 
 const LIMITE_BYTES = 10 * 1024 * 1024; // ~10MB
+// Rate limit por usuário (proteção da cota Groq): 10 transcrições/minuto.
+const MAX_POR_JANELA = 10;
+const JANELA_MS = 60_000;
 const TIMEOUT_MS = 30_000;
 const URL_GROQ = "https://api.groq.com/openai/v1/audio/transcriptions";
 const MODELO = "whisper-large-v3-turbo";
@@ -72,6 +76,12 @@ export async function POST(request: Request) {
   const perfil = await obterPerfil(sessao.usuarioId);
   if (!perfil || perfil.papel === "cliente" || !perfil.orgId) {
     return erro(403, "a transcrição é exclusiva para contas profissionais");
+  }
+
+  // Rate limit POR USUÁRIO, depois do gate de perfil (anônimo não gasta
+  // memória) — protege a cota/custo da chave Groq contra loops.
+  if (!permitido(`transcrever:${sessao.usuarioId}`, MAX_POR_JANELA, JANELA_MS)) {
+    return erro(429, "muitas transcrições em sequência — aguarde um instante");
   }
 
   const chave = process.env.GROQ_API_KEY;

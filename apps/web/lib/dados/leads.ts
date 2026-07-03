@@ -11,6 +11,7 @@
 // partir dos contadores materializados na linha do lead — NUNCA da coluna
 // `temperatura` (que o trigger grava como placeholder 'quente').
 
+import { cache } from "react";
 import { calcularTemperatura, type ResultadoTermometro } from "@imobia/core";
 import type { Database, SinaisLead, Temperatura } from "@imobia/domain";
 import { obterSessao } from "@/lib/auth/sessao";
@@ -170,8 +171,10 @@ function lerEntrada(metadata: LinhaEvento["metadata"]): number | null {
  * desc (mais quentes primeiro). A RLS já limita a org + clientes consentidos;
  * anônimo/cliente recebe lista vazia (guard evita a query). O nome do cliente
  * e o título do imóvel vêm de joins que a RLS pode ou não expor (null tolerado).
+ * React cache(): memoiza por request — painel + prioridades consomem a mesma
+ * listagem sem query dupla.
  */
-export async function listarLeads(): Promise<LeadPainel[]> {
+export const listarLeads = cache(async (): Promise<LeadPainel[]> => {
   const sessao = await obterSessao();
   if (!sessao) {
     return [];
@@ -193,7 +196,7 @@ export async function listarLeads(): Promise<LeadPainel[]> {
   });
   // Ordenação final por score (calculado no motor) — a query só pré-ordena por tempo.
   return leads.sort((a, b) => b.score - a.score);
-}
+});
 
 /**
  * Um lead + sua TIMELINE + a capacidade do cliente (se visível). Retorna null se

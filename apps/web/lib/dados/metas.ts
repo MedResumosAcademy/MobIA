@@ -22,6 +22,7 @@ import {
   type TipoMeta,
 } from "@imobia/domain";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
+import { diaSaoPaulo, intervaloDoDiaSaoPaulo } from "@/lib/fuso";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
 type LinhaMeta = Database["public"]["Tables"]["metas"]["Row"];
@@ -47,15 +48,20 @@ const ROTULOS_META: Record<TipoMeta, string> = {
   negocios_ganhos_mes: "Negócios ganhos no mês",
   valor_vendido_mes: "Valor vendido no mês",
   novos_negocios_mes: "Novos negócios no mês",
-  leads_consentidos: "Leads consentidos",
+  leads_consentidos: "Leads com autorização",
 };
 
 /** Só `valor_vendido_mes` é monetária (CENTAVOS). */
 const TIPOS_MONETARIOS: ReadonlySet<TipoMeta> = new Set(["valor_vendido_mes"]);
 
-/** Início (inclusivo) do mês corrente em ISO — para filtrar `>= inicioMes`. */
+/**
+ * Início (inclusivo) do mês corrente em ISO — para filtrar `>= inicioMes`.
+ * "Mês corrente" no relógio do produto (America/Sao_Paulo): o dia 1º começa à
+ * meia-noite de SP, não à meia-noite UTC (senão a meta zeraria 3h mais cedo).
+ */
 function inicioDoMesIso(agora: Date = new Date()): string {
-  return new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), 1)).toISOString();
+  const primeiroDia = `${diaSaoPaulo(agora).slice(0, 7)}-01`;
+  return intervaloDoDiaSaoPaulo(primeiroDia).deISO;
 }
 
 /** Coage o `tipo` cru do banco para TipoMeta; null se desconhecido. */

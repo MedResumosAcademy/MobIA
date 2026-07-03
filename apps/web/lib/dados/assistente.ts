@@ -26,6 +26,7 @@ import {
 import type { EtapaNegocio, ResultadoNegocio } from "@imobia/domain";
 import { revalidatePath } from "next/cache";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
+import { permitido } from "@/lib/seguranca/limitador";
 import { agoraSaoPauloISO, intervaloDoDiaSaoPaulo } from "@/lib/fuso";
 import { iaDisponivel, interpretarComLlm } from "@/lib/ia/interpretador-llm";
 import { criarEvento, listarEventos, type EventoAgenda } from "@/lib/dados/agenda";
@@ -309,6 +310,10 @@ async function despachar(cmd: ComandoInterpretado, agoraISO: string): Promise<Re
         venceEm: cmd.venceEm ?? null,
       });
       revalidatePath(`/corretor/negocios/${negocio.id}`);
+      revalidatePath("/corretor/tarefas");
+      // Painel e agenda também exibem tarefas pendentes/com prazo.
+      revalidatePath("/corretor");
+      revalidatePath("/corretor/agenda");
       return {
         texto:
           `Tarefa criada: "${cmd.titulo}" no negócio de ${negocio.nomeContato}` +
@@ -556,6 +561,8 @@ async function despachar(cmd: ComandoInterpretado, agoraISO: string): Promise<Re
       await concluirTarefa(tarefa.id, true);
       revalidatePath(`/corretor/negocios/${tarefa.negocio_id}`);
       revalidatePath("/corretor");
+      revalidatePath("/corretor/tarefas");
+      revalidatePath("/corretor/agenda");
       return {
         texto: `Tarefa concluída: "${tarefa.titulo}" ✅`,
         tipo: "confirmacao",
@@ -624,7 +631,16 @@ export async function executarComandoAction(texto: string): Promise<RespostaAssi
   const perfil = sessao ? await obterPerfil(sessao.usuarioId) : null;
   if (!sessao || !perfil || perfil.papel === "cliente" || !perfil.orgId) {
     return {
-      texto: "O assistente é exclusivo para corretores e gestores. Faça login com sua conta profissional.",
+      texto: "A assistente é exclusiva para corretores e gestores. Entre com sua conta profissional.",
+      tipo: "erro",
+    };
+  }
+
+  // Rate limit por usuário (o fallback consome LLM pago): 30 comandos/min.
+  // Mantém o contrato de NUNCA lançar — excedeu ⇒ resposta gentil de erro.
+  if (!permitido(`assistente:${sessao.usuarioId}`, 30, 60_000)) {
+    return {
+      texto: "Muitos comandos em sequência — respire um instante e tente de novo.",
       tipo: "erro",
     };
   }

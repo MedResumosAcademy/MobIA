@@ -22,7 +22,7 @@
   /* Texto */
   --foreground: #26241f; /* título */
   --muted: #57534c; /* corpo */
-  --subtle: #8a857c; /* secundário */
+  --subtle: #716c63; /* secundário — AA sobre branco (5,21:1) e --surface (4,71:1) */
 
   /* Marca — LARANJA */
   --brand: #db6414; /* primário */
@@ -36,7 +36,7 @@
   --gold: #f2a93b; /* âmbar — selos/detalhes/hairline */
   --gold-strong: #8a5a12; /* âmbar escuro — texto (se necessário) sobre claro */
   --gold-soft: #fef3e0; /* âmbar suave — fundo de selo destaque */
-  --gold-contrast: #ffffff;
+  --gold-contrast: #26241f; /* texto escuro sobre âmbar (7,76:1 — AA/AAA); branco dava ~2:1 */
 
   /* Badges por categoria (pílulas quentes) */
   --badge-lancamento-bg: #fdeedd; /* laranja suave */

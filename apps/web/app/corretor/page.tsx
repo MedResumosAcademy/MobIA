@@ -28,6 +28,7 @@ import {
   Target,
   CheckCircle2,
   PartyPopper,
+  Lock,
 } from "lucide-react";
 import { formatarReais } from "@imobia/core";
 import { ETAPAS_NEGOCIO, type EtapaNegocio } from "@imobia/domain";
@@ -37,8 +38,9 @@ import { minhasTarefas } from "@/lib/dados/tarefas";
 import { obterNomeOrg } from "@/lib/dados/gestor";
 import { prioridades, type ItemPrioridade, type NivelPrioridade } from "@/lib/dados/prioridades";
 import { listarMetasComProgresso, type MetaComProgresso } from "@/lib/dados/metas";
+import { plural } from "@/lib/plural";
 
-export const metadata: Metadata = { title: "Painel do corretor — ImobIA" };
+export const metadata: Metadata = { title: "Painel do corretor" };
 export const dynamic = "force-dynamic";
 
 const ROTULOS_ETAPA: Record<EtapaNegocio, string> = {
@@ -52,13 +54,13 @@ const ROTULOS_ETAPA: Record<EtapaNegocio, string> = {
 export default async function PainelCorretor({
   searchParams,
 }: {
-  searchParams: Promise<{ bemvindo?: string }>;
+  searchParams: Promise<{ bemvindo?: string; aviso?: string }>;
 }) {
   const sessao = await obterSessao();
   if (!sessao) {
     redirect("/entrar");
   }
-  const { bemvindo } = await searchParams;
+  const { bemvindo, aviso } = await searchParams;
   const perfil = await obterPerfil(sessao.usuarioId);
   const papel = perfil?.papel ?? "cliente";
   const ehGestor = papel === "gestor" || papel === "admin";
@@ -102,6 +104,25 @@ export default async function PainelCorretor({
           </div>
         )}
 
+        {/* Aviso de redirecionamento (?aviso=…) — explica por que o usuário
+            "voltou" ao painel em vez de simplesmente expulsá-lo em silêncio. */}
+        {aviso === "area-restrita-gestor" && (
+          <div className="mt-6 flex items-center gap-3 rounded-2xl border border-gold/40 bg-gold-soft px-5 py-4">
+            <Lock className="h-5 w-5 shrink-0 text-gold-strong" aria-hidden />
+            <p className="text-sm text-foreground">
+              Essa área é exclusiva do gestor da imobiliária.
+            </p>
+          </div>
+        )}
+        {aviso === "perfil-indisponivel" && (
+          <div className="mt-6 flex items-center gap-3 rounded-2xl border border-gold/40 bg-gold-soft px-5 py-4">
+            <Lock className="h-5 w-5 shrink-0 text-gold-strong" aria-hidden />
+            <p className="text-sm text-foreground">
+              Esse perfil não está disponível.
+            </p>
+          </div>
+        )}
+
         {/* DESTAQUE — Onde agir agora (fila de prioridades pessoal) */}
         <OndeAgirAgora itens={itensPrioridade} ehGestor={ehGestor} />
 
@@ -124,9 +145,17 @@ export default async function PainelCorretor({
             icone={<Percent className="h-5 w-5" aria-hidden />}
             rotulo="Conversão"
             valor={`${pctConversao}%`}
-            detalhe={`${metricas.ganhos.quantidade} ganho(s) de ${
+            detalhe={`${metricas.ganhos.quantidade} ${plural(
+              metricas.ganhos.quantidade,
+              "ganho",
+              "ganhos",
+            )} de ${
               metricas.ganhos.quantidade + metricas.perdidos.quantidade
-            } fechado(s)`}
+            } ${plural(
+              metricas.ganhos.quantidade + metricas.perdidos.quantidade,
+              "fechado",
+              "fechados",
+            )}`}
           />
           <CardKpi
             icone={
@@ -140,8 +169,12 @@ export default async function PainelCorretor({
             valor={String(tarefasPendentes)}
             detalhe={
               resumoTarefas.atrasadas > 0
-                ? `${resumoTarefas.atrasadas} atrasada(s)`
-                : "pendente(s)"
+                ? `${resumoTarefas.atrasadas} ${plural(
+                    resumoTarefas.atrasadas,
+                    "atrasada",
+                    "atrasadas",
+                  )}`
+                : plural(tarefasPendentes, "pendente", "pendentes")
             }
             alerta={resumoTarefas.atrasadas > 0}
           />
@@ -211,7 +244,7 @@ export default async function PainelCorretor({
               href="/corretor/tarefas"
               icone={<CheckSquare className="h-5 w-5" aria-hidden />}
               titulo="Tarefas"
-              descricao="Seus to-dos e prazos"
+              descricao="Suas pendências e prazos"
             />
             {ehGestor && (
               <CardAtalho

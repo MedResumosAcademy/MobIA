@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { entrar } from "@/lib/auth/acoes";
-import { Botao } from "@/components/ui/Botao";
+import { BotaoSubmit } from "@/components/ui/BotaoSubmit";
 import { Campo, GrupoCampo } from "@/components/ui/Campo";
 
-export const metadata: Metadata = { title: "Entrar — ImobIA" };
+export const metadata: Metadata = {
+  title: "Entrar",
+  robots: { index: false, follow: false },
+};
 
 const MENSAGENS_ERRO: Record<string, string> = {
   "campos-obrigatorios": "Preencha e-mail e senha.",
@@ -74,9 +77,9 @@ export default async function PaginaEntrar({
               placeholder="••••••••"
             />
           </GrupoCampo>
-          <Botao type="submit" tamanho="lg" className="mt-2 w-full">
+          <BotaoSubmit rotuloPendente="Entrando…" tamanho="lg" className="mt-2 w-full">
             Entrar
-          </Botao>
+          </BotaoSubmit>
         </form>
 
         <p className="mt-6 text-center text-sm text-muted">

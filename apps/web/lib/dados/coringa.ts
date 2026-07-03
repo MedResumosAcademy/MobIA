@@ -154,7 +154,7 @@ export async function gerarEstrategiasAction(
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg.includes("autenticado") || msg.includes("permissão")) {
-      return { ok: false, erro: "Sessão inválida. Entre novamente." };
+      return { ok: false, erro: "Sessão expirada. Entre novamente." };
     }
     return { ok: false, erro: "Não foi possível gerar as estratégias. Revise os dados." };
   }

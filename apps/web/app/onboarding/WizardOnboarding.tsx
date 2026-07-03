@@ -216,7 +216,7 @@ export function WizardOnboarding({
           Imob<span className="text-gold-strong">IA</span>
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
-          Bem-vindo(a) ao ImobIA
+          Boas-vindas à ImobIA
         </h1>
         <p className="mt-2 text-sm text-muted">
           Vamos montar sua vitrine de corretor em 4 passos rápidos.

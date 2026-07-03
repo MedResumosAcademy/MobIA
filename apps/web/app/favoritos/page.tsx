@@ -11,7 +11,10 @@ import { obterSessao } from "@/lib/auth/sessao";
 import { obterConsentimento } from "@/lib/dados/consentimento";
 import { listarFavoritos } from "@/lib/dados/favoritos";
 
-export const metadata: Metadata = { title: "Favoritos — ImobIA" };
+export const metadata: Metadata = {
+  title: "Favoritos",
+  robots: { index: false, follow: false },
+};
 
 // Depende da sessão/RLS a cada request.
 export const dynamic = "force-dynamic";

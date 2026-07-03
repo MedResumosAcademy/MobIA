@@ -27,16 +27,22 @@ export function BotaoFavoritar({
   const router = useRouter();
   const [favoritado, setFavoritado] = useState(inicialFavoritado);
   const [precisaLogin, setPrecisaLogin] = useState(false);
+  const [falhou, setFalhou] = useState(false);
   const [, iniciar] = useTransition();
 
   function alternar() {
     const proximo = !favoritado;
     setFavoritado(proximo); // otimista
+    setFalhou(false);
     iniciar(async () => {
       const r = await alternarFavoritoAction(imovelId);
       if (!r.ok) {
-        setFavoritado(!proximo); // reverte
-        setPrecisaLogin(true);
+        setFavoritado(!proximo); // reverte — o banco não mudou
+        if (r.motivo === "precisa_login") {
+          setPrecisaLogin(true);
+        } else {
+          setFalhou(true); // erro real: avisa em vez de fingir sucesso
+        }
         return;
       }
       setFavoritado(r.favoritado);
@@ -103,6 +109,30 @@ export function BotaoFavoritar({
               className="text-subtle"
             >
               Agora não
+            </button>
+          </div>
+        </div>
+      )}
+
+      {falhou && (
+        <div
+          className={
+            naFicha
+              ? "absolute left-0 top-full z-10 mt-2 w-56 rounded-xl border border-border bg-surface-card p-3 text-xs shadow-[var(--shadow-card)]"
+              : "absolute right-0 top-full z-10 mt-2 w-56 rounded-xl border border-border bg-surface-card p-3 text-xs shadow-[var(--shadow-card)]"
+          }
+          role="alert"
+        >
+          <p className="text-muted">
+            Não foi possível atualizar o favorito. Tente novamente.
+          </p>
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setFalhou(false)}
+              className="text-subtle"
+            >
+              Fechar
             </button>
           </div>
         </div>

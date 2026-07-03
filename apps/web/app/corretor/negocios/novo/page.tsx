@@ -10,7 +10,7 @@ import { Campo, CampoSelect, GrupoCampo } from "@/components/ui/Campo";
 import { criarNegocioAction } from "../acoes";
 import { ETAPAS_ORDEM, ROTULO_ETAPA } from "../rotulos";
 
-export const metadata: Metadata = { title: "Novo negócio — ImobIA" };
+export const metadata: Metadata = { title: "Novo negócio" };
 export const dynamic = "force-dynamic";
 
 const MENSAGENS_ERRO: Record<string, string> = {

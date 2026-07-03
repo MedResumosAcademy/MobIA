@@ -19,6 +19,7 @@ import {
   type StatusImovel,
   type TipoImovel,
 } from "@imobia/domain";
+import { cache } from "react";
 import { z } from "zod";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { criarClientePublico } from "@/lib/supabase/publico";
@@ -104,6 +105,12 @@ export type FiltrosCatalogo = {
   quartosMin?: number;
   /** Sigla da UF (2 letras); normalizada para maiúsculas. Filtra por estado. */
   uf?: string;
+  /**
+   * Máximo de linhas retornadas (`.limit()` no banco). Omitir = sem teto.
+   * Use quando a tela só exibe os N primeiros (ex.: destaques da landing) —
+   * evita baixar o catálogo inteiro.
+   */
+  limite?: number;
 };
 
 // --- Agregação por UF ---
@@ -306,6 +313,9 @@ export async function listarImoveis(
   if (filtros.quartosMin !== undefined) {
     query = query.gte("quartos", filtros.quartosMin);
   }
+  if (filtros.limite !== undefined) {
+    query = query.limit(filtros.limite);
+  }
 
   const { data, error } = await query;
   if (error) {
@@ -372,24 +382,30 @@ export async function agregarImoveisPorUf(): Promise<AgregadoUf[]> {
   return [...agregados, total];
 }
 
-/** Imóvel + unidades. Retorna null se não visível (RLS) ou inexistente. */
-export async function obterImovel(id: string): Promise<ImovelDetalhe | null> {
-  const supabase = criarClientePublico();
-  const { data: imovel, error } = await supabase
-    .from("imoveis")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-  if (error || !imovel) {
-    return null;
-  }
-  const { data: unidades } = await supabase
-    .from("unidades")
-    .select("*")
-    .eq("imovel_id", id)
-    .order("identificador", { ascending: true });
-  return mapDetalhe(imovel, unidades ?? []);
-}
+/**
+ * Imóvel + unidades. Retorna null se não visível (RLS) ou inexistente.
+ * Envolto em React cache(): generateMetadata e a Page da ficha chamam com o
+ * mesmo id no mesmo request — só a primeira paga a query. As duas leituras
+ * internas (imóvel e unidades) dependem apenas do id ⇒ rodam em paralelo;
+ * se o imóvel não existir, o resultado de unidades é descartado.
+ */
+export const obterImovel = cache(
+  async (id: string): Promise<ImovelDetalhe | null> => {
+    const supabase = criarClientePublico();
+    const [{ data: imovel, error }, { data: unidades }] = await Promise.all([
+      supabase.from("imoveis").select("*").eq("id", id).maybeSingle(),
+      supabase
+        .from("unidades")
+        .select("*")
+        .eq("imovel_id", id)
+        .order("identificador", { ascending: true }),
+    ]);
+    if (error || !imovel) {
+      return null;
+    }
+    return mapDetalhe(imovel, unidades ?? []);
+  },
+);
 
 // --- Leitura da org (corretor logado) ---
 

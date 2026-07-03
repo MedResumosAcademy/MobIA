@@ -17,7 +17,7 @@ import {
   type EdicaoNewsletterResumo,
 } from "@/lib/dados/newsletter";
 
-export const metadata: Metadata = { title: "Newsletter — ImobIA" };
+export const metadata: Metadata = { title: "Newsletter" };
 export const dynamic = "force-dynamic";
 
 export default async function PaginaNewsletter() {
@@ -104,7 +104,8 @@ export default async function PaginaNewsletter() {
                     : "Ninguém se inscreveu ainda — o formulário está no site e no rodapé."}
                 </p>
               ) : (
-                <table className="mt-1 w-full text-sm">
+                <div className="mt-1 overflow-x-auto">
+                  <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-left text-xs uppercase tracking-[0.08em] text-subtle">
                       <th className="py-2.5 pr-4 font-medium">E-mail</th>
@@ -126,7 +127,8 @@ export default async function PaginaNewsletter() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                  </table>
+                </div>
               )}
               <p className="mt-4 text-xs text-subtle">
                 Todos os inscritos deram consentimento explícito (LGPD) no momento

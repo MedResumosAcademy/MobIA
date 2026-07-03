@@ -7,7 +7,7 @@ import { CampoSelect } from "@/components/ui/Campo";
 import { definirStatusImovelAction } from "./acoes";
 import { ROTULO_STATUS, STATUS } from "./rotulos";
 
-export const metadata: Metadata = { title: "Meus imóveis — ImobIA" };
+export const metadata: Metadata = { title: "Meus imóveis" };
 export const dynamic = "force-dynamic";
 
 const MENSAGENS_OK: Record<string, string> = {

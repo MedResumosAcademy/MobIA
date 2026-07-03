@@ -22,12 +22,12 @@ type Props = {
   valor: number | null;
 };
 
-/** Centavos → string de reais para o input (ex.: 128000000 → "1280000.00"). */
+/** Centavos → string de reais pt-BR para o input (ex.: 128000000 → "1280000,00"). */
 function centavosParaReais(centavos: number | null): string {
   if (centavos === null) {
     return "";
   }
-  return (centavos / 100).toFixed(2);
+  return (centavos / 100).toFixed(2).replace(".", ",");
 }
 
 export function EditarNegocio({
@@ -136,14 +136,14 @@ export function EditarNegocio({
         <GrupoCampo
           rotulo="Valor (R$)"
           htmlFor="editar-valor"
-          auxilio="Use ponto para centavos. Ex.: 1280000.00"
+          auxilio="Use vírgula para os centavos. Ex.: 1280000,00"
         >
           <Campo
             id="editar-valor"
             inputMode="decimal"
             value={valorForm}
             disabled={pendente}
-            placeholder="Ex.: 1280000.00"
+            placeholder="Ex.: 1280000,00"
             onChange={(e) => setValorForm(e.target.value)}
           />
         </GrupoCampo>

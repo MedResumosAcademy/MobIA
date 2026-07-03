@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { statusOnboarding } from "@/lib/dados/onboarding";
+
+// Área autenticada: noindex para toda a subárvore /corretor/* (o metadata de
+// layout faz merge com o dos pages filhos sem sobrescrever os titles).
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function LayoutCorretor({ children }: { children: React.ReactNode }) {
   const sessao = await obterSessao();

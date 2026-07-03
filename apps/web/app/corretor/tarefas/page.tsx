@@ -11,7 +11,7 @@ import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { minhasTarefas, tarefasDaOrg } from "@/lib/dados/tarefas";
 import { ItemTarefa } from "./ItemTarefa";
 
-export const metadata: Metadata = { title: "Tarefas — ImobIA" };
+export const metadata: Metadata = { title: "Tarefas" };
 export const dynamic = "force-dynamic";
 
 export default async function PaginaTarefas({

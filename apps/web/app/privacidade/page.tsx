@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Política de Privacidade — ImobIA",
+  title: "Política de Privacidade",
   description:
     "Como a ImobIA coleta, usa e protege seus dados. Apenas cookies essenciais, sem rastreamento e sem venda de dados.",
 };

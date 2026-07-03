@@ -10,7 +10,7 @@ import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { listarImoveisDaOrg } from "@/lib/dados/imoveis";
 import { FormularioEdicao, type ImovelSelecionavel } from "../FormularioEdicao";
 
-export const metadata: Metadata = { title: "Nova edição — Newsletter — ImobIA" };
+export const metadata: Metadata = { title: "Nova edição — Newsletter" };
 export const dynamic = "force-dynamic";
 
 export default async function PaginaNovaEdicao() {

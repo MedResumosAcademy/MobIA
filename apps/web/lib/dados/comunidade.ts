@@ -32,6 +32,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { obterSessao } from "@/lib/auth/sessao";
 import { obterPapelEOrg } from "@/lib/dados/gestor";
+import { diaSaoPaulo } from "@/lib/fuso";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
 type LinhaPublicacao = Database["public"]["Tables"]["publicacoes"]["Row"];
@@ -159,9 +160,11 @@ export async function listarFeed(opts?: {
   const supabase = await criarClienteServidor();
 
   // Meus seguidos: sempre resolvidos (marcam `seguindoAutor` em cada card) e,
-  // quando apenasSeguindo, também filtram o feed por autor.
-  const seguidos = await meusSeguidos(supabase, ctx.usuarioId);
-  if (opts?.apenasSeguindo && seguidos.size === 0) {
+  // quando apenasSeguindo, também filtram o feed por autor. A promise dispara
+  // JÁ; só é aguardada antes da query quando o filtro .in depende dela.
+  const seguidosPromise = meusSeguidos(supabase, ctx.usuarioId);
+  const seguidosParaFiltro = opts?.apenasSeguindo ? await seguidosPromise : null;
+  if (seguidosParaFiltro && seguidosParaFiltro.size === 0) {
     return [];
   }
 
@@ -174,11 +177,12 @@ export async function listarFeed(opts?: {
   if (opts?.autorId) {
     query = query.eq("autor_id", opts.autorId);
   }
-  if (opts?.apenasSeguindo) {
-    query = query.in("autor_id", [...seguidos]);
+  if (seguidosParaFiltro) {
+    query = query.in("autor_id", [...seguidosParaFiltro]);
   }
 
-  const { data, error } = await query;
+  // Sem o filtro, seguidos resolve EM PARALELO com o feed (2 ondas → 1).
+  const [seguidos, { data, error }] = await Promise.all([seguidosPromise, query]);
   if (error) {
     throw new Error(`listarFeed: ${error.message}`);
   }
@@ -187,26 +191,26 @@ export async function listarFeed(opts?: {
     return [];
   }
 
-  // Minhas curtidas entre os posts carregados → flag curtidoPorMim.
+  // Minhas curtidas (flag curtidoPorMim) e títulos dos imóveis destacados
+  // (lookup em lote; RLS pode ocultar alguns): ambos dependem só dos ids do
+  // feed e são independentes entre si ⇒ uma única onda paralela.
   const ids = posts.map((p) => p.id);
-  const { data: minhas } = await supabase
-    .from("publicacao_curtidas")
-    .select("publicacao_id")
-    .eq("perfil_id", ctx.usuarioId)
-    .in("publicacao_id", ids);
+  const imovelIds = [...new Set(posts.map((p) => p.imovel_id).filter((v): v is string => !!v))];
+  const [{ data: minhas }, { data: imoveis }] = await Promise.all([
+    supabase
+      .from("publicacao_curtidas")
+      .select("publicacao_id")
+      .eq("perfil_id", ctx.usuarioId)
+      .in("publicacao_id", ids),
+    imovelIds.length > 0
+      ? supabase.from("imoveis").select("id, tipo, cidade, uf").in("id", imovelIds)
+      : Promise.resolve({ data: [] }),
+  ]);
   const curtidos = new Set((minhas ?? []).map((c) => c.publicacao_id));
 
-  // Títulos dos imóveis destacados (lookup em lote; RLS pode ocultar alguns).
-  const imovelIds = [...new Set(posts.map((p) => p.imovel_id).filter((v): v is string => !!v))];
   const titulos = new Map<string, string>();
-  if (imovelIds.length > 0) {
-    const { data: imoveis } = await supabase
-      .from("imoveis")
-      .select("id, tipo, cidade, uf")
-      .in("id", imovelIds);
-    for (const im of imoveis ?? []) {
-      titulos.set(im.id, tituloImovel(im));
-    }
+  for (const im of imoveis ?? []) {
+    titulos.set(im.id, tituloImovel(im));
   }
 
   return posts.map((p) => {
@@ -328,9 +332,12 @@ export async function meuResumoComunidade(): Promise<ResumoComunidade> {
   const seguidoresTotal = seguidores.count ?? 0;
   const seguindoTotal = seguindo.count ?? 0;
 
+  // calcularStreak agrupa por dia fatiando o ISO (10 primeiros chars): os dois
+  // lados são convertidos para o DIA de São Paulo, senão o frame do "hoje" e o
+  // dos posts divergem à noite (21h–0h BRT já é o dia seguinte em UTC).
   const streak = calcularStreak(
-    posts.map((p) => p.criado_em),
-    new Date().toISOString(),
+    posts.map((p) => diaSaoPaulo(p.criado_em)),
+    diaSaoPaulo(new Date()),
   );
   const pontos = calcularPontosComunidade({
     publicacoes,
@@ -367,7 +374,7 @@ export async function publicarPostAction(input: unknown): Promise<ResultadoAcao>
   }
   const sessao = await obterSessao();
   if (!sessao) {
-    return { ok: false, erro: "Sessão expirada. Faça login novamente." };
+    return { ok: false, erro: "Sessão expirada. Entre novamente." };
   }
 
   const parsed = publicarPostSchema.safeParse(input);

@@ -15,8 +15,13 @@ import { ChipTermometro } from "../termometro";
 import { tempoRelativo } from "../tempo";
 import { ReatribuirLead } from "./reatribuir";
 
-export const metadata: Metadata = { title: "Lead — ImobIA" };
+export const metadata: Metadata = { title: "Lead" };
 export const dynamic = "force-dynamic";
+
+// Id fora do formato UUID nunca existe no banco — 404 direto, sem estourar
+// o cast de uuid do Postgres (que viraria 500).
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function PaginaLead({
   params,
@@ -24,6 +29,9 @@ export default async function PaginaLead({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  if (!UUID_RE.test(id)) {
+    notFound();
+  }
   const detalhe = await obterLead(id);
   if (!detalhe) {
     notFound();

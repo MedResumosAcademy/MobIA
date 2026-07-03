@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import { cookies } from "next/headers";
 import { Search } from "lucide-react";
 import { BannerCookies } from "@/components/BannerCookies";
+import { MenuMobile } from "@/components/MenuMobile";
 import { NewsletterCaptura } from "@/components/NewsletterCaptura";
 import { sair } from "@/lib/auth/acoes";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
@@ -29,8 +30,27 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "ImobIA",
+  metadataBase: new URL("https://mob-ia.vercel.app"),
+  title: {
+    default: "ImobIA — Monte a compra do seu imóvel",
+    template: "%s — ImobIA",
+  },
   description: "O primeiro aplicativo que permite ao cliente montar sua própria compra.",
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    siteName: "ImobIA",
+    title: "ImobIA",
+    description: "O primeiro aplicativo que permite ao cliente montar sua própria compra.",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+};
+
+// themeColor vive na API viewport (Next 16), não dentro de metadata.
+export const viewport: Viewport = {
+  themeColor: "#DB6414",
 };
 
 // Wordmark reutilizável — "Imob" grafite, "IA" laranja marca. SANS (Geist) por
@@ -77,7 +97,12 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <header className="header-sticky sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
           <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-3 md:gap-8">
+              <MenuMobile
+                ehCliente={ehCliente}
+                ehProfissional={ehProfissional}
+                logado={sessao !== null}
+              />
               <Link
                 href="/"
                 className="text-2xl text-foreground"

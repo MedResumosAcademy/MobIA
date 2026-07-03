@@ -161,13 +161,17 @@ function lerModoVoz(transcricaoDisponivel: boolean): ModoVoz {
 
 // —— Constantes de apresentação ———————————————————————————————————————————————
 
+/** Aviso ÚNICO do teto de gravação por voz (usado pelos dois modos: gravador e web-speech). */
+const AVISO_LIMITE_60S =
+  "Chegamos ao limite de 60s de gravação — vou enviar o que você falou até aqui.";
+
 const SUGESTOES = [
   "Minha agenda de hoje",
   "Passa a Sofia para proposta",
   "Mensagem de follow-up para a Sofia",
   "Fechei com a Camila por 780 mil",
   "Avisos importantes",
-  "Me lembra de ligar para a Patricia amanha as 9h",
+  "Me lembra de ligar para a Patrícia amanhã às 9h",
 ] as const;
 
 const BOAS_VINDAS: RespostaAssistente = {
@@ -416,7 +420,7 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
     // gravação SÓ para no clique do usuário (botão de parar ou X) — sem
     // timeslice, sem detecção de silêncio, sem auto-stop.
     iniciarTimers(() => {
-      avisarNoChat("Chegamos ao limite de 60s de gravação — vou enviar o que você falou até aqui.");
+      avisarNoChat(AVISO_LIMITE_60S);
       if (gravador.current && gravador.current.state !== "inactive") {
         gravador.current.stop();
       }
@@ -533,7 +537,7 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
     setTexto("");
     // Teto de 60s: avisa e envia o que foi dito até aqui.
     iniciarTimers(() => {
-      avisarNoChat("Chegamos ao limite de 60s — vou enviar o que você falou até aqui.");
+      avisarNoChat(AVISO_LIMITE_60S);
       paradaSolicitada.current = true;
       encerramentoVoz.current = "enviar";
       reconhecimento.current?.stop();

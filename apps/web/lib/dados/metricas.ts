@@ -20,6 +20,7 @@ import {
 } from "@imobia/core";
 import type { Database, Temperatura } from "@imobia/domain";
 import { obterSessao } from "@/lib/auth/sessao";
+import { diaSaoPaulo } from "@/lib/fuso";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { resumoDaOrg } from "./gestor";
 
@@ -47,9 +48,9 @@ export type DashboardGerencial = {
   leadsPorTemperatura: Record<Temperatura, number>;
 };
 
-/** Data ISO (YYYY-MM-DD) de "hoje" no servidor. */
+/** Data ISO (YYYY-MM-DD) de "hoje" no relógio do produto (America/Sao_Paulo). */
 function hojeIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return diaSaoPaulo(new Date());
 }
 
 type LinhaNegocioMetricas = Pick<

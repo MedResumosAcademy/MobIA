@@ -3,7 +3,7 @@ import Link from "next/link";
 import { criarImovelAction } from "../acoes";
 import { FormularioImovel } from "../FormularioImovel";
 
-export const metadata: Metadata = { title: "Novo imóvel — ImobIA" };
+export const metadata: Metadata = { title: "Novo imóvel" };
 
 const MENSAGENS_ERRO: Record<string, string> = {
   invalido: "Dados inválidos. Revise os campos e tente novamente.",

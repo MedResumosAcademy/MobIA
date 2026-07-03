@@ -15,5 +15,6 @@ export * from "./atencao";
 export * from "./metas";
 export * from "./comunidade";
 export * from "./cpf";
+export * from "./moeda";
 export * from "./assistente";
 export * from "./whatsapp";

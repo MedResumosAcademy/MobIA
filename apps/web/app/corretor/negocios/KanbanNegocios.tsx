@@ -9,7 +9,7 @@
 // A RLS/escopo/registro de atividade ficam no servidor (moverEtapaCliente).
 // Card leva ao detalhe via <Link>; o handle de arraste não navega.
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatarReais } from "@imobia/core";
@@ -36,7 +36,9 @@ export function KanbanNegocios({
   nomePorResponsavel: Record<string, string | null>;
 }) {
   const router = useRouter();
-  const [pendente, iniciar] = useTransition();
+  const [, iniciar] = useTransition();
+  // Pendência POR CARD (a11y): mover um card não trava o board inteiro.
+  const [pendentes, setPendentes] = useState<Set<string>>(new Set());
   // Sobreposição otimista: id -> etapa destino enquanto a ação está no ar.
   const [otimista, setOtimista] = useState<Record<string, EtapaNegocio>>({});
   const [erro, setErro] = useState<string | null>(null);
@@ -53,6 +55,7 @@ export function KanbanNegocios({
     }
     setErro(null);
     setOtimista((o) => ({ ...o, [id]: destino }));
+    setPendentes((p) => new Set(p).add(id));
     iniciar(async () => {
       const r = await moverEtapaCliente(id, destino);
       if (r.ok) {
@@ -65,6 +68,11 @@ export function KanbanNegocios({
           return resto;
         });
       }
+      setPendentes((p) => {
+        const proximo = new Set(p);
+        proximo.delete(id);
+        return proximo;
+      });
     });
   }
 
@@ -127,7 +135,7 @@ export function KanbanNegocios({
                     key={n.id}
                     negocio={n}
                     etapaEfetiva={etapaEfetiva(n)}
-                    pendente={pendente}
+                    pendente={pendentes.has(n.id)}
                     mostrarResponsavel={mostrarResponsavel}
                     nomeResponsavel={nomePorResponsavel[n.corretorId] ?? null}
                     aoIniciarArraste={() => {
@@ -162,6 +170,33 @@ function CartaoNegocio({
   aoIniciarArraste: () => void;
   aoMover: (destino: EtapaNegocio) => void;
 }) {
+  // Valor local do <select> com commit em debounce (a11y): atravessar as
+  // opções por seta no teclado não comita cada etapa intermediária, e o
+  // campo não fica disabled sob o foco durante a ação (evita perder o foco).
+  const [etapaLocal, setEtapaLocal] = useState<EtapaNegocio | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Quando a etapa efetiva muda (otimismo/servidor), o valor local se dissolve.
+  useEffect(() => {
+    setEtapaLocal(null);
+  }, [etapaEfetiva]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  function aoTrocarEtapa(destino: EtapaNegocio) {
+    if (pendente) return; // ignora enquanto ESTE card está no ar (sem disabled)
+    setEtapaLocal(destino);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      aoMover(destino);
+    }, 300);
+  }
+
   return (
     <div
       draggable
@@ -202,9 +237,9 @@ function CartaoNegocio({
       <label className="mt-0.5 flex items-center gap-1.5 text-[11px] text-subtle">
         <span className="sr-only">Mover {negocio.nomeContato} para etapa</span>
         <CampoSelect
-          value={etapaEfetiva}
-          disabled={pendente}
-          onChange={(e) => aoMover(e.target.value as EtapaNegocio)}
+          value={etapaLocal ?? etapaEfetiva}
+          aria-busy={pendente || undefined}
+          onChange={(e) => aoTrocarEtapa(e.target.value as EtapaNegocio)}
           className="w-auto py-1 text-xs"
           aria-label={`Etapa de ${negocio.nomeContato}`}
         >

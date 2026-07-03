@@ -15,7 +15,11 @@ import { obterCapacidadeAtual } from "@/lib/capacidade";
 import { idsFavoritos } from "@/lib/dados/favoritos";
 import { listarImoveis, type FiltrosCatalogo as Filtros } from "@/lib/dados/imoveis";
 
-export const metadata: Metadata = { title: "Catálogo — ImobIA" };
+export const metadata: Metadata = {
+  title: "Catálogo",
+  description:
+    "Casas, apartamentos e terrenos à venda em todo o Brasil. Filtre por cidade, preço e características e monte a compra do seu imóvel do seu jeito.",
+};
 
 // Catálogo lê parâmetros da URL a cada request; RLS já limita a disponível.
 export const dynamic = "force-dynamic";

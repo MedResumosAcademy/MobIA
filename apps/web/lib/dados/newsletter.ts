@@ -30,7 +30,7 @@ import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { criarClientePublico } from "@/lib/supabase/publico";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { ImovelParaEmail } from "@/lib/email/newsletter-html";
-import { gerarHtmlEdicao } from "@/lib/email/newsletter-html";
+import { BASE_URL_SITE, gerarHtmlEdicao } from "@/lib/email/newsletter-html";
 import { urlPublicaMidia } from "./storage";
 
 type LinhaEdicao = Database["public"]["Tables"]["newsletter_edicoes"]["Row"];
@@ -108,12 +108,52 @@ async function exigirGestor(): Promise<void> {
   }
 }
 
-// --- Captura pública ---
+// --- Captura pública (double opt-in — migração 0023) ---
+
+/**
+ * E-mail de confirmação de inscrição (double opt-in). Best-effort: falha de
+ * envio NÃO derruba a inscrição (fica pendente; nunca receberá edições até
+ * confirmar). NUNCA loga o e-mail nem o token.
+ */
+async function enviarEmailConfirmacao(
+  apiKey: string,
+  email: string,
+  token: string,
+): Promise<void> {
+  const link = `${BASE_URL_SITE}/newsletter/confirmar?token=${token}`;
+  const html =
+    `<p>Recebemos um pedido para inscrever este e-mail na newsletter da ImobIA.</p>` +
+    `<p><a href="${link}">Confirmar minha inscrição</a></p>` +
+    `<p>Se não foi você, ignore esta mensagem — sem a confirmação, nada será enviado.</p>`;
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "ImobIA <onboarding@resend.dev>",
+        to: [email],
+        subject: "Confirme sua inscrição na newsletter da ImobIA",
+        html,
+      }),
+    });
+  } catch {
+    // Silencioso de propósito: sem detalhes (e sem dados pessoais) em logs.
+  }
+}
 
 /**
  * Inscrição pública na newsletter (Server Action — funciona ANÔNIMO).
  * Idempotente: e-mail duplicado (23505) responde { ok: true, jaInscrito }
  * — sem revelar se o e-mail já existia por mensagem de erro.
+ *
+ * DOUBLE OPT-IN (LGPD, migração 0023): a inscrição nasce PENDENTE
+ * (confirmado_em null) com um token gerado AQUI no servidor; com
+ * RESEND_API_KEY enviamos o e-mail de confirmação (/newsletter/confirmar).
+ * Só inscrições confirmadas entram em listarInscritos/enviarEdicaoAction —
+ * inscrever o e-mail de um terceiro nunca gera envio a ele.
  */
 export async function inscreverNewsletterAction(
   input: InscricaoNewsletterInput,
@@ -125,10 +165,14 @@ export async function inscreverNewsletterAction(
       erro: "Confira o e-mail informado e o aceite de consentimento.",
     };
   }
+  // Token de confirmação gerado no servidor — só viaja pelo e-mail (a policy
+  // de SELECT é admin-only, então o INSERT não devolve representation).
+  const token = crypto.randomUUID();
   const supabase = criarClientePublico();
   const { error } = await supabase.from("newsletter_inscricoes").insert({
     email: parsed.data.email,
     nome: parsed.data.nome && parsed.data.nome !== "" ? parsed.data.nome : null,
+    token_confirmacao: token,
   });
   if (error) {
     if (error.code === "23505") {
@@ -140,7 +184,32 @@ export async function inscreverNewsletterAction(
       erro: "Não foi possível concluir a inscrição agora. Tente novamente.",
     };
   }
+  const apiKey = process.env.RESEND_API_KEY;
+  if (apiKey) {
+    await enviarEmailConfirmacao(apiKey, parsed.data.email, token);
+  }
   return { ok: true };
+}
+
+/**
+ * Confirma uma inscrição pelo token do e-mail (double opt-in). RPC SECURITY
+ * DEFINER — true só quando confirmou AGORA (token desconhecido, já usado ou
+ * inscrição cancelada ⇒ false, sem distinguir os casos).
+ */
+export async function confirmarInscricaoAction(token: string): Promise<boolean> {
+  // UUID malformado nem chega ao banco (a RPC tipa p_token como uuid).
+  const uuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidValido.test(token)) {
+    return false;
+  }
+  const supabase = criarClientePublico();
+  const { data, error } = await supabase.rpc("newsletter_confirmar", {
+    p_token: token,
+  });
+  if (error) {
+    return false;
+  }
+  return data === true;
 }
 
 // --- Inscritos (total: gestor/admin; e-mails crus: só admin — LGPD 0022) ---
@@ -161,9 +230,11 @@ export async function totalInscritos(): Promise<number> {
 }
 
 /**
- * Lista de inscritos ativos (mais recentes primeiro) + total. LGPD: a RLS só
- * devolve linhas ao papel 'admin' (plataforma); para gestor, inscritos = []
- * e o total continua correto (agregado via totalInscritos).
+ * Lista de inscritos ativos E CONFIRMADOS (double opt-in, 0023 — quem nunca
+ * clicou no e-mail de confirmação não entra, logo nunca recebe envio), mais
+ * recentes primeiro, + total. LGPD: a RLS só devolve linhas ao papel 'admin'
+ * (plataforma); para gestor, inscritos = [] e o total continua correto
+ * (agregado via totalInscritos).
  */
 export async function listarInscritos(): Promise<{
   total: number;
@@ -175,6 +246,7 @@ export async function listarInscritos(): Promise<{
     .from("newsletter_inscricoes")
     .select("email, nome, consentiu_em")
     .is("cancelado_em", null)
+    .not("confirmado_em", "is", null)
     .order("consentiu_em", { ascending: false });
   if (error) {
     throw new Error(`listarInscritos: ${error.message}`);
@@ -411,9 +483,33 @@ export async function enviarEdicaoAction(id: string): Promise<ResultadoEnvio> {
       body: JSON.stringify(lote),
     });
     if (!resposta.ok) {
+      // i = quantos e-mails JÁ SAÍRAM nos lotes anteriores.
+      if (i === 0) {
+        // Nada foi enviado — o retry é seguro.
+        return {
+          ok: false,
+          erro: "Falha no envio pelo provedor. Nenhum e-mail foi enviado — tente novamente.",
+        };
+      }
+      // Envio PARCIAL: os lotes 1..N-1 já chegaram aos destinatários. Marca a
+      // edição como enviada (registrando o envio parcial) para o botão de
+      // reenvio NÃO duplicar o e-mail para as primeiras centenas de inscritos —
+      // perder a cauda é menos danoso que enviar duplicado.
+      const supabaseParcial = await criarClienteServidor();
+      const agoraParcial = new Date().toISOString();
+      await supabaseParcial
+        .from("newsletter_edicoes")
+        .update({ status: "enviada", enviada_em: agoraParcial, atualizado_em: agoraParcial })
+        .eq("id", id);
+      revalidatePath("/corretor/newsletter");
+      revalidatePath(`/corretor/newsletter/${id}`);
       return {
         ok: false,
-        erro: "Falha no envio pelo provedor. Nenhum status foi alterado — tente novamente.",
+        erro:
+          `Falha no provedor após ${i} de ${inscritos.length} e-mails enviados. ` +
+          `NÃO reenvie: os primeiros ${i} inscritos já receberam. A edição foi marcada ` +
+          "como enviada para evitar duplicidade — para alcançar o restante, copie o " +
+          "HTML e envie manualmente ou contate o suporte.",
       };
     }
   }

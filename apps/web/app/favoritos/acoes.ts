@@ -9,7 +9,7 @@ import { PrecisaLoginError } from "@/lib/dados/favoritos-erros";
 
 export type ResultadoAlternar =
   | { ok: true; favoritado: boolean }
-  | { ok: false; motivo: "precisa_login" };
+  | { ok: false; motivo: "precisa_login" | "erro" };
 
 export async function alternarFavoritoAction(
   imovelId: string,
@@ -21,6 +21,10 @@ export async function alternarFavoritoAction(
     if (erro instanceof PrecisaLoginError) {
       return { ok: false, motivo: "precisa_login" };
     }
-    throw erro;
+    // Erro real (RLS, rede, banco): resultado tipado em vez de rethrow — a
+    // exceção estouraria sem tratamento no client e o coração ficaria com o
+    // estado otimista oposto ao do banco.
+    console.error("alternarFavoritoAction:", erro);
+    return { ok: false, motivo: "erro" };
   }
 }

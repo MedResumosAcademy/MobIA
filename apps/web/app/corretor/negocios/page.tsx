@@ -28,7 +28,7 @@ import { KanbanNegocios } from "./KanbanNegocios";
 import { ListaNegocios, type OrdemLista } from "./ListaNegocios";
 import { ETAPAS_ORDEM, ROTULO_RESULTADO } from "./rotulos";
 
-export const metadata: Metadata = { title: "Negócios — ImobIA" };
+export const metadata: Metadata = { title: "Negócios" };
 export const dynamic = "force-dynamic";
 
 type Params = {

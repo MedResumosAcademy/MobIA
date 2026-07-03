@@ -5,7 +5,11 @@
 import type { Metadata } from "next";
 import { SonhometroFormulario } from "@/components/SonhometroFormulario";
 
-export const metadata: Metadata = { title: "Sonhômetro — ImobIA" };
+export const metadata: Metadata = {
+  title: "Sonhômetro",
+  description:
+    "Descubra em minutos quanto imóvel cabe no seu bolso: simule renda, entrada e parcelas e veja imóveis compatíveis com o seu momento.",
+};
 
 export default function PaginaSonhometro() {
   return (

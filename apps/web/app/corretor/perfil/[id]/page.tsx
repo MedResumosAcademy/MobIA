@@ -11,8 +11,13 @@ import { desempenhoCarteira } from "@/lib/dados/carteira";
 import { obterPerfilCorretor } from "@/lib/dados/perfil";
 import { VitrinePerfil } from "../VitrinePerfil";
 
-export const metadata: Metadata = { title: "Perfil do corretor — ImobIA" };
+export const metadata: Metadata = { title: "Perfil do corretor" };
 export const dynamic = "force-dynamic";
+
+// Id fora do formato UUID nunca existe no banco — 404 direto, sem estourar
+// o cast de uuid do Postgres (que viraria 500).
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function PaginaPerfilCorretor({
   params,
@@ -25,6 +30,9 @@ export default async function PaginaPerfilCorretor({
   }
 
   const { id } = await params;
+  if (!UUID_RE.test(id)) {
+    notFound();
+  }
   const perfil = await obterPerfilCorretor(id);
   if (!perfil) {
     notFound();

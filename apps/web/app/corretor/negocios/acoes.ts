@@ -8,6 +8,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { etapaNegocioSchema, resultadoNegocioSchema, tipoAtividadeSchema } from "@imobia/domain";
+import { reaisParaCentavosOuNull } from "@/lib/moeda";
 import {
   adicionarAtividade,
   atualizarNegocio,
@@ -25,18 +26,9 @@ function opcional(raw: FormDataEntryValue | null): string | null {
 }
 
 // "1.280.000,00" | "1280000.00" | "1280000" → centavos; vazio → null.
-function reaisParaCentavos(raw: FormDataEntryValue | null): number | null {
-  const texto = String(raw ?? "").trim();
-  if (texto === "") {
-    return null;
-  }
-  const normalizado = texto.replace(/\./g, "").replace(",", ".");
-  const numero = Number(normalizado);
-  if (!Number.isFinite(numero) || numero < 0) {
-    throw new Error("valor inválido");
-  }
-  return Math.round(numero * 100);
-}
+// Parser compartilhado (lib/moeda.ts → @imobia/core): o separador decimal é
+// detectado pelo ÚLTIMO símbolo — ponto único com 1-2 casas é decimal.
+const reaisParaCentavos = reaisParaCentavosOuNull;
 
 function codigoErro(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
@@ -80,13 +72,32 @@ export async function converterLeadEmNegocioAction(formData: FormData) {
 }
 
 // --- Ações do detalhe (revalidam a própria página) ---
+// Chamadas imperativamente (await em useTransition) pelo Controles.tsx, então
+// retornam o resultado tipado ResultadoMover em vez de lançar/redirecionar —
+// uma exceção aqui viraria error boundary genérico no client.
 
-export async function moverEtapaAction(formData: FormData) {
-  const id = String(formData.get("id") ?? "").trim();
-  const etapa = etapaNegocioSchema.parse(String(formData.get("etapa") ?? ""));
-  await moverEtapa(id, etapa);
-  revalidatePath("/corretor/negocios");
-  revalidatePath(`/corretor/negocios/${id}`);
+function erroParaResultado(e: unknown, fallback: string): ResultadoMover {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (msg.includes("permissão") || msg.includes("autenticado")) {
+    return { ok: false, erro: "Sem permissão para alterar este negócio." };
+  }
+  return { ok: false, erro: fallback };
+}
+
+export async function moverEtapaAction(formData: FormData): Promise<ResultadoMover> {
+  try {
+    const id = String(formData.get("id") ?? "").trim();
+    const parsed = etapaNegocioSchema.safeParse(String(formData.get("etapa") ?? ""));
+    if (!parsed.success) {
+      return { ok: false, erro: "Etapa inválida." };
+    }
+    await moverEtapa(id, parsed.data);
+    revalidatePath("/corretor/negocios");
+    revalidatePath(`/corretor/negocios/${id}`);
+    return { ok: true };
+  } catch (e) {
+    return erroParaResultado(e, "Não foi possível mover o negócio. Tente novamente.");
+  }
 }
 
 // Variante chamável do CLIENTE (board por arrastar-e-soltar / select de etapa):
@@ -113,13 +124,21 @@ export async function moverEtapaCliente(
   }
 }
 
-export async function definirResultadoAction(formData: FormData) {
-  const id = String(formData.get("id") ?? "").trim();
-  const resultado = resultadoNegocioSchema.parse(String(formData.get("resultado") ?? ""));
-  const motivo = opcional(formData.get("motivo")) ?? undefined;
-  await definirResultado(id, resultado, motivo);
-  revalidatePath("/corretor/negocios");
-  revalidatePath(`/corretor/negocios/${id}`);
+export async function definirResultadoAction(formData: FormData): Promise<ResultadoMover> {
+  try {
+    const id = String(formData.get("id") ?? "").trim();
+    const parsed = resultadoNegocioSchema.safeParse(String(formData.get("resultado") ?? ""));
+    if (!parsed.success) {
+      return { ok: false, erro: "Resultado inválido." };
+    }
+    const motivo = opcional(formData.get("motivo")) ?? undefined;
+    await definirResultado(id, parsed.data, motivo);
+    revalidatePath("/corretor/negocios");
+    revalidatePath(`/corretor/negocios/${id}`);
+    return { ok: true };
+  } catch (e) {
+    return erroParaResultado(e, "Não foi possível registrar o resultado. Tente novamente.");
+  }
 }
 
 export async function atualizarNegocioAction(formData: FormData) {
@@ -142,12 +161,20 @@ export async function atualizarNegocioAction(formData: FormData) {
   revalidatePath(`/corretor/negocios/${id}`);
 }
 
-export async function adicionarAtividadeAction(formData: FormData) {
-  const id = String(formData.get("id") ?? "").trim();
-  const tipo = tipoAtividadeSchema.parse(String(formData.get("tipo") ?? "nota"));
-  const descricao = String(formData.get("descricao") ?? "").trim();
-  if (descricao !== "") {
-    await adicionarAtividade(id, tipo, descricao);
+export async function adicionarAtividadeAction(formData: FormData): Promise<ResultadoMover> {
+  try {
+    const id = String(formData.get("id") ?? "").trim();
+    const parsed = tipoAtividadeSchema.safeParse(String(formData.get("tipo") ?? "nota"));
+    if (!parsed.success) {
+      return { ok: false, erro: "Tipo de atividade inválido." };
+    }
+    const descricao = String(formData.get("descricao") ?? "").trim();
+    if (descricao !== "") {
+      await adicionarAtividade(id, parsed.data, descricao);
+    }
+    revalidatePath(`/corretor/negocios/${id}`);
+    return { ok: true };
+  } catch (e) {
+    return erroParaResultado(e, "Não foi possível registrar a atividade. Tente novamente.");
   }
-  revalidatePath(`/corretor/negocios/${id}`);
 }

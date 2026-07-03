@@ -13,6 +13,7 @@
 // (lib/fuso.ts), comparada como texto (datas ISO ordenam lexicograficamente).
 // Datas ISO; pt-BR.
 
+import { cache } from "react";
 import type { Database } from "@imobia/domain";
 import { z } from "zod";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
@@ -197,8 +198,10 @@ export async function listarTarefasDoNegocio(negocioId: string): Promise<TarefaR
  * Tarefas PENDENTES (não concluídas) do corretor logado — inclui atrasadas e
  * futuras/sem prazo — ordenadas por vence_em asc (atrasadas primeiro; sem prazo
  * por último). Para o "meu dia" do corretor. Anônimo/cliente recebe [].
+ * React cache(): memoiza por request — o painel do corretor consome esta
+ * listagem por mais de um caminho (dashboard + prioridades) sem query dupla.
  */
-export async function minhasTarefas(): Promise<TarefaResumo[]> {
+export const minhasTarefas = cache(async (): Promise<TarefaResumo[]> => {
   const sessao = await obterSessao();
   if (!sessao) {
     return [];
@@ -216,14 +219,15 @@ export async function minhasTarefas(): Promise<TarefaResumo[]> {
   }
   const hoje = hojeIso();
   return (data ?? []).map((linha) => mapTarefaResumo(linha as LinhaTarefaEnriquecida, hoje));
-}
+});
 
 /**
  * Tarefas PENDENTES da ORG (não concluídas) com o corretor responsável — para o
  * painel do gestor acompanhar a carga do time. Ordenadas por vence_em asc. A RLS
  * (papel gestor/admin) limita à própria org. Lança se sem permissão de gestor.
+ * React cache(): memoiza por request (mesma técnica de obterSessao/obterPerfil).
  */
-export async function tarefasDaOrg(): Promise<TarefaResumo[]> {
+export const tarefasDaOrg = cache(async (): Promise<TarefaResumo[]> => {
   const sessao = await obterSessao();
   if (!sessao) {
     return [];
@@ -240,4 +244,4 @@ export async function tarefasDaOrg(): Promise<TarefaResumo[]> {
   }
   const hoje = hojeIso();
   return (data ?? []).map((linha) => mapTarefaResumo(linha as LinhaTarefaEnriquecida, hoje));
-}
+});

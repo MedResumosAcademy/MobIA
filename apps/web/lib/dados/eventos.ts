@@ -21,6 +21,11 @@ export async function registrarEvento(
   tipo: TipoEvento,
   { imovelId, metadata }: { imovelId?: string; metadata?: MetadataEvento } = {},
 ): Promise<void> {
+  // O cliente é criado ANTES de qualquer await: cookies() é lido de forma
+  // síncrona na invocação, o que permite iniciar esta promise durante a
+  // renderização e entregá-la a after() (Server Components não podem ler
+  // cookies depois que a resposta termina).
+  const supabasePromise = criarClienteServidor();
   const sessao = await obterSessao();
   if (!sessao) {
     return;
@@ -31,7 +36,7 @@ export async function registrarEvento(
     return;
   }
 
-  const supabase = await criarClienteServidor();
+  const supabase = await supabasePromise;
   // org_id é preenchido por trigger a partir do imovel_id.
   const { error } = await supabase.from("eventos").insert({
     tipo,

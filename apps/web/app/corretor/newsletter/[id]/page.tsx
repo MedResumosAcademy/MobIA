@@ -14,7 +14,7 @@ import { gerarHtmlEdicao } from "@/lib/email/newsletter-html";
 import { obterEdicao, obterImoveisDaEdicao } from "@/lib/dados/newsletter";
 import { AcoesEdicao } from "./AcoesEdicao";
 
-export const metadata: Metadata = { title: "Edição da newsletter — ImobIA" };
+export const metadata: Metadata = { title: "Edição da newsletter" };
 export const dynamic = "force-dynamic";
 
 const BADGE_STATUS: Record<StatusEdicaoNewsletter, { rotulo: string; variante: VarianteBadge }> = {

@@ -31,7 +31,9 @@ export async function cadastrar(formData: FormData) {
   if (!email || !senha) {
     redirect("/cadastro?erro=campos-obrigatorios");
   }
-  if (senha.length < 6) {
+  // Mínimo 8 (segurança): alinhado à config do Supabase Auth (senha mínima 8
+  // + leaked password protection) — corretores acessam PII de leads.
+  if (senha.length < 8) {
     redirect("/cadastro?erro=senha-curta");
   }
 

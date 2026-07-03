@@ -12,7 +12,7 @@ import { atualizarImovelAction } from "../../acoes";
 import { FormularioImovel } from "../../FormularioImovel";
 import { Unidades } from "../../Unidades";
 
-export const metadata: Metadata = { title: "Editar imóvel — ImobIA" };
+export const metadata: Metadata = { title: "Editar imóvel" };
 export const dynamic = "force-dynamic";
 
 const MENSAGENS_ERRO: Record<string, string> = {

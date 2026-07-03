@@ -4,10 +4,15 @@ import Link from "next/link";
 import MapaBrasil, { type DadoUf } from "@/components/MapaBrasil";
 import { agregarImoveisPorUf } from "@/lib/dados/imoveis";
 
-export const metadata: Metadata = { title: "Imóveis pelo Brasil — ImobIA" };
+export const metadata: Metadata = {
+  title: "Imóveis pelo Brasil",
+  description:
+    "Explore imóveis à venda pelo mapa do Brasil: navegue por estado e cidade e encontre oportunidades perto de onde você quer morar.",
+};
 
-// Agrega o catálogo público a cada request; RLS limita a status='disponivel'.
-export const dynamic = "force-dynamic";
+// Página 100% pública (sem cookies/sessão): o agregado por UF é cacheado e
+// revalidado a cada 5 min — evita render + query no banco a cada hit.
+export const revalidate = 300;
 
 /** Nomes por extenso das 27 UFs — só para exibição no ranking. */
 const NOMES_UF: Record<string, string> = {

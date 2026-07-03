@@ -9,7 +9,7 @@ import { classesBotao } from "@/components/ui/Botao";
 import { listarImoveisParaCoringa } from "@/lib/dados/coringa";
 import { FormularioCoringa } from "./FormularioCoringa";
 
-export const metadata: Metadata = { title: "Coringa — ImobIA" };
+export const metadata: Metadata = { title: "Coringa" };
 
 export default async function PaginaCoringa() {
   const imoveis = await listarImoveisParaCoringa();

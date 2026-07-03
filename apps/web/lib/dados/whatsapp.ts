@@ -19,6 +19,7 @@ import {
   type ObjetivoMensagem,
 } from "@imobia/core";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
+import { permitido } from "@/lib/seguranca/limitador";
 import { obterNegocio } from "@/lib/dados/negocios";
 import { redigirMensagemComIa } from "@/lib/ia/redator-whatsapp";
 import { ROTULO_ETAPA } from "@/app/corretor/negocios/rotulos";
@@ -55,6 +56,14 @@ export async function gerarMensagemNegocioAction(
   }
   if (!OBJETIVOS.has(objetivo)) {
     return { ok: false, erro: "Não reconheci o objetivo dessa mensagem." };
+  }
+  // Rate limit por usuário (o redator preferido é LLM pago): 20 mensagens/min.
+  // Mantém o contrato { ok: false, erro } — sem lançar.
+  if (!permitido(`whatsapp:${sessao.usuarioId}`, 20, 60_000)) {
+    return {
+      ok: false,
+      erro: "Muitas mensagens geradas em sequência — aguarde um instante e tente de novo.",
+    };
   }
   try {
     // Reusa obterNegocio (negocios.ts): RLS escopa; já vem com imovelTitulo,

@@ -875,30 +875,36 @@ export type Database = {
       newsletter_inscricoes: {
         Row: {
           cancelado_em: string | null
+          confirmado_em: string | null
           consentiu_em: string
           criado_em: string
           email: string
           id: string
           nome: string | null
           origem: string
+          token_confirmacao: string
         }
         Insert: {
           cancelado_em?: string | null
+          confirmado_em?: string | null
           consentiu_em?: string
           criado_em?: string
           email: string
           id?: string
           nome?: string | null
           origem?: string
+          token_confirmacao?: string
         }
         Update: {
           cancelado_em?: string | null
+          confirmado_em?: string | null
           consentiu_em?: string
           criado_em?: string
           email?: string
           id?: string
           nome?: string | null
           origem?: string
+          token_confirmacao?: string
         }
         Relationships: []
       }
@@ -1248,6 +1254,7 @@ export type Database = {
       }
     }
     Functions: {
+      newsletter_confirmar: { Args: { p_token: string }; Returns: boolean }
       newsletter_total_inscritos: { Args: never; Returns: number }
     }
     Enums: {

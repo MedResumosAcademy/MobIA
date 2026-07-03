@@ -13,7 +13,13 @@ import { classesBotao } from "@/components/ui/Botao";
 import { obterImovel, type ImovelDetalhe } from "@/lib/dados/imoveis";
 import { obterParametrosVigentesDoBanco } from "@/lib/parametros";
 
-export const metadata: Metadata = { title: "Comparar imóveis — ImobIA" };
+export const metadata: Metadata = {
+  title: "Comparar imóveis",
+  description:
+    "Compare imóveis lado a lado: preço, área, quartos, vagas e condições de compra para decidir com segurança qual é o melhor negócio.",
+  // Estado pessoal (?ids= de cada visitante) — sem valor de indexação.
+  robots: { index: false, follow: false },
+};
 
 // Depende de parâmetros vigentes e RLS a cada request.
 export const dynamic = "force-dynamic";

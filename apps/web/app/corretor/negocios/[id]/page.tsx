@@ -30,8 +30,13 @@ function apenasDigitos(valor: string | null): string | null {
   return digitos === "" ? null : digitos;
 }
 
-export const metadata: Metadata = { title: "Negócio — ImobIA" };
+export const metadata: Metadata = { title: "Negócio" };
 export const dynamic = "force-dynamic";
+
+// Id fora do formato UUID nunca existe no banco — 404 direto, sem estourar
+// o cast de uuid do Postgres (que viraria 500).
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function PaginaNegocio({
   params,
@@ -39,13 +44,19 @@ export default async function PaginaNegocio({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const detalhe = await obterNegocio(id);
+  if (!UUID_RE.test(id)) {
+    notFound();
+  }
+  // Detalhe e tarefas dependem só do id ⇒ paralelo (2 round-trips → 1).
+  const [detalhe, tarefas] = await Promise.all([
+    obterNegocio(id),
+    listarTarefasDoNegocio(id),
+  ]);
   if (!detalhe) {
     notFound();
   }
   const { negocio, timeline, clienteNome } = detalhe;
   const fechado = negocio.resultado !== null;
-  const tarefas = await listarTarefasDoNegocio(id);
 
   const telDigitos = apenasDigitos(negocio.telefoneContato);
 

@@ -33,7 +33,7 @@ import { ComposerPost } from "./ComposerPost";
 import { PostCard } from "./PostCard";
 import { BotaoSeguir } from "./BotaoSeguir";
 
-export const metadata: Metadata = { title: "Comunidade — ImobIA" };
+export const metadata: Metadata = { title: "Comunidade" };
 export const dynamic = "force-dynamic";
 
 // Limiares absolutos das faixas (espelham FAIXAS_COMUNIDADE em @imobia/core),

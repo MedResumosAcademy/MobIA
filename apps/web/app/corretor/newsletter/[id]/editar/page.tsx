@@ -9,7 +9,7 @@ import { listarImoveisDaOrg } from "@/lib/dados/imoveis";
 import { obterEdicao } from "@/lib/dados/newsletter";
 import { FormularioEdicao, type ImovelSelecionavel } from "../../FormularioEdicao";
 
-export const metadata: Metadata = { title: "Editar edição — Newsletter — ImobIA" };
+export const metadata: Metadata = { title: "Editar edição — Newsletter" };
 export const dynamic = "force-dynamic";
 
 export default async function PaginaEditarEdicao({

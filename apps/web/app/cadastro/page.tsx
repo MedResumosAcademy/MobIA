@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cadastrar } from "@/lib/auth/acoes";
-import { Botao } from "@/components/ui/Botao";
+import { BotaoSubmit } from "@/components/ui/BotaoSubmit";
 import { Campo, GrupoCampo } from "@/components/ui/Campo";
 
-export const metadata: Metadata = { title: "Cadastro — ImobIA" };
+export const metadata: Metadata = {
+  title: "Cadastro",
+  robots: { index: false, follow: false },
+};
 
 const MENSAGENS_ERRO: Record<string, string> = {
   "campos-obrigatorios": "Preencha e-mail e senha.",
-  "senha-curta": "A senha precisa ter pelo menos 6 caracteres.",
+  "senha-curta": "A senha precisa ter pelo menos 8 caracteres.",
   "senha-fraca": "Senha muito fraca. Use uma combinação mais difícil de adivinhar.",
   "email-ja-cadastrado": "Este e-mail já tem cadastro. Tente entrar.",
   "erro-inesperado": "Não foi possível criar sua conta agora. Tente novamente em instantes.",
@@ -56,21 +59,21 @@ export default async function PaginaCadastro({
             rotulo="Senha"
             htmlFor="senha"
             obrigatorio
-            auxilio="Mínimo de 6 caracteres."
+            auxilio="Mínimo de 8 caracteres."
           >
             <Campo
               id="senha"
               type="password"
               name="senha"
               required
-              minLength={6}
+              minLength={8}
               autoComplete="new-password"
-              placeholder="Mínimo de 6 caracteres"
+              placeholder="Mínimo de 8 caracteres"
             />
           </GrupoCampo>
-          <Botao type="submit" tamanho="lg" className="mt-2 w-full">
+          <BotaoSubmit rotuloPendente="Cadastrando…" tamanho="lg" className="mt-2 w-full">
             Criar conta
-          </Botao>
+          </BotaoSubmit>
         </form>
 
         <p className="mt-6 text-center text-sm text-muted">

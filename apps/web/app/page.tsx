@@ -29,7 +29,10 @@ import { idsFavoritos } from "@/lib/dados/favoritos";
 import { agregarImoveisPorUf, listarImoveis } from "@/lib/dados/imoveis";
 
 export const metadata: Metadata = {
-  title: "ImobIA — Monte a compra do seu imóvel do seu jeito",
+  // Home foge do template "%s — ImobIA" do root (o wordmark já abre o título).
+  title: { absolute: "ImobIA — Monte a compra do seu imóvel do seu jeito" },
+  description:
+    "ImobIA: o primeiro aplicativo que permite ao cliente montar sua própria compra de imóvel — catálogo, simulador e comparador em um só lugar.",
 };
 
 export const dynamic = "force-dynamic";
@@ -91,8 +94,10 @@ export default async function Home() {
     fetchPriority: "high",
   });
 
+  // limite: 8 — a landing só exibe 6 destaques + 2 cards do hero; sem o teto a
+  // query baixava a tabela inteira (select * sem limit) a cada request.
   const [imoveis, favoritos, agregados] = await Promise.all([
-    listarImoveis(),
+    listarImoveis({ limite: 8 }),
     idsFavoritos(),
     agregarImoveisPorUf(),
   ]);

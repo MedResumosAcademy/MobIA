@@ -293,7 +293,7 @@ function Resultado({
         {estrategias.length === 0 ? (
           <p className="mt-4 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-muted">
             Nenhuma jogada melhora este cenário. {baseline.viavel
-              ? "O baseline já está bem enquadrado."
+              ? "O cenário atual já está bem enquadrado."
               : "Reveja renda, entrada ou o imóvel-alvo."}
           </p>
         ) : (
@@ -306,7 +306,7 @@ function Resultado({
       </div>
 
       <p className="text-xs text-subtle">
-        Estimativas geradas pelo motor determinístico do ImobIA a partir dos
+        Estimativas geradas pelo motor determinístico da ImobIA a partir dos
         parâmetros vigentes. Não constituem proposta formal nem garantia de
         aprovação de crédito.
       </p>

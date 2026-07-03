@@ -90,9 +90,19 @@ export async function alternarFavorito(imovelId: string): Promise<boolean> {
     imovel_id: imovelId,
   } as InsertFavorito;
   const { error } = await supabase.from("favoritos").insert(insert);
-  if (error) {
+  // 23505 = unique_violation (duplo-clique passou duas vezes pelo check acima):
+  // a linha já existe — idempotente, é sucesso (mesmo padrão de curtirAction).
+  if (error && error.code !== "23505") {
     throw new Error(`alternarFavorito(inserir): ${error.message}`);
   }
-  await registrarEvento("favorito", { imovelId });
+  if (!error) {
+    // O favorito JÁ está salvo: falha na captura do sinal (E7) não pode
+    // desfazer a percepção de sucesso — loga e segue.
+    try {
+      await registrarEvento("favorito", { imovelId });
+    } catch (e) {
+      console.error("alternarFavorito(evento):", e);
+    }
+  }
   return true;
 }

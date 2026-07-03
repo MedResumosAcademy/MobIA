@@ -9,14 +9,23 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { ChevronLeft, ChevronRight, Expand, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function FichaGaleria({ fotos, titulo }: { fotos: string[]; titulo: string }) {
   const [aberta, setAberta] = useState<number | null>(null);
+  // Gestão de foco do lightbox (a11y): foco entra no botão Fechar ao abrir,
+  // fica preso dentro do dialog (Tab/Shift+Tab) e volta à miniatura ao fechar.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const fecharRef = useRef<HTMLButtonElement>(null);
+  const origemRef = useRef<HTMLElement | null>(null);
+  const estavaAberta = useRef(false);
 
   const total = fotos.length;
 
-  const fechar = useCallback(() => setAberta(null), []);
+  const fechar = useCallback(() => {
+    setAberta(null);
+    origemRef.current?.focus();
+  }, []);
   const anterior = useCallback(
     () => setAberta((i) => (i === null ? i : (i - 1 + total) % total)),
     [total],
@@ -32,6 +41,22 @@ export function FichaGaleria({ fotos, titulo }: { fotos: string[]; titulo: strin
       if (e.key === "Escape") fechar();
       else if (e.key === "ArrowLeft") anterior();
       else if (e.key === "ArrowRight") proxima();
+      else if (e.key === "Tab") {
+        // Trap de foco: mantém Tab/Shift+Tab circulando dentro do dialog.
+        const focaveis = dialogRef.current?.querySelectorAll<HTMLElement>("button");
+        if (!focaveis || focaveis.length === 0) return;
+        const primeiro = focaveis[0];
+        const ultimo = focaveis[focaveis.length - 1];
+        const ativo = document.activeElement;
+        const dentro = ativo instanceof HTMLElement && dialogRef.current?.contains(ativo);
+        if (e.shiftKey && (!dentro || ativo === primeiro)) {
+          e.preventDefault();
+          ultimo.focus();
+        } else if (!e.shiftKey && (!dentro || ativo === ultimo)) {
+          e.preventDefault();
+          primeiro.focus();
+        }
+      }
     }
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
@@ -40,6 +65,16 @@ export function FichaGaleria({ fotos, titulo }: { fotos: string[]; titulo: strin
       document.body.style.overflow = "";
     };
   }, [aberta, fechar, anterior, proxima]);
+
+  // Ao abrir (null -> índice), move o foco para dentro do dialog (botão Fechar).
+  // Navegar entre fotos (índice -> índice) não rouba o foco dos botões de seta.
+  useEffect(() => {
+    const abertaAgora = aberta !== null;
+    if (abertaAgora && !estavaAberta.current) {
+      fecharRef.current?.focus();
+    }
+    estavaAberta.current = abertaAgora;
+  }, [aberta]);
 
   if (total === 0) {
     return (
@@ -59,7 +94,10 @@ export function FichaGaleria({ fotos, titulo }: { fotos: string[]; titulo: strin
         {/* Foto principal */}
         <button
           type="button"
-          onClick={() => setAberta(0)}
+          onClick={(e) => {
+            origemRef.current = e.currentTarget;
+            setAberta(0);
+          }}
           className="group relative aspect-[4/3] w-full overflow-hidden rounded-3xl shadow-[var(--shadow-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-muted sm:aspect-auto"
           aria-label={`Ampliar foto principal — ${titulo}`}
         >
@@ -88,7 +126,10 @@ export function FichaGaleria({ fotos, titulo }: { fotos: string[]; titulo: strin
                 <button
                   key={url}
                   type="button"
-                  onClick={() => setAberta(idx)}
+                  onClick={(e) => {
+                    origemRef.current = e.currentTarget;
+                    setAberta(idx);
+                  }}
                   className="group relative aspect-[4/3] w-full overflow-hidden rounded-2xl shadow-[var(--shadow-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-muted"
                   aria-label={`Ampliar foto ${idx + 1} — ${titulo}`}
                 >
@@ -112,6 +153,7 @@ export function FichaGaleria({ fotos, titulo }: { fotos: string[]; titulo: strin
       {/* Lightbox */}
       {aberta !== null && (
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label={`Foto ${aberta + 1} de ${total} — ${titulo}`}
@@ -119,6 +161,7 @@ export function FichaGaleria({ fotos, titulo }: { fotos: string[]; titulo: strin
           onClick={fechar}
         >
           <button
+            ref={fecharRef}
             type="button"
             onClick={fechar}
             className="absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"

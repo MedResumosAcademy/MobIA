@@ -361,11 +361,21 @@ export async function obterNegocio(id: string): Promise<NegocioDetalhe | null> {
   }
   const supabase = await criarClienteServidor();
 
-  const { data: linha, error } = await supabase
-    .from("negocios")
-    .select(`${SELECT_ENRIQUECIDO}, cliente:perfis!negocios_cliente_id_fkey(nome)`)
-    .eq("id", id)
-    .maybeSingle();
+  // As duas queries dependem só do `id` recebido ⇒ rodam em paralelo; se o
+  // negócio não existir/não for visível, o resultado da timeline é descartado.
+  const [{ data: linha, error }, { data: atividades, error: erroAtividades }] =
+    await Promise.all([
+      supabase
+        .from("negocios")
+        .select(`${SELECT_ENRIQUECIDO}, cliente:perfis!negocios_cliente_id_fkey(nome)`)
+        .eq("id", id)
+        .maybeSingle(),
+      supabase
+        .from("negocio_atividades")
+        .select("*")
+        .eq("negocio_id", id)
+        .order("criado_em", { ascending: true }),
+    ]);
   if (error) {
     throw new Error(`obterNegocio: ${error.message}`);
   }
@@ -377,11 +387,6 @@ export async function obterNegocio(id: string): Promise<NegocioDetalhe | null> {
   };
   const negocio = separarEnriquecida(resto);
 
-  const { data: atividades, error: erroAtividades } = await supabase
-    .from("negocio_atividades")
-    .select("*")
-    .eq("negocio_id", id)
-    .order("criado_em", { ascending: true });
   if (erroAtividades) {
     throw new Error(`obterNegocio(timeline): ${erroAtividades.message}`);
   }

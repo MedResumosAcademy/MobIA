@@ -24,6 +24,7 @@ import {
   type ImovelEntrada,
 } from "@/lib/dados/imoveis";
 import { caminhoMidia, urlPublicaMidia, type BucketMidia } from "@/lib/dados/storage";
+import { reaisParaCentavosOuZero } from "@/lib/moeda";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
 // org_id vem SEMPRE da sessão — nunca do formulário (anti-forja).
@@ -69,19 +70,10 @@ function jsonArrayString(raw: FormDataEntryValue | null): string[] {
   return Array.isArray(parsed) ? parsed.map(String) : [];
 }
 
-function reaisParaCentavos(raw: FormDataEntryValue | null): number {
-  const texto = String(raw ?? "").trim();
-  if (texto === "") {
-    return 0;
-  }
-  // Aceita "1.280.000,00" ou "1280000.00" ou "1280000".
-  const normalizado = texto.replace(/\./g, "").replace(",", ".");
-  const numero = Number(normalizado);
-  if (!Number.isFinite(numero) || numero < 0) {
-    throw new Error("valor inválido");
-  }
-  return Math.round(numero * 100);
-}
+// Aceita "1.280.000,00", "1280000.00" ou "1280000"; vazio → 0. Parser
+// compartilhado (lib/moeda.ts → @imobia/core): o separador decimal é detectado
+// pelo ÚLTIMO símbolo — ponto único com 1-2 casas é decimal, não milhar.
+const reaisParaCentavos = reaisParaCentavosOuZero;
 
 function opcional(raw: FormDataEntryValue | null): string | null {
   const texto = String(raw ?? "").trim();
