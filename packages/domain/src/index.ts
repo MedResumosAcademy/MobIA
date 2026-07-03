@@ -19,4 +19,5 @@ export * from "./negocio";
 export * from "./tarefa";
 export * from "./meta";
 export * from "./perfil";
+export * from "./comunidade";
 export type { Database, Json } from "./database.types";

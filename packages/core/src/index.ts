@@ -13,3 +13,4 @@ export * from "./metricas";
 export * from "./gamificacao";
 export * from "./atencao";
 export * from "./metas";
+export * from "./comunidade";

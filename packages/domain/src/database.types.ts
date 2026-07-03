@@ -816,6 +816,126 @@ export type Database = {
           },
         ]
       }
+      publicacao_curtidas: {
+        Row: {
+          criado_em: string
+          perfil_id: string
+          publicacao_id: string
+        }
+        Insert: {
+          criado_em?: string
+          perfil_id: string
+          publicacao_id: string
+        }
+        Update: {
+          criado_em?: string
+          perfil_id?: string
+          publicacao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publicacao_curtidas_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "publicacao_curtidas_publicacao_id_fkey"
+            columns: ["publicacao_id"]
+            isOneToOne: false
+            referencedRelation: "publicacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      publicacoes: {
+        Row: {
+          autor_foto_url: string | null
+          autor_id: string
+          autor_nome: string
+          autor_org: string | null
+          conteudo: string
+          criado_em: string
+          curtidas_count: number
+          id: string
+          imovel_id: string | null
+          tipo: string
+        }
+        Insert: {
+          autor_foto_url?: string | null
+          autor_id: string
+          autor_nome: string
+          autor_org?: string | null
+          conteudo: string
+          criado_em?: string
+          curtidas_count?: number
+          id?: string
+          imovel_id?: string | null
+          tipo?: string
+        }
+        Update: {
+          autor_foto_url?: string | null
+          autor_id?: string
+          autor_nome?: string
+          autor_org?: string | null
+          conteudo?: string
+          criado_em?: string
+          curtidas_count?: number
+          id?: string
+          imovel_id?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publicacoes_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "publicacoes_imovel_id_fkey"
+            columns: ["imovel_id"]
+            isOneToOne: false
+            referencedRelation: "imoveis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seguidores: {
+        Row: {
+          criado_em: string
+          seguido_id: string
+          seguidor_id: string
+        }
+        Insert: {
+          criado_em?: string
+          seguido_id: string
+          seguidor_id: string
+        }
+        Update: {
+          criado_em?: string
+          seguido_id?: string
+          seguidor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seguidores_seguido_id_fkey"
+            columns: ["seguido_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seguidores_seguidor_id_fkey"
+            columns: ["seguidor_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       simulacoes: {
         Row: {
           cliente_id: string | null
@@ -937,7 +1057,26 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ranking_comunidade: {
+        Row: {
+          autor_foto_url: string | null
+          autor_id: string | null
+          autor_nome: string | null
+          autor_org: string | null
+          curtidas_recebidas: number | null
+          publicacoes: number | null
+          seguidores: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publicacoes_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       [_ in never]: never
