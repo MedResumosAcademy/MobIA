@@ -87,11 +87,16 @@ export async function obterPapelEOrg(): Promise<{ papel: Papel; orgId: string | 
 }
 
 /**
- * Nome da organização do gestor logado (RLS organizacoes_select libera a
- * própria org). null se indisponível. Só gestor/admin.
+ * Nome da organização do usuário logado (corretor ou gestor). A RLS
+ * organizacoes_select libera só a própria org. null se indisponível/não-org.
+ * NÃO exige gestor — o painel do corretor também exibe o nome da org.
  */
 export async function obterNomeOrg(): Promise<string | null> {
-  const { orgId } = await exigirGestor();
+  const contexto = await obterPapelEOrg();
+  const orgId = contexto?.orgId;
+  if (!orgId) {
+    return null;
+  }
   const supabase = await criarClienteServidor();
   const { data, error } = await supabase
     .from("organizacoes")

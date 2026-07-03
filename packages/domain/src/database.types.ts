@@ -469,6 +469,51 @@ export type Database = {
           },
         ]
       }
+      metas: {
+        Row: {
+          alvo: number
+          atualizado_em: string | null
+          criado_em: string
+          definido_por: string | null
+          id: string
+          org_id: string
+          tipo: string
+        }
+        Insert: {
+          alvo: number
+          atualizado_em?: string | null
+          criado_em?: string
+          definido_por?: string | null
+          id?: string
+          org_id: string
+          tipo: string
+        }
+        Update: {
+          alvo?: number
+          atualizado_em?: string | null
+          criado_em?: string
+          definido_por?: string | null
+          id?: string
+          org_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metas_definido_por_fkey"
+            columns: ["definido_por"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metas_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       negocio_atividades: {
         Row: {
           autor_id: string | null

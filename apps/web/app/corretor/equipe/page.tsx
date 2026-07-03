@@ -20,12 +20,19 @@ import {
   Medal,
   TrendingUp,
   XCircle,
+  Target,
+  CheckCircle2,
 } from "lucide-react";
 import { formatarReais } from "@imobia/core";
 import { ETAPAS_NEGOCIO, type EtapaNegocio, type Temperatura } from "@imobia/domain";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { obterNomeOrg } from "@/lib/dados/gestor";
 import { dashboardGerencial, type DashboardGerencial } from "@/lib/dados/metricas";
+import {
+  listarMetasComProgresso,
+  type MetaComProgresso,
+} from "@/lib/dados/metas";
+import { EditorMetas } from "./EditorMetas";
 
 export const metadata: Metadata = { title: "Dashboard gerencial — ImobIA" };
 export const dynamic = "force-dynamic";
@@ -106,9 +113,10 @@ export default async function PaginaEquipe() {
     redirect("/corretor?aviso=area-restrita-gestor");
   }
 
-  const [dashboard, nomeOrg] = await Promise.all([
+  const [dashboard, nomeOrg, metas] = await Promise.all([
     dashboardGerencial("org"),
     obterNomeOrg(),
+    listarMetasComProgresso("org"),
   ]);
   const { metricas, tarefas, leadsPorTemperatura } = dashboard;
   const leadsTotal =
@@ -143,6 +151,9 @@ export default async function PaginaEquipe() {
           leadsTotal={leadsTotal}
           prontosParaCompra={leadsPorTemperatura.pronto_para_compra}
         />
+
+        {/* Metas da empresa (destaque, logo após os KPIs) */}
+        <SecaoMetas metas={metas} />
 
         {/* Funil por etapa + indicadores de fechamento */}
         <section className="mt-10">
@@ -310,6 +321,113 @@ function CardKpi({
         {valor}
       </p>
       <p className="text-xs text-subtle">{detalhe}</p>
+    </div>
+  );
+}
+
+// —— Metas da empresa —————————————————————————————————————————————————————————
+// Barras de progresso por meta (atual/alvo). Só gestor/admin chega aqui (o gate
+// no topo já garante o papel), então o editor "Definir metas" é sempre exibido.
+// Metas com alvo=0 ainda não foram definidas — mostramos o atual e um estado
+// convidando o gestor a definir os alvos do período.
+function SecaoMetas({ metas }: { metas: MetaComProgresso[] }) {
+  const algumaDefinida = metas.some((m) => m.alvo > 0);
+  // Alvo em REAIS para as monetárias (o editor digita em reais); contagem inteira.
+  const itensEditor = metas.map((m) => ({
+    tipo: m.tipo,
+    rotulo: m.rotulo,
+    monetaria: m.monetaria,
+    valorInicial: m.monetaria ? Math.round(m.alvo / 100) : m.alvo,
+  }));
+
+  return (
+    <section className="mt-10">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+            <Target className="h-5 w-5 text-brand" aria-hidden />
+            Metas da empresa
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            Alvos do período e quanto já foi alcançado.
+          </p>
+        </div>
+        <EditorMetas itens={itensEditor} />
+      </div>
+
+      {!algumaDefinida ? (
+        <p className="mt-4 rounded-2xl border border-dashed border-border-strong bg-surface-card p-8 text-center text-subtle">
+          Defina as metas do período no botão “Definir metas”.
+        </p>
+      ) : (
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {metas.map((meta) => (
+            <CardMeta key={meta.tipo} meta={meta} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function CardMeta({ meta }: { meta: MetaComProgresso }) {
+  const definida = meta.alvo > 0;
+  const pct = Math.round(meta.progresso * 100);
+  const fmt = (n: number) =>
+    meta.monetaria ? reaisCompacto(n) : n.toLocaleString("pt-BR");
+  const faltam = Math.max(meta.alvo - meta.atual, 0);
+
+  const borda = meta.atingida
+    ? "border-gold-strong/40 bg-gold-soft"
+    : "border-border bg-surface-card";
+
+  return (
+    <div
+      className={`flex flex-col gap-3 rounded-2xl border p-5 shadow-[var(--shadow-soft)] ${borda}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-sm font-semibold text-foreground">{meta.rotulo}</span>
+        {meta.atingida && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-gold px-2.5 py-0.5 text-[11px] font-semibold uppercase leading-none tracking-[0.08em] text-foreground">
+            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+            Atingida
+          </span>
+        )}
+      </div>
+
+      {definida ? (
+        <>
+          <div className="flex items-baseline justify-between text-sm">
+            <span className="tabular-nums font-semibold text-foreground">
+              {fmt(meta.atual)}{" "}
+              <span className="font-normal text-subtle">/ {fmt(meta.alvo)}</span>
+            </span>
+            <span
+              className={`tabular-nums text-xs font-medium ${
+                meta.atingida ? "text-gold-strong" : "text-subtle"
+              }`}
+            >
+              {pct}%
+            </span>
+          </div>
+          <div className="h-3 w-full overflow-hidden rounded-full bg-surface">
+            <div
+              className={`h-full rounded-full ${meta.atingida ? "bg-gold" : "bg-brand"}`}
+              style={{ width: `${Math.max(pct, meta.atual > 0 ? 4 : 0)}%` }}
+            />
+          </div>
+          <p className="text-xs text-subtle">
+            {meta.atingida ? "Meta atingida 🎉" : `Faltam ${fmt(faltam)}`}
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="tabular-nums text-2xl font-semibold text-foreground">
+            {fmt(meta.atual)}
+          </p>
+          <p className="text-xs text-subtle">Meta ainda não definida.</p>
+        </>
+      )}
     </div>
   );
 }

@@ -12,3 +12,4 @@ export * from "./funil";
 export * from "./metricas";
 export * from "./gamificacao";
 export * from "./atencao";
+export * from "./metas";

@@ -24,6 +24,8 @@ import {
   ArrowRight,
   AlertTriangle,
   UserCircle,
+  Target,
+  CheckCircle2,
 } from "lucide-react";
 import { formatarReais } from "@imobia/core";
 import { ETAPAS_NEGOCIO, type EtapaNegocio } from "@imobia/domain";
@@ -31,6 +33,8 @@ import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { dashboardGerencial } from "@/lib/dados/metricas";
 import { minhasTarefas } from "@/lib/dados/tarefas";
 import { obterNomeOrg } from "@/lib/dados/gestor";
+import { prioridades, type ItemPrioridade, type NivelPrioridade } from "@/lib/dados/prioridades";
+import { listarMetasComProgresso, type MetaComProgresso } from "@/lib/dados/metas";
 
 export const metadata: Metadata = { title: "Painel do corretor — ImobIA" };
 export const dynamic = "force-dynamic";
@@ -52,10 +56,12 @@ export default async function PainelCorretor() {
   const papel = perfil?.papel ?? "cliente";
   const ehGestor = papel === "gestor" || papel === "admin";
 
-  const [dashboard, tarefas, nomeOrg] = await Promise.all([
+  const [dashboard, tarefas, nomeOrg, itensPrioridade, metasOrg] = await Promise.all([
     dashboardGerencial("meu"),
     minhasTarefas(),
     obterNomeOrg(),
+    prioridades("meu"),
+    listarMetasComProgresso("org"),
   ]);
 
   const { metricas, tarefas: resumoTarefas } = dashboard;
@@ -77,6 +83,9 @@ export default async function PainelCorretor() {
             {nomeOrg ? nomeOrg : "Sua atividade em um só lugar"}
           </p>
         </header>
+
+        {/* DESTAQUE — Onde agir agora (fila de prioridades pessoal) */}
+        <OndeAgirAgora itens={itensPrioridade} ehGestor={ehGestor} />
 
         {/* KPIs pessoais */}
         <section className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -128,6 +137,9 @@ export default async function PainelCorretor() {
           </p>
           <MiniFunil porEtapa={metricas.porEtapa} />
         </section>
+
+        {/* Metas da empresa (read-only para o corretor: o alvo do time) */}
+        <MetasDaEmpresa metas={metasOrg} />
 
         {/* Atalhos de navegação — TODOS num único bloco */}
         <section className="mt-8">
@@ -319,5 +331,159 @@ function CardAtalho({
         <span className="text-xs text-subtle">{descricao}</span>
       </span>
     </Link>
+  );
+}
+
+// —— Onde agir agora (fila de prioridades) ————————————————————————————————————
+// Selo por nível: crítico/parado = brand (vermelho quente), alto/atrasada = gold,
+// médio/lead quente = brand-soft. As cores derivam do nível já resolvido na
+// camada de dados (parado→crítico, atrasada→crítico/alto, lead→médio).
+const ESTILO_SELO: Record<
+  NivelPrioridade,
+  { selo: string; icone: string; rotulo: string }
+> = {
+  critico: {
+    selo: "bg-brand text-white",
+    icone: "text-brand-strong",
+    rotulo: "Urgente",
+  },
+  alto: {
+    selo: "bg-gold-soft text-gold-strong",
+    icone: "text-gold-strong",
+    rotulo: "Atenção",
+  },
+  medio: {
+    selo: "bg-brand-soft text-brand-strong",
+    icone: "text-brand-strong",
+    rotulo: "Oportunidade",
+  },
+};
+
+function OndeAgirAgora({
+  itens,
+  ehGestor,
+}: {
+  itens: ItemPrioridade[];
+  ehGestor: boolean;
+}) {
+  return (
+    <section className="mt-8 rounded-2xl border border-brand/30 bg-surface-card p-6 shadow-[var(--shadow-soft)]">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+            <Sparkles className="h-5 w-5 text-brand-strong" aria-hidden />
+            Onde agir agora
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            Suas ações mais urgentes, priorizadas.
+          </p>
+        </div>
+        {ehGestor && (
+          <Link
+            href="/corretor/equipe"
+            className="hidden shrink-0 items-center gap-1.5 rounded-xl border border-brand/30 bg-brand-soft px-3 py-2 text-xs font-semibold text-brand-strong transition-colors hover:bg-brand-soft/70 sm:flex"
+          >
+            <UsersRound className="h-4 w-4" aria-hidden />
+            Dashboard da equipe
+          </Link>
+        )}
+      </div>
+
+      {itens.length === 0 ? (
+        <p className="mt-5 flex items-center justify-center gap-2 rounded-xl border border-dashed border-border-strong bg-surface p-6 text-center text-sm font-medium text-foreground">
+          <CheckCircle2 className="h-5 w-5 text-brand-strong" aria-hidden />
+          Tudo em dia! Nenhuma ação urgente.
+        </p>
+      ) : (
+        <ul className="mt-5 flex flex-col gap-2.5">
+          {itens.map((item) => {
+            const Icone = item.icone;
+            const estilo = ESTILO_SELO[item.nivel];
+            return (
+              <li key={item.id}>
+                <Link
+                  href={item.href}
+                  className="group flex items-center gap-3 rounded-xl border border-border bg-surface p-4 transition-colors hover:border-brand/40 hover:bg-surface-card"
+                >
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-card ${estilo.icone}`}
+                  >
+                    <Icone className="h-4.5 w-4.5" aria-hidden />
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="truncate font-semibold text-foreground">
+                      {item.titulo}
+                    </span>
+                    <span className="truncate text-xs text-subtle">
+                      {item.subtitulo}
+                    </span>
+                  </span>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.06em] ${estilo.selo}`}
+                  >
+                    {estilo.rotulo}
+                  </span>
+                  <ArrowRight
+                    className="h-4 w-4 shrink-0 -translate-x-1 text-subtle opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100"
+                    aria-hidden
+                  />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+// —— Metas da empresa (read-only para o corretor) ————————————————————————————
+function MetasDaEmpresa({ metas }: { metas: MetaComProgresso[] }) {
+  const formatarValor = (m: MetaComProgresso, n: number) =>
+    m.monetaria ? formatarReais(n) : String(n);
+  return (
+    <section className="mt-8 rounded-2xl border border-border bg-surface-card p-6 shadow-[var(--shadow-soft)]">
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+        <Target className="h-5 w-5 text-brand-strong" aria-hidden />
+        Metas da empresa
+      </h2>
+      <p className="mt-1 text-sm text-muted">
+        O alvo do time neste mês — acompanhe para onde estamos indo juntos.
+      </p>
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {metas.map((m) => {
+          const pct = Math.round(m.progresso * 100);
+          const semAlvo = m.alvo <= 0;
+          return (
+            <div key={m.tipo}>
+              <div className="flex items-baseline justify-between gap-2 text-sm">
+                <span className="flex items-center gap-1.5 font-medium text-foreground">
+                  {m.rotulo}
+                  {m.atingida && !semAlvo && (
+                    <CheckCircle2 className="h-4 w-4 text-brand-strong" aria-hidden />
+                  )}
+                </span>
+                <span className="tabular-nums text-subtle">
+                  {semAlvo ? (
+                    <>{formatarValor(m, m.atual)} · sem meta</>
+                  ) : (
+                    <>
+                      {formatarValor(m, m.atual)}{" "}
+                      <span className="text-subtle/70">/ {formatarValor(m, m.alvo)}</span>
+                    </>
+                  )}
+                </span>
+              </div>
+              <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-surface">
+                <div
+                  className={`h-full rounded-full ${m.atingida && !semAlvo ? "bg-gold" : "bg-brand"}`}
+                  style={{ width: `${semAlvo ? 0 : Math.max(pct, m.atual > 0 ? 4 : 0)}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
