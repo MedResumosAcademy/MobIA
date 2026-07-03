@@ -102,6 +102,19 @@ export type FiltrosCatalogo = {
   capacidadeMax?: number;
   /** Número mínimo de quartos: só imóveis com quartos >= quartosMin. */
   quartosMin?: number;
+  /** Sigla da UF (2 letras); normalizada para maiúsculas. Filtra por estado. */
+  uf?: string;
+};
+
+// --- Agregação por UF ---
+
+export type AgregadoUf = {
+  uf: string;
+  cidadePrincipal?: string;
+  /** Nº de imóveis disponíveis nessa UF. */
+  quantidade: number;
+  /** Menor valor (centavos) entre os disponíveis dessa UF. */
+  valorMinimo: number;
 };
 
 // --- Schemas de entrada (anti-forja: org_id/corretor NUNCA vêm do form) ---
@@ -277,6 +290,9 @@ export async function listarImoveis(
   if (filtros.cidadeBusca) {
     query = query.ilike("cidade", `%${filtros.cidadeBusca}%`);
   }
+  if (filtros.uf) {
+    query = query.eq("uf", filtros.uf.toUpperCase());
+  }
   if (filtros.precoMin !== undefined) {
     query = query.gte("valor", filtros.precoMin);
   }
@@ -296,6 +312,64 @@ export async function listarImoveis(
     throw new Error(`listarImoveis: ${error.message}`);
   }
   return (data ?? []).map(mapCardImovel);
+}
+
+/**
+ * Agrega os imóveis DISPONÍVEIS (RLS pública via criarClientePublico) por UF.
+ * Para cada UF: contagem, menor valor (centavos) e a cidade com mais imóveis
+ * (cidadePrincipal, desempate alfabético). Ordena por quantidade desc (desempate
+ * por UF asc). O total geral vem sob a chave especial uf="__total".
+ */
+export async function agregarImoveisPorUf(): Promise<AgregadoUf[]> {
+  const supabase = criarClientePublico();
+  const { data, error } = await supabase.from("imoveis").select("uf, cidade, valor");
+  if (error) {
+    throw new Error(`agregarImoveisPorUf: ${error.message}`);
+  }
+  const linhas = data ?? [];
+
+  const porUf = new Map<
+    string,
+    { quantidade: number; valorMinimo: number; cidades: Map<string, number> }
+  >();
+
+  for (const l of linhas) {
+    const uf = l.uf.toUpperCase();
+    const atual = porUf.get(uf) ?? {
+      quantidade: 0,
+      valorMinimo: Number.POSITIVE_INFINITY,
+      cidades: new Map<string, number>(),
+    };
+    atual.quantidade += 1;
+    atual.valorMinimo = Math.min(atual.valorMinimo, l.valor);
+    atual.cidades.set(l.cidade, (atual.cidades.get(l.cidade) ?? 0) + 1);
+    porUf.set(uf, atual);
+  }
+
+  const agregados: AgregadoUf[] = [...porUf.entries()]
+    .map(([uf, v]) => {
+      const cidadePrincipal = [...v.cidades.entries()].sort(
+        (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+      )[0]?.[0];
+      return {
+        uf,
+        cidadePrincipal,
+        quantidade: v.quantidade,
+        valorMinimo: v.valorMinimo,
+      };
+    })
+    .sort((a, b) => b.quantidade - a.quantidade || a.uf.localeCompare(b.uf));
+
+  const total: AgregadoUf = {
+    uf: "__total",
+    quantidade: linhas.length,
+    valorMinimo: agregados.reduce(
+      (min, a) => Math.min(min, a.valorMinimo),
+      Number.POSITIVE_INFINITY,
+    ),
+  };
+
+  return [...agregados, total];
 }
 
 /** Imóvel + unidades. Retorna null se não visível (RLS) ou inexistente. */
@@ -330,6 +404,58 @@ export async function listarImoveisDaOrg(): Promise<ImovelDetalhe[]> {
     throw new Error(`listarImoveisDaOrg: ${error.message}`);
   }
   return (data ?? []).map((l) => mapDetalhe(l, []));
+}
+
+/**
+ * Agrega os imóveis da própria org por UF — TODOS os status (RLS server-side).
+ * Uso interno futuro (dashboards). Mesma forma de saída de agregarImoveisPorUf,
+ * incluindo o total geral sob uf="__total".
+ */
+export async function agregarImoveisDaOrgPorUf(): Promise<AgregadoUf[]> {
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase.from("imoveis").select("uf, cidade, valor");
+  if (error) {
+    throw new Error(`agregarImoveisDaOrgPorUf: ${error.message}`);
+  }
+  const linhas = data ?? [];
+
+  const porUf = new Map<
+    string,
+    { quantidade: number; valorMinimo: number; cidades: Map<string, number> }
+  >();
+
+  for (const l of linhas) {
+    const uf = l.uf.toUpperCase();
+    const atual = porUf.get(uf) ?? {
+      quantidade: 0,
+      valorMinimo: Number.POSITIVE_INFINITY,
+      cidades: new Map<string, number>(),
+    };
+    atual.quantidade += 1;
+    atual.valorMinimo = Math.min(atual.valorMinimo, l.valor);
+    atual.cidades.set(l.cidade, (atual.cidades.get(l.cidade) ?? 0) + 1);
+    porUf.set(uf, atual);
+  }
+
+  const agregados: AgregadoUf[] = [...porUf.entries()]
+    .map(([uf, v]) => {
+      const cidadePrincipal = [...v.cidades.entries()].sort(
+        (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+      )[0]?.[0];
+      return { uf, cidadePrincipal, quantidade: v.quantidade, valorMinimo: v.valorMinimo };
+    })
+    .sort((a, b) => b.quantidade - a.quantidade || a.uf.localeCompare(b.uf));
+
+  const total: AgregadoUf = {
+    uf: "__total",
+    quantidade: linhas.length,
+    valorMinimo: agregados.reduce(
+      (min, a) => Math.min(min, a.valorMinimo),
+      Number.POSITIVE_INFINITY,
+    ),
+  };
+
+  return [...agregados, total];
 }
 
 /**

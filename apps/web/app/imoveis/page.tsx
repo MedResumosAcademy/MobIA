@@ -1,9 +1,11 @@
+import { UFS_BRASIL } from "@imobia/core";
 import {
   categoriaImovelSchema,
   tipoImovelSchema,
   type CategoriaImovel,
   type TipoImovel,
 } from "@imobia/domain";
+import { MapPin, X } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BannerCapacidade } from "@/components/BannerCapacidade";
@@ -25,9 +27,19 @@ type ParametrosBusca = {
   precoMin?: string;
   precoMax?: string;
   quartosMin?: string;
+  /** Sigla de UF vinda do mapa (?uf=SP). Validada contra UFS_BRASIL. */
+  uf?: string;
   /** ?todos=1 desliga o filtro de capacidade do Sonhômetro nesta visita (H-18). */
   todos?: string;
 };
+
+const UF_SET: ReadonlySet<string> = new Set(UFS_BRASIL);
+
+/** Normaliza e valida a sigla de UF da URL; undefined se não for uma das 27. */
+function ufValida(valor?: string): string | undefined {
+  const s = valor?.trim().toUpperCase();
+  return s && UF_SET.has(s) ? s : undefined;
+}
 
 /** Reais (string da URL) → centavos inteiros, ou undefined se inválido. */
 function reaisParaCentavos(valor?: string): number | undefined {
@@ -53,6 +65,7 @@ function derivarFiltros(params: ParametrosBusca): Filtros {
     tipo: tipo.success ? (tipo.data as TipoImovel) : undefined,
     categoria: categoria.success ? (categoria.data as CategoriaImovel) : undefined,
     cidadeBusca: cidade ? cidade : undefined,
+    uf: ufValida(params.uf),
     precoMin: reaisParaCentavos(params.precoMin),
     precoMax: reaisParaCentavos(params.precoMax),
     quartosMin: inteiroPositivo(params.quartosMin),
@@ -82,6 +95,16 @@ export default async function PaginaCatalogo({
 
   const total = imoveis.length;
 
+  // Chip removível de UF: href que remove só o ?uf preservando os demais filtros.
+  const ufAtiva = filtros.uf;
+  const semUf = new URLSearchParams();
+  for (const [chave, valor] of Object.entries(params)) {
+    if (chave !== "uf" && typeof valor === "string" && valor) {
+      semUf.set(chave, valor);
+    }
+  }
+  const hrefSemUf = semUf.toString() ? `/imoveis?${semUf.toString()}` : "/imoveis";
+
   return (
     <div className="flex flex-1 flex-col bg-background px-6 py-14 font-sans sm:py-16">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-10">
@@ -90,9 +113,18 @@ export default async function PaginaCatalogo({
             <span aria-hidden className="h-px w-8 bg-gold" />
             Catálogo
           </span>
-          <h1 className="font-serif text-4xl tracking-tight text-foreground sm:text-5xl">
-            Encontre onde sua história vai morar
-          </h1>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <h1 className="font-serif text-4xl tracking-tight text-foreground sm:text-5xl">
+              Encontre onde sua história vai morar
+            </h1>
+            <Link
+              href="/mapa"
+              className="inline-flex items-center gap-2 rounded-full border border-border-strong bg-surface-card px-4 py-2 text-sm font-medium text-brand-strong shadow-[var(--shadow-soft)] transition-colors hover:border-brand hover:bg-brand-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/25"
+            >
+              <MapPin size={16} strokeWidth={2} aria-hidden />
+              Ver no mapa
+            </Link>
+          </div>
           <p className="max-w-xl text-base leading-relaxed text-muted">
             Imóveis selecionados para você explorar com calma e montar a compra do seu jeito.
           </p>
@@ -104,6 +136,23 @@ export default async function PaginaCatalogo({
         >
           <FiltrosCatalogo />
         </section>
+
+        {ufAtiva && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted">Filtrando por estado:</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand-soft px-3 py-1 text-sm font-medium text-brand-strong">
+              <MapPin size={14} strokeWidth={2} aria-hidden />
+              UF: {ufAtiva}
+              <Link
+                href={hrefSemUf}
+                aria-label={`Remover filtro de estado ${ufAtiva}`}
+                className="ml-0.5 inline-flex rounded-full p-0.5 transition-colors hover:bg-surface-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/25"
+              >
+                <X size={14} strokeWidth={2.5} aria-hidden />
+              </Link>
+            </span>
+          </div>
+        )}
 
         {capacidade !== null ? (
           <BannerCapacidade capacidade={capacidade} />

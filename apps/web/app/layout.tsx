@@ -82,6 +82,9 @@ export default async function RootLayout({
                 <Link href="/sonhometro" className={linkNav}>
                   Sonhômetro
                 </Link>
+                <Link href="/mapa" className={linkNav}>
+                  Mapa
+                </Link>
                 {ehCliente && (
                   <Link href="/favoritos" className={linkNav}>
                     Favoritos
@@ -154,6 +157,9 @@ export default async function RootLayout({
               </Link>
               <Link href="/sonhometro" className={linkRodape}>
                 Sonhômetro
+              </Link>
+              <Link href="/mapa" className={linkRodape}>
+                Mapa
               </Link>
               {ehCliente && (
                 <Link href="/favoritos" className={linkRodape}>
