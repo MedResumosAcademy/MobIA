@@ -9,12 +9,14 @@
 // (nunca do input) e exigem papel corretor/gestor (exigirCorretor).
 //
 // ATRASADA: uma tarefa está atrasada quando vence_em < HOJE e não está
-// concluída. "Hoje" é a data ISO (YYYY-MM-DD) do servidor, comparada como texto
-// (datas ISO ordenam lexicograficamente). Datas ISO; pt-BR.
+// concluída. "Hoje" é a data ISO (YYYY-MM-DD) no relógio de America/Sao_Paulo
+// (lib/fuso.ts), comparada como texto (datas ISO ordenam lexicograficamente).
+// Datas ISO; pt-BR.
 
 import type { Database } from "@imobia/domain";
 import { z } from "zod";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
+import { diaSaoPaulo } from "@/lib/fuso";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
 type LinhaTarefa = Database["public"]["Tables"]["negocio_tarefas"]["Row"];
@@ -65,9 +67,9 @@ export type TarefaEntrada = z.input<typeof tarefaEntradaSchema>;
 
 // --- Helpers ---
 
-/** Data ISO (YYYY-MM-DD) de "hoje" no servidor. */
+/** Data ISO (YYYY-MM-DD) de "hoje" no relógio do produto (America/Sao_Paulo). */
 function hojeIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return diaSaoPaulo(new Date());
 }
 
 /** Uma tarefa está atrasada se tem prazo passado e não foi concluída. */

@@ -21,4 +21,5 @@ export * from "./meta";
 export * from "./perfil";
 export * from "./comunidade";
 export * from "./onboarding";
+export * from "./agenda";
 export type { Database, Json } from "./database.types";

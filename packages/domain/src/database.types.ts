@@ -18,6 +18,73 @@ export type Database = {
   }
   public: {
     Tables: {
+      agenda_eventos: {
+        Row: {
+          corretor_id: string
+          criado_em: string
+          criado_via: string
+          fim: string | null
+          id: string
+          inicio: string
+          local: string | null
+          negocio_id: string | null
+          observacao: string | null
+          org_id: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          corretor_id: string
+          criado_em?: string
+          criado_via?: string
+          fim?: string | null
+          id?: string
+          inicio: string
+          local?: string | null
+          negocio_id?: string | null
+          observacao?: string | null
+          org_id: string
+          tipo?: string
+          titulo: string
+        }
+        Update: {
+          corretor_id?: string
+          criado_em?: string
+          criado_via?: string
+          fim?: string | null
+          id?: string
+          inicio?: string
+          local?: string | null
+          negocio_id?: string | null
+          observacao?: string | null
+          org_id?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_eventos_corretor_id_fkey"
+            columns: ["corretor_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_eventos_negocio_id_fkey"
+            columns: ["negocio_id"]
+            isOneToOne: false
+            referencedRelation: "negocios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_eventos_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cliente_profiles: {
         Row: {
           atualizado_em: string | null

@@ -18,6 +18,7 @@ import {
   Building2,
   Users,
   Sparkles,
+  CalendarDays,
   KanbanSquare,
   CheckSquare,
   UsersRound,
@@ -168,6 +169,19 @@ export default async function PainelCorretor({
               titulo="Coringa"
               descricao="Sua ferramenta rápida do dia a dia"
               destaque
+            />
+            <CardAtalho
+              href="/corretor/assistente"
+              icone={<Sparkles className="h-5 w-5" aria-hidden />}
+              titulo="Assistente"
+              descricao="Fale ou digite — ela preenche o CRM por você"
+              destaque
+            />
+            <CardAtalho
+              href="/corretor/agenda"
+              icone={<CalendarDays className="h-5 w-5" aria-hidden />}
+              titulo="Agenda"
+              descricao="Seus compromissos e visitas da semana"
             />
             <CardAtalho
               href="/corretor/perfil"
