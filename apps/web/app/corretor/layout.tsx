@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
+import { statusOnboarding } from "@/lib/dados/onboarding";
 
 export default async function LayoutCorretor({ children }: { children: React.ReactNode }) {
   const sessao = await obterSessao();
@@ -12,6 +13,13 @@ export default async function LayoutCorretor({ children }: { children: React.Rea
   const papel = perfil?.papel ?? "cliente";
   if (papel !== "corretor" && papel !== "gestor" && papel !== "admin") {
     redirect("/");
+  }
+
+  // Corretor sem onboarding concluído ⇒ wizard (/onboarding vive FORA de
+  // /corretor, então não há loop de redirect).
+  const { pendente } = await statusOnboarding();
+  if (pendente) {
+    redirect("/onboarding");
   }
 
   return children;

@@ -26,6 +26,7 @@ import {
   UserCircle,
   Target,
   CheckCircle2,
+  PartyPopper,
 } from "lucide-react";
 import { formatarReais } from "@imobia/core";
 import { ETAPAS_NEGOCIO, type EtapaNegocio } from "@imobia/domain";
@@ -47,11 +48,16 @@ const ROTULOS_ETAPA: Record<EtapaNegocio, string> = {
   fechamento: "Fechamento",
 };
 
-export default async function PainelCorretor() {
+export default async function PainelCorretor({
+  searchParams,
+}: {
+  searchParams: Promise<{ bemvindo?: string }>;
+}) {
   const sessao = await obterSessao();
   if (!sessao) {
     redirect("/entrar");
   }
+  const { bemvindo } = await searchParams;
   const perfil = await obterPerfil(sessao.usuarioId);
   const papel = perfil?.papel ?? "cliente";
   const ehGestor = papel === "gestor" || papel === "admin";
@@ -83,6 +89,17 @@ export default async function PainelCorretor() {
             {nomeOrg ? nomeOrg : "Sua atividade em um só lugar"}
           </p>
         </header>
+
+        {/* Boas-vindas pós-onboarding (?bemvindo=1) — sutil, some ao navegar. */}
+        {bemvindo === "1" && (
+          <div className="mt-6 flex items-center gap-3 rounded-2xl border border-gold/40 bg-gold-soft px-5 py-4">
+            <PartyPopper className="h-5 w-5 shrink-0 text-gold-strong" aria-hidden />
+            <p className="text-sm text-foreground">
+              <strong>Cadastro concluído!</strong> Sua vitrine já está no ar — explore
+              o painel e bons negócios.
+            </p>
+          </div>
+        )}
 
         {/* DESTAQUE — Onde agir agora (fila de prioridades pessoal) */}
         <OndeAgirAgora itens={itensPrioridade} ehGestor={ehGestor} />

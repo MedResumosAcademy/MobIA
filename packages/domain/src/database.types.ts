@@ -85,34 +85,49 @@ export type Database = {
           bio: string | null
           capa_url: string | null
           cidade: string | null
+          cpf: string | null
           creci: string
           foto_url: string | null
           instagram: string | null
+          onboarding_em: string | null
           org_id: string
+          permitir_foto: boolean
           telefone: string | null
           usuario_id: string
+          vendas_previas_qtd: number | null
+          vendas_previas_valor: number | null
         }
         Insert: {
           bio?: string | null
           capa_url?: string | null
           cidade?: string | null
+          cpf?: string | null
           creci: string
           foto_url?: string | null
           instagram?: string | null
+          onboarding_em?: string | null
           org_id: string
+          permitir_foto?: boolean
           telefone?: string | null
           usuario_id: string
+          vendas_previas_qtd?: number | null
+          vendas_previas_valor?: number | null
         }
         Update: {
           bio?: string | null
           capa_url?: string | null
           cidade?: string | null
+          cpf?: string | null
           creci?: string
           foto_url?: string | null
           instagram?: string | null
+          onboarding_em?: string | null
           org_id?: string
+          permitir_foto?: boolean
           telefone?: string | null
           usuario_id?: string
+          vendas_previas_qtd?: number | null
+          vendas_previas_valor?: number | null
         }
         Relationships: [
           {

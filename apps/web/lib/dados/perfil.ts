@@ -64,6 +64,11 @@ export type PerfilCorretor = {
   creci: string | null;
   bio: string | null;
   fotoUrl: string | null;
+  /** Consentimento de exibição da foto (onboarding). Sem ele, a UI mostra iniciais. */
+  permitirFoto: boolean;
+  /** Vendas DECLARADAS no onboarding (CENTAVOS) — separadas dos stats verificados. */
+  vendasPreviasValor: number | null;
+  vendasPreviasQtd: number | null;
   capaUrl: string | null;
   telefone: string | null;
   cidade: string | null;
@@ -179,7 +184,9 @@ export async function obterPerfilCorretor(
   ] = await Promise.all([
     supabase
       .from("corretor_profiles")
-      .select("creci, bio, foto_url, capa_url, telefone, cidade, instagram")
+      .select(
+        "creci, bio, foto_url, capa_url, telefone, cidade, instagram, permitir_foto, vendas_previas_valor, vendas_previas_qtd",
+      )
       .eq("usuario_id", alvo)
       .maybeSingle(),
     // Negócios da org visíveis (RLS): usados p/ stats do alvo + ranking da org.
@@ -272,7 +279,16 @@ export async function obterPerfilCorretor(
     orgNome: org?.nome ?? null,
     creci: corretorProfile?.creci ?? null,
     bio: corretorProfile?.bio ?? null,
-    fotoUrl: corretorProfile?.foto_url ?? null,
+    // Consentimento: sem permitir_foto, a URL da foto NÃO sai da camada de
+    // dados (nem no payload RSC) — exceto para o dono, que precisa dela para
+    // pré-preencher a edição do próprio perfil.
+    fotoUrl:
+      (corretorProfile?.permitir_foto ?? false) || alvo === sessao?.usuarioId
+        ? (corretorProfile?.foto_url ?? null)
+        : null,
+    permitirFoto: corretorProfile?.permitir_foto ?? false,
+    vendasPreviasValor: corretorProfile?.vendas_previas_valor ?? null,
+    vendasPreviasQtd: corretorProfile?.vendas_previas_qtd ?? null,
     capaUrl: corretorProfile?.capa_url ?? null,
     telefone: corretorProfile?.telefone ?? null,
     cidade: corretorProfile?.cidade ?? null,

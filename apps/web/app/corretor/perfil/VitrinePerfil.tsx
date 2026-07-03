@@ -24,6 +24,7 @@ import {
   Trophy,
   Lock,
   Award,
+  Medal,
   Calculator,
   Heart,
   Plus,
@@ -141,6 +142,9 @@ export function VitrinePerfil({
     creci,
     bio,
     fotoUrl,
+    permitirFoto,
+    vendasPreviasValor,
+    vendasPreviasQtd,
     capaUrl,
     telefone,
     cidade,
@@ -221,7 +225,8 @@ export function VitrinePerfil({
         <div className="px-6 pb-6 sm:px-8 sm:pb-8">
           {/* Avatar sobreposto à capa (relative: pinta ACIMA da capa posicionada) */}
           <div className="relative -mt-12 flex items-end justify-between gap-4 sm:-mt-14">
-            {fotoUrl ? (
+            {/* Foto SÓ com consentimento (permitir_foto); senão iniciais. */}
+            {fotoUrl && permitirFoto ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={fotoUrl}
@@ -293,6 +298,23 @@ export function VitrinePerfil({
               </span>
             )}
           </div>
+
+          {/* Vendas DECLARADAS no onboarding — chip discreto, separado dos
+              stats verificados da plataforma (por isso o "(declarado)"). */}
+          {(vendasPreviasValor != null || vendasPreviasQtd != null) && (
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold-soft px-3 py-1 text-xs font-medium text-gold-strong">
+              <Medal className="h-3.5 w-3.5" aria-hidden />
+              {[
+                vendasPreviasValor != null
+                  ? `${formatarReais(vendasPreviasValor)} em vendas na carreira`
+                  : null,
+                vendasPreviasQtd != null ? `${vendasPreviasQtd} vendas` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}{" "}
+              (declarado)
+            </p>
+          )}
 
           {/* Bio */}
           {bio && (
