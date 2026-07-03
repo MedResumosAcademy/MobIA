@@ -38,6 +38,7 @@ import {
 } from "@/lib/dados/negocios";
 import { prioridades } from "@/lib/dados/prioridades";
 import { concluirTarefa, criarTarefa } from "@/lib/dados/tarefas";
+import { gerarMensagemNegocioAction } from "@/lib/dados/whatsapp";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { ETAPAS_ORDEM, ROTULO_ETAPA } from "@/app/corretor/negocios/rotulos";
 
@@ -559,6 +560,31 @@ async function despachar(cmd: ComandoInterpretado, agoraISO: string): Promise<Re
         texto: `Tarefa concluída: "${tarefa.titulo}" ✅`,
         tipo: "confirmacao",
         acaoRealizada: { rotulo: "Ver negócio", href: `/corretor/negocios/${tarefa.negocio_id}` },
+      };
+    }
+
+    case "gerar_mensagem": {
+      // Localiza o negócio (prefere abertos; pós-venda pode cair num fechado
+      // ganho — a mensagem de parabéns faz sentido justamente aí) e delega a
+      // redação à camada de WhatsApp (IA com fallback no motor puro).
+      const negocio = await localizarNegocioPorContato(cmd.contato);
+      if (!negocio) {
+        return erroNegocioNaoEncontrado(cmd.contato);
+      }
+      const resultado = await gerarMensagemNegocioAction(negocio.id, cmd.objetivo);
+      if (!resultado.ok) {
+        return { texto: resultado.erro, tipo: "erro" };
+      }
+      const semFone =
+        resultado.waUrl === null
+          ? `\n\n(sem telefone cadastrado — me diga o número: "o telefone da ${negocio.nomeContato} é...")`
+          : "";
+      return {
+        texto: `Mensagem pronta para ${negocio.nomeContato}:\n\n${resultado.mensagem}${semFone}`,
+        tipo: "confirmacao",
+        acaoRealizada: resultado.waUrl
+          ? { rotulo: "Abrir no WhatsApp", href: resultado.waUrl }
+          : { rotulo: "Ver negócio", href: `/corretor/negocios/${negocio.id}` },
       };
     }
 

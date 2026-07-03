@@ -16,3 +16,4 @@ export * from "./metas";
 export * from "./comunidade";
 export * from "./cpf";
 export * from "./assistente";
+export * from "./whatsapp";

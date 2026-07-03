@@ -14,30 +14,16 @@ import { groq } from "@ai-sdk/groq";
 import { generateObject } from "ai";
 import { z } from "zod";
 import type { ComandoInterpretado } from "@imobia/core";
+import {
+  iaDisponivel,
+  modelosDaCascata,
+  sinalDoModelo,
+  TIMEOUT_TOTAL_MS,
+} from "@/lib/ia/cascata-groq";
 
-// Cascata de modelos: o 70b é o preferido; o scout é o plano B porque, na
-// prática, a org da chave atual limita o 70b (TPM 1 ⇒ 413 imediato). A
-// cascata para no primeiro sucesso e tem DOIS níveis de orçamento:
-//   - total (~10s): teto da cascata inteira, com folga para cold start
-//     (primeira chamada do processo carrega o AI SDK + leva o 413 do 70b
-//     antes de o scout gerar — já medimos ~6s nesse caminho);
-//   - por modelo: o 70b, sabidamente limitado nesta org, ganha no máximo
-//     TIMEOUT_70B_MS para não comer o orçamento do scout.
-// GROQ_PULAR_70B=1 no ambiente pula o 70b de vez (útil até a chave mudar
-// de plano); sem a env, o comportamento é a cascata completa.
-const MODELO_70B = "llama-3.3-70b-versatile";
-const MODELO_SCOUT = "meta-llama/llama-4-scout-17b-16e-instruct";
-const TIMEOUT_TOTAL_MS = 10_000;
-const TIMEOUT_70B_MS = 3_000;
-
-function modelosDaCascata(): readonly string[] {
-  return process.env.GROQ_PULAR_70B === "1" ? [MODELO_SCOUT] : [MODELO_70B, MODELO_SCOUT];
-}
-
-/** Há chave da Groq no ambiente? (Nunca logamos/expomos o valor.) */
-export function iaDisponivel(): boolean {
-  return !!process.env.GROQ_API_KEY;
-}
+// A cascata de modelos, os orçamentos de tempo e a checagem de chave vivem em
+// lib/ia/cascata-groq.ts (compartilhados com o redator de WhatsApp).
+export { iaDisponivel } from "@/lib/ia/cascata-groq";
 
 // --- Schema zod que ESPELHA a união ComandoInterpretado do core -------------
 // (o core não exporta zod; reconstruída aqui. Campos opcionais aceitam null —
@@ -108,6 +94,11 @@ const SCHEMA_COMANDO = z.discriminatedUnion("intencao", [
     intencao: z.literal("concluir_tarefa"),
     contato: opcional(z.string()),
     titulo: opcional(z.string()),
+  }),
+  z.object({
+    intencao: z.literal("gerar_mensagem"),
+    contato: z.string(),
+    objetivo: z.enum(["followup", "visita", "proposta", "reativacao", "pos_venda"]),
   }),
   z.object({ intencao: z.literal("consultar_avisos") }),
   z.object({ intencao: z.literal("ajuda"), motivo: opcional(z.string()) }),
@@ -247,6 +238,13 @@ function normalizar(saida: SaidaLlm): ComandoInterpretado | null {
       };
     }
 
+    case "gerar_mensagem": {
+      const contato = texto(saida.contato);
+      return contato
+        ? { intencao: "gerar_mensagem", contato, objetivo: saida.objetivo }
+        : null;
+    }
+
     case "consultar_avisos":
       return { intencao: "consultar_avisos" };
 
@@ -308,6 +306,7 @@ function montarSystem(agoraISO: string): string {
     '{"intencao":"atualizar_valor","contato":string,"valor":number}',
     '{"intencao":"atualizar_contato_info","contato":string,"telefone"?:string,"email"?:string}',
     '{"intencao":"concluir_tarefa","contato"?:string,"titulo"?:string}',
+    '{"intencao":"gerar_mensagem","contato":string,"objetivo":"followup"|"visita"|"proposta"|"reativacao"|"pos_venda"} (mandar/preparar mensagem de WhatsApp para um contato)',
     '{"intencao":"consultar_avisos"}',
     '{"intencao":"ajuda","motivo"?:string}',
     "Regras rígidas:",
@@ -334,10 +333,7 @@ export async function interpretarComLlm(
   const sinalTotal = AbortSignal.timeout(TIMEOUT_TOTAL_MS); // teto da cascata
   for (const modelo of modelosDaCascata()) {
     // O 70b tem teto próprio (curto) além do total; o scout usa só o total.
-    const sinal =
-      modelo === MODELO_70B
-        ? AbortSignal.any([sinalTotal, AbortSignal.timeout(TIMEOUT_70B_MS)])
-        : sinalTotal;
+    const sinal = sinalDoModelo(modelo, sinalTotal);
     try {
       const { object } = await generateObject({
         model: groq(modelo),

@@ -844,3 +844,109 @@ describe("descreverComando", () => {
     expect(descreverComando({ intencao: "ajuda" })).toContain("Não entendi");
   });
 });
+
+describe("interpretarComando — gerar_mensagem", () => {
+  it("'manda uma mensagem de follow-up para a Sofia' ⇒ followup", () => {
+    expect(interpretarComando("manda uma mensagem de follow-up para a Sofia", AGORA)).toEqual({
+      intencao: "gerar_mensagem",
+      contato: "Sofia",
+      objetivo: "followup",
+    });
+  });
+
+  it("'escreve uma mensagem de acompanhamento para a Larissa Nogueira' ⇒ followup, nome composto", () => {
+    expect(
+      interpretarComando("escreve uma mensagem de acompanhamento para a Larissa Nogueira", AGORA),
+    ).toEqual({ intencao: "gerar_mensagem", contato: "Larissa Nogueira", objetivo: "followup" });
+  });
+
+  it("'mensagem de reativação para o Carlos' (sem verbo) ⇒ reativacao", () => {
+    expect(interpretarComando("mensagem de reativação para o Carlos", AGORA)).toEqual({
+      intencao: "gerar_mensagem",
+      contato: "Carlos",
+      objetivo: "reativacao",
+    });
+  });
+
+  it("'chama a Larissa no whatsapp para marcar visita' ⇒ objetivo visita (não vira evento)", () => {
+    expect(interpretarComando("chama a Larissa no whatsapp para marcar visita", AGORA)).toEqual({
+      intencao: "gerar_mensagem",
+      contato: "Larissa",
+      objetivo: "visita",
+    });
+  });
+
+  it("'whatsapp para a Patricia sobre a proposta' ⇒ proposta ('sobre…' fora do contato)", () => {
+    expect(interpretarComando("whatsapp para a Patricia sobre a proposta", AGORA)).toEqual({
+      intencao: "gerar_mensagem",
+      contato: "Patricia",
+      objetivo: "proposta",
+    });
+  });
+
+  it("'gera uma mensagem de pós-venda para a Camila Andrade' ⇒ pos_venda", () => {
+    expect(interpretarComando("gera uma mensagem de pós-venda para a Camila Andrade", AGORA)).toEqual({
+      intencao: "gerar_mensagem",
+      contato: "Camila Andrade",
+      objetivo: "pos_venda",
+    });
+  });
+
+  it("'manda mensagem para a Camila' sem pista ⇒ objetivo default followup", () => {
+    expect(interpretarComando("manda mensagem para a Camila", AGORA)).toEqual({
+      intencao: "gerar_mensagem",
+      contato: "Camila",
+      objetivo: "followup",
+    });
+  });
+
+  it("FRONTEIRA: 'anota no negócio da Sofia: prefere contato por whatsapp' segue registrar_nota", () => {
+    expect(
+      interpretarComando("anota no negócio da Sofia: prefere contato por whatsapp", AGORA),
+    ).toEqual({
+      intencao: "registrar_nota",
+      contato: "Sofia",
+      nota: "prefere contato por whatsapp",
+    });
+  });
+
+  it("FRONTEIRA: 'o whatsapp da Sofia é 11 98888-7777' segue atualizar_contato_info", () => {
+    expect(interpretarComando("o whatsapp da Sofia é 11 98888-7777", AGORA)).toEqual({
+      intencao: "atualizar_contato_info",
+      contato: "Sofia",
+      telefone: "11988887777",
+    });
+  });
+
+  it("FRONTEIRA: 'atualiza o whatsapp da Patricia para 11 97777-6666' segue atualizar_contato_info", () => {
+    expect(interpretarComando("atualiza o whatsapp da Patricia para 11 97777-6666", AGORA)).toEqual(
+      {
+        intencao: "atualizar_contato_info",
+        contato: "Patricia",
+        telefone: "11977776666",
+      },
+    );
+  });
+
+  it("FRONTEIRA: contexto de lembrete devolve o comando ('me lembra de mandar mensagem…')", () => {
+    const cmd = interpretarComando("me lembra de mandar uma mensagem para a Sofia amanhã", AGORA);
+    expect(cmd.intencao).toBe("criar_lembrete");
+  });
+
+  it("FRONTEIRA: 'cria tarefa: enviar mensagem para a Sofia' segue criar_tarefa", () => {
+    const cmd = interpretarComando("cria tarefa: enviar mensagem para a Sofia", AGORA);
+    expect(cmd.intencao).toBe("criar_tarefa");
+  });
+
+  it("descreverComando: rótulos pt-BR por objetivo", () => {
+    expect(
+      descreverComando({ intencao: "gerar_mensagem", contato: "Sofia", objetivo: "followup" }),
+    ).toBe("Gerar mensagem de follow-up no WhatsApp para Sofia");
+    expect(
+      descreverComando({ intencao: "gerar_mensagem", contato: "Carlos", objetivo: "reativacao" }),
+    ).toBe("Gerar mensagem de reativação no WhatsApp para Carlos");
+    expect(
+      descreverComando({ intencao: "gerar_mensagem", contato: "Camila", objetivo: "pos_venda" }),
+    ).toBe("Gerar mensagem de pós-venda no WhatsApp para Camila");
+  });
+});

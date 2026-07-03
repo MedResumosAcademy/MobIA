@@ -164,6 +164,7 @@ function lerModoVoz(transcricaoDisponivel: boolean): ModoVoz {
 const SUGESTOES = [
   "Minha agenda de hoje",
   "Passa a Sofia para proposta",
+  "Mensagem de follow-up para a Sofia",
   "Fechei com a Camila por 780 mil",
   "Avisos importantes",
   "Me lembra de ligar para a Patricia amanha as 9h",
@@ -790,13 +791,10 @@ function BalaoAssistente({ resposta }: { resposta: RespostaAssistente }) {
 
           {resposta.acaoRealizada &&
             (resposta.acaoRealizada.href ? (
-              <Link
-                href={resposta.acaoRealizada.href}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand-soft px-3.5 py-1.5 text-xs font-semibold text-brand-strong transition-colors hover:bg-brand-soft/70"
-              >
+              <LinkDeAcao href={resposta.acaoRealizada.href}>
                 {resposta.acaoRealizada.rotulo}
                 <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-              </Link>
+              </LinkDeAcao>
             ) : (
               <p className="mt-3 text-xs font-semibold text-brand-strong">
                 {resposta.acaoRealizada.rotulo}
@@ -805,6 +803,25 @@ function BalaoAssistente({ resposta }: { resposta: RespostaAssistente }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// Link da acaoRealizada: hrefs EXTERNOS (ex.: wa.me da mensagem de WhatsApp)
+// abrem em nova aba com rel seguro; internos seguem no next/link.
+function LinkDeAcao({ href, children }: { href: string; children: React.ReactNode }) {
+  const classes =
+    "mt-3 inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand-soft px-3.5 py-1.5 text-xs font-semibold text-brand-strong transition-colors hover:bg-brand-soft/70";
+  if (/^https?:\/\//.test(href)) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={classes}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={href} className={classes}>
+      {children}
+    </Link>
   );
 }
 

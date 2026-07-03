@@ -32,6 +32,7 @@
 //     X: …" vira atualizar_contato_info; telefone é normalizado para dígitos.
 
 import { formatarReais } from "./modalidades";
+import type { ObjetivoMensagem } from "./whatsapp";
 
 /** Tipos de evento que o assistente sabe criar (subconjunto da agenda). */
 export type TipoEventoAssistente = "visita" | "reuniao" | "compromisso";
@@ -78,6 +79,7 @@ export type ComandoInterpretado =
   | { intencao: "atualizar_valor"; contato: string; valor: number }
   | { intencao: "atualizar_contato_info"; contato: string; telefone?: string; email?: string }
   | { intencao: "concluir_tarefa"; contato?: string; titulo?: string }
+  | { intencao: "gerar_mensagem"; contato: string; objetivo: ObjetivoMensagem }
   | { intencao: "consultar_avisos" }
   | { intencao: "ajuda"; motivo?: string };
 
@@ -735,6 +737,57 @@ function interpretarConcluirTarefa(ctx: Contexto): ComandoInterpretado | null {
   return null;
 }
 
+// --- gerar_mensagem ------------------------------------------------------------
+
+// Fronteiras (NÃO canibalizar outras intenções):
+//   - registrar_nota vem ANTES na cadeia ("anota no negócio da X: …" segue nota,
+//     mesmo que a nota fale de mensagem/whatsapp);
+//   - criar_tarefa vem ANTES ("cria tarefa: enviar mensagem para a X" é tarefa);
+//   - contexto de lembrete devolve o comando ("me lembra de mandar mensagem…");
+//   - atualizar_contato_info NÃO conflita: lá o padrão é "whatsapp DA X (é/mudou)
+//     <dígitos>", aqui é "whatsapp PARA a X" / "chama a X no whatsapp" /
+//     "mensagem … para a X" — sempre sem exigir número no texto.
+const RE_MSG_PARA =
+  /\bmensagem\b(?:\s+de\s+[\w-]+(?:\s+venda)?)?(?:\s+(?:no|pelo)\s+(?:whatsapp|zap|wpp))?\s+(?:para|pra)\s+(?<c>.+)$/d;
+const RE_MSG_CHAMAR =
+  /\b(?:cham|puxa|puxe)\w*\s+(?<c>.+?)\s+(?:no|pelo|por)\s+(?:whatsapp|zap|wpp)\b/d;
+const RE_MSG_ZAP_PARA = /\b(?:whatsapp|zap|wpp)\s+(?:para|pra)\s+(?<c>.+)$/d;
+const CORTES_MSG: readonly RegExp[] = [
+  ...CORTES_PONTUACAO,
+  /\bsobre\b/,
+  /\bdizendo\b/,
+  /\bfalando\b/,
+  /\bavisando\b/,
+  /\bpara\s+(?:marcar|agendar|confirmar|avancar|retomar|parabenizar)\b/,
+  /\bno\s+(?:whatsapp|zap|wpp)\b/,
+  /\bpelo\s+(?:whatsapp|zap|wpp)\b/,
+];
+
+/** Objetivo pela presença de palavras-chave em QUALQUER lugar do comando. */
+function detectarObjetivoMensagem(norm: string): ObjetivoMensagem {
+  if (/\bpos[- ]?venda\b|\bparabe\w*|\bagradec\w*/.test(norm)) return "pos_venda";
+  if (/\breativ\w*|\breengaj\w*|\bsumid[oa]s?\b/.test(norm)) return "reativacao";
+  if (/\bvisita\b/.test(norm)) return "visita";
+  if (/\bproposta\b/.test(norm)) return "proposta";
+  return "followup"; // inclui "follow-up"/"acompanhamento" e o caso sem pista
+}
+
+function interpretarGerarMensagem(ctx: Contexto): ComandoInterpretado | null {
+  if (RE_CONTEXTO_LEMBRETE.test(ctx.norm)) return null;
+  for (const re of [RE_MSG_PARA, RE_MSG_CHAMAR, RE_MSG_ZAP_PARA]) {
+    const contato = extrairCampo(ctx.original, ctx.norm, re, "c", CORTES_MSG, {
+      tirarArtigo: true,
+    });
+    if (!contato) continue;
+    return {
+      intencao: "gerar_mensagem",
+      contato,
+      objetivo: detectarObjetivoMensagem(ctx.norm),
+    };
+  }
+  return null;
+}
+
 // --- criar_lembrete ----------------------------------------------------------
 
 const RES_LEMBRETE: readonly RegExp[] = [
@@ -864,6 +917,7 @@ export function interpretarComando(texto: string, agoraISO: string): ComandoInte
     interpretarNota(ctx) ??
     interpretarConcluirTarefa(ctx) ??
     interpretarTarefa(ctx) ??
+    interpretarGerarMensagem(ctx) ??
     interpretarMudarEtapa(ctx) ??
     interpretarResultado(ctx) ??
     interpretarAtualizarValor(ctx) ??
@@ -924,6 +978,14 @@ export function formatarFone(digitos: string): string {
   return digitos;
 }
 
+const ROTULO_OBJETIVO_MENSAGEM: Record<ObjetivoMensagem, string> = {
+  followup: "follow-up",
+  visita: "visita",
+  proposta: "proposta",
+  reativacao: "reativação",
+  pos_venda: "pós-venda",
+};
+
 /** Frase curta em pt-BR para a UI confirmar o comando antes de executar. */
 export function descreverComando(cmd: ComandoInterpretado): string {
   switch (cmd.intencao) {
@@ -974,6 +1036,8 @@ export function descreverComando(cmd: ComandoInterpretado): string {
         (cmd.titulo !== undefined ? ` "${cmd.titulo}"` : "") +
         (cmd.contato !== undefined ? ` (negócio de ${cmd.contato})` : "")
       );
+    case "gerar_mensagem":
+      return `Gerar mensagem de ${ROTULO_OBJETIVO_MENSAGEM[cmd.objetivo]} no WhatsApp para ${cmd.contato}`;
     case "consultar_avisos":
       return "Mostrar avisos e prioridades";
     case "ajuda":

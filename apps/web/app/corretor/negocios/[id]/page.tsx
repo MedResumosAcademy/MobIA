@@ -18,6 +18,7 @@ import { formatarVencimento } from "../../tarefas/data";
 import { AdicionarTarefa } from "./AdicionarTarefa";
 import { ControlesNegocio } from "./Controles";
 import { EditarNegocio } from "./EditarNegocio";
+import { MensagemWhatsApp } from "./MensagemWhatsApp";
 import { ROTULO_ATIVIDADE, ROTULO_ETAPA, ROTULO_RESULTADO } from "../rotulos";
 
 /** Só dígitos, para montar links tel:/wa.me. Vazio → null. */
@@ -142,6 +143,12 @@ export default async function PaginaNegocio({
             </div>
           )}
         </section>
+
+        <MensagemWhatsApp
+          negocioId={negocio.id}
+          resultado={negocio.resultado}
+          atencao={negocio.atencao}
+        />
 
         {!fechado && (
           <div className="mt-6">
