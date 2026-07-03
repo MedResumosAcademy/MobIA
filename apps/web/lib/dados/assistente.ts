@@ -23,6 +23,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { agoraSaoPauloISO, intervaloDoDiaSaoPaulo } from "@/lib/fuso";
+import { iaDisponivel, interpretarComLlm } from "@/lib/ia/interpretador-llm";
 import { criarEvento, listarEventos, type EventoAgenda } from "@/lib/dados/agenda";
 import { adicionarAtividade, criarNegocio } from "@/lib/dados/negocios";
 import { prioridades } from "@/lib/dados/prioridades";
@@ -52,6 +53,8 @@ export type RespostaAssistente = {
   avisos?: AvisoAssistente[];
   /** Link de continuação após uma ação bem-sucedida (tipo "confirmacao"). */
   acaoRealizada?: { rotulo: string; href?: string };
+  /** true quando o comando foi entendido pelo fallback de IA (selo na UI). */
+  viaIa?: boolean;
 };
 
 const TEXTO_AJUDA = [
@@ -273,9 +276,21 @@ export async function executarComandoAction(texto: string): Promise<RespostaAssi
   }
 
   const agoraISO = agoraSaoPauloISO();
-  const cmd = interpretarComando(texto, agoraISO);
+  // Caminho RÁPIDO: motor puro e determinístico. Só quando ele não entende
+  // ("ajuda") e há chave configurada, o LLM tenta como FALLBACK — e qualquer
+  // falha dele (timeout, erro, saída inválida) degrada para a ajuda de sempre.
+  let cmd = interpretarComando(texto, agoraISO);
+  let viaIa = false;
+  if (cmd.intencao === "ajuda" && iaDisponivel()) {
+    const cmdIa = await interpretarComLlm(texto, agoraISO);
+    if (cmdIa !== null && cmdIa.intencao !== "ajuda") {
+      cmd = cmdIa;
+      viaIa = true;
+    }
+  }
   try {
-    return await despachar(cmd, agoraISO);
+    const resposta = await despachar(cmd, agoraISO);
+    return viaIa ? { ...resposta, viaIa: true } : resposta;
   } catch {
     return ERRO_GENERICO;
   }

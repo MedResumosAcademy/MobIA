@@ -4,6 +4,7 @@
 
 import type { Metadata } from "next";
 import { Sparkles } from "lucide-react";
+import { iaDisponivel } from "@/lib/ia/interpretador-llm";
 import { Chat } from "./Chat";
 
 export const metadata: Metadata = { title: "Assistente — ImobIA" };
@@ -32,7 +33,9 @@ export default function PaginaAssistente() {
           </div>
         </header>
 
-        <Chat />
+        {/* Com GROQ_API_KEY no servidor, o mic grava áudio e transcreve via
+            /api/transcrever; sem ela, o Chat degrada para a Web Speech API. */}
+        <Chat transcricaoDisponivel={iaDisponivel()} />
       </main>
     </div>
   );

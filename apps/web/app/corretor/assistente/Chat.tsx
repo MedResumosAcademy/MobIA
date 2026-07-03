@@ -4,14 +4,19 @@
 // para executarComando (Server Action) e renderiza as respostas: balões,
 // cards de eventos, avisos com nível e link de continuação.
 //
-// VOZ: Web Speech API nativa (SEM lib) — (window.SpeechRecognition ||
-// window.webkitSpeechRecognition), lang pt-BR, interimResults: a transcrição
-// parcial aparece no input em tempo real e, ao final do reconhecimento, o
-// comando é ENVIADO automaticamente. Sem suporte (Firefox/Safari antigos) o
-// mic some e um aviso gentil aparece — o chat segue 100% funcional por texto.
-// Erros de permissão do microfone viram mensagem no próprio chat. pt-BR.
+// VOZ em 3 níveis (melhor disponível vence):
+//   1. GRAVADOR — se o servidor transcreve (prop transcricaoDisponivel, i.e.
+//      GROQ_API_KEY presente) e o navegador tem MediaRecorder: grava o áudio
+//      (webm/opus com fallback de mimeType), mostra pulso + timer + cancelar
+//      (X) e, ao parar, POSTa em /api/transcrever (Groq Whisper) — o texto
+//      transcrito entra no input e é ENVIADO automaticamente.
+//   2. WEB SPEECH — senão, a Web Speech API nativa de sempre (lang pt-BR,
+//      interimResults no input em tempo real, envia ao terminar).
+//   3. SÓ TEXTO — senão, o mic é desabilitado com um aviso gentil; o chat
+//      segue 100% funcional por texto.
+// Erros de permissão/transcrição viram mensagem da assistente no chat. pt-BR.
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -24,7 +29,9 @@ import {
   Mic,
   Send,
   Sparkles,
+  Square,
   Users,
+  X,
 } from "lucide-react";
 import type { TipoEventoAgenda } from "@imobia/domain";
 import { Badge, type VarianteBadge } from "@/components/ui/Badge";
@@ -80,6 +87,62 @@ function obterConstrutorVoz(): ConstrutorVoz | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
+// —— Gravação de áudio (nível 1: transcrição no servidor) —————————————————————
+
+/** Como o mic funciona neste navegador/servidor (decidido só no client). */
+type ModoVoz = "gravador" | "web-speech" | "nenhum";
+
+function suportaGravacao(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.MediaRecorder !== "undefined" &&
+    !!navigator.mediaDevices?.getUserMedia
+  );
+}
+
+// Preferência de formato: webm/opus (Chrome/Edge/Firefox) com fallbacks
+// (Safari grava audio/mp4). Sem match, o MediaRecorder decide sozinho.
+const TIPOS_GRAVACAO = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/mp4",
+  "audio/ogg;codecs=opus",
+] as const;
+
+function melhorTipoGravacao(): string | undefined {
+  if (typeof MediaRecorder === "undefined" || !MediaRecorder.isTypeSupported) {
+    return undefined;
+  }
+  return TIPOS_GRAVACAO.find((tipo) => MediaRecorder.isTypeSupported(tipo));
+}
+
+/** Extensão coerente com o mimeType gravado (o servidor usa para nomear). */
+function extensaoDoTipo(mime: string): string {
+  const base = mime.split(";")[0]?.trim().toLowerCase() ?? "";
+  if (base.includes("mp4")) return "m4a";
+  if (base.includes("ogg")) return "ogg";
+  if (base.includes("wav")) return "wav";
+  return "webm";
+}
+
+function formatarTempo(segundos: number): string {
+  const m = Math.floor(segundos / 60);
+  const s = String(segundos % 60).padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+// O suporte do navegador não muda durante a sessão — useSyncExternalStore com
+// assinatura vazia lê o valor real no client e um chute otimista no servidor
+// (mesmo markup da hidratação), sem setState em efeito.
+const assinaturaImutavel = () => () => {};
+
+function lerModoVoz(transcricaoDisponivel: boolean): ModoVoz {
+  if (transcricaoDisponivel && suportaGravacao()) {
+    return "gravador";
+  }
+  return obterConstrutorVoz() !== null ? "web-speech" : "nenhum";
+}
+
 // —— Constantes de apresentação ———————————————————————————————————————————————
 
 const SUGESTOES = [
@@ -121,24 +184,46 @@ const ESTILO_AVISO: Record<NivelAviso, { Icone: typeof Info; cor: string; rotulo
 
 // —— Componente ———————————————————————————————————————————————————————————————
 
-export function Chat() {
+export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?: boolean }) {
   const [mensagens, setMensagens] = useState<Mensagem[]>([
     { id: 0, autor: "assistente", resposta: BOAS_VINDAS },
   ]);
   const [texto, setTexto] = useState("");
   const [gravando, setGravando] = useState(false);
-  const [suportaVoz, setSuportaVoz] = useState(true);
+  const [segundos, setSegundos] = useState(0);
+  const [transcrevendo, setTranscrevendo] = useState(false);
+  // No servidor assume o melhor caso (mesmo HTML da hidratação); no client lê
+  // o suporte real do navegador — sem setState em efeito.
+  const modoVoz = useSyncExternalStore(
+    assinaturaImutavel,
+    () => lerModoVoz(transcricaoDisponivel),
+    () => (transcricaoDisponivel ? "gravador" : "web-speech"),
+  );
   const [pendente, iniciar] = useTransition();
 
   const proximoId = useRef(1);
   const reconhecimento = useRef<ReconhecimentoVoz | null>(null);
   const transcricaoFinal = useRef("");
+  const gravador = useRef<MediaRecorder | null>(null);
+  const trilhaAudio = useRef<MediaStream | null>(null);
+  const pedacos = useRef<Blob[]>([]);
+  const cancelado = useRef(false);
+  const cronometro = useRef<ReturnType<typeof setInterval> | null>(null);
   const fimDaLista = useRef<HTMLDivElement | null>(null);
 
-  // Detecta o suporte a voz só no client (evita divergência de hidratação).
+  // Limpa gravação/reconhecimento/cronômetro ao desmontar.
   useEffect(() => {
-    setSuportaVoz(obterConstrutorVoz() !== null);
-    return () => reconhecimento.current?.stop();
+    return () => {
+      reconhecimento.current?.stop();
+      cancelado.current = true;
+      if (gravador.current && gravador.current.state !== "inactive") {
+        gravador.current.stop();
+      }
+      trilhaAudio.current?.getTracks().forEach((t) => t.stop());
+      if (cronometro.current !== null) {
+        clearInterval(cronometro.current);
+      }
+    };
   }, []);
 
   // Rola para a última mensagem a cada novidade.
@@ -175,7 +260,99 @@ export function Chat() {
     });
   }
 
-  // —— Voz ——
+  // —— Voz nível 1: gravar áudio e transcrever no servidor (Groq Whisper) ——
+
+  function pararCronometro() {
+    if (cronometro.current !== null) {
+      clearInterval(cronometro.current);
+      cronometro.current = null;
+    }
+  }
+
+  async function transcreverEEnviar(audio: Blob) {
+    if (audio.size === 0) {
+      return;
+    }
+    setTranscrevendo(true);
+    try {
+      const dados = new FormData();
+      dados.append("audio", audio, `comando.${extensaoDoTipo(audio.type)}`);
+      const resposta = await fetch("/api/transcrever", { method: "POST", body: dados });
+      const corpo: unknown = await resposta.json().catch(() => null);
+      const textoOuvido =
+        resposta.ok &&
+        typeof corpo === "object" && corpo !== null && "texto" in corpo &&
+        typeof (corpo as { texto: unknown }).texto === "string"
+          ? (corpo as { texto: string }).texto.trim()
+          : "";
+      if (textoOuvido === "") {
+        avisarNoChat("Não consegui entender o áudio — tente de novo ou digite o comando.");
+        return;
+      }
+      setTexto(textoOuvido);
+      enviar(textoOuvido); // texto no input + envio automático
+    } catch {
+      avisarNoChat("Não consegui falar com o servidor agora — tente de novo ou digite o comando.");
+    } finally {
+      setTranscrevendo(false);
+    }
+  }
+
+  async function iniciarGravacao() {
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      avisarNoChat(
+        "Preciso da permissão do microfone para te ouvir — libere nas configurações do navegador ou digite o comando.",
+      );
+      return;
+    }
+    let rec: MediaRecorder;
+    try {
+      const tipo = melhorTipoGravacao();
+      rec = tipo ? new MediaRecorder(stream, { mimeType: tipo }) : new MediaRecorder(stream);
+    } catch {
+      stream.getTracks().forEach((t) => t.stop());
+      avisarNoChat("Não consegui iniciar a gravação — tente de novo ou digite o comando.");
+      return;
+    }
+    pedacos.current = [];
+    cancelado.current = false;
+    trilhaAudio.current = stream;
+    rec.ondataavailable = (evento) => {
+      if (evento.data.size > 0) {
+        pedacos.current.push(evento.data);
+      }
+    };
+    rec.onstop = () => {
+      stream.getTracks().forEach((t) => t.stop());
+      trilhaAudio.current = null;
+      gravador.current = null;
+      pararCronometro();
+      setGravando(false);
+      if (!cancelado.current) {
+        const audio = new Blob(pedacos.current, { type: rec.mimeType || "audio/webm" });
+        void transcreverEEnviar(audio);
+      }
+      pedacos.current = [];
+    };
+    gravador.current = rec;
+    setSegundos(0);
+    setGravando(true);
+    cronometro.current = setInterval(() => setSegundos((s) => s + 1), 1000);
+    rec.start();
+  }
+
+  /** Descarta a gravação em andamento sem transcrever (botão X). */
+  function cancelarGravacao() {
+    cancelado.current = true;
+    if (gravador.current && gravador.current.state !== "inactive") {
+      gravador.current.stop();
+    }
+  }
+
+  // —— Voz nível 2: Web Speech API (como sempre foi) ——
   function alternarVoz() {
     if (gravando) {
       reconhecimento.current?.stop();
@@ -183,7 +360,7 @@ export function Chat() {
     }
     const Construtor = obterConstrutorVoz();
     if (!Construtor) {
-      setSuportaVoz(false);
+      // Na prática inalcançável (modoVoz "web-speech" implica suporte).
       avisarNoChat("Seu navegador não suporta voz — digite o comando que eu resolvo igual.");
       return;
     }
@@ -235,6 +412,21 @@ export function Chat() {
     setTexto("");
     rec.start();
   }
+
+  // —— Mic: despacha para o melhor nível disponível ——
+  function alternarMic() {
+    if (modoVoz === "gravador") {
+      if (gravando) {
+        gravador.current?.stop(); // onstop transcreve e envia
+      } else {
+        void iniciarGravacao();
+      }
+      return;
+    }
+    alternarVoz();
+  }
+
+  const suportaVoz = modoVoz !== "nenhum";
 
   return (
     <section
@@ -298,21 +490,25 @@ export function Chat() {
       >
         <button
           type="button"
-          onClick={alternarVoz}
-          disabled={!suportaVoz}
+          onClick={alternarMic}
+          disabled={!suportaVoz || transcrevendo}
           aria-pressed={gravando}
           aria-label={
             !suportaVoz
               ? "Voz indisponível neste navegador"
               : gravando
-                ? "Parar de ouvir"
+                ? modoVoz === "gravador"
+                  ? "Parar a gravação e enviar"
+                  : "Parar de ouvir"
                 : "Falar com a assistente"
           }
           title={
             !suportaVoz
               ? "Seu navegador não suporta voz — digite o comando"
               : gravando
-                ? "Parar de ouvir"
+                ? modoVoz === "gravador"
+                  ? "Parar a gravação e enviar"
+                  : "Parar de ouvir"
                 : "Falar com a assistente"
           }
           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors ${
@@ -321,13 +517,45 @@ export function Chat() {
               : "bg-brand-soft text-brand-strong hover:bg-brand-soft/70"
           } disabled:cursor-not-allowed disabled:opacity-40`}
         >
-          <Mic className="h-5 w-5" aria-hidden />
+          {gravando && modoVoz === "gravador" ? (
+            <Square className="h-4 w-4 fill-current" aria-hidden />
+          ) : (
+            <Mic className="h-5 w-5" aria-hidden />
+          )}
         </button>
+
+        {gravando && modoVoz === "gravador" && (
+          <>
+            <span
+              className="shrink-0 text-xs font-semibold tabular-nums text-brand-strong"
+              aria-label={`Gravando há ${segundos} segundos`}
+            >
+              {formatarTempo(segundos)}
+            </span>
+            <button
+              type="button"
+              onClick={cancelarGravacao}
+              aria-label="Cancelar gravação"
+              title="Cancelar gravação"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-subtle transition-colors hover:border-brand/40 hover:text-foreground"
+            >
+              <X className="h-4 w-4" aria-hidden />
+            </button>
+          </>
+        )}
 
         <input
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          placeholder={gravando ? "Ouvindo…" : "Digite ou fale seu comando…"}
+          placeholder={
+            transcrevendo
+              ? "Transcrevendo o áudio…"
+              : gravando
+                ? modoVoz === "gravador"
+                  ? "Gravando…"
+                  : "Ouvindo…"
+                : "Digite ou fale seu comando…"
+          }
           aria-label="Mensagem para a assistente"
           disabled={pendente}
           className="w-full rounded-xl border border-border-strong bg-surface-card px-3.5 py-2.5 text-sm text-foreground shadow-[var(--shadow-soft)] transition-[border-color,box-shadow] duration-200 placeholder:text-subtle hover:border-brand/40 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25 disabled:opacity-60"
@@ -346,7 +574,14 @@ export function Chat() {
       {/* Estados de voz abaixo do input */}
       {gravando && (
         <p className="px-5 pb-4 text-xs font-medium text-brand-strong" aria-live="polite">
-          Ouvindo… fale seu comando — envio sozinha quando você terminar.
+          {modoVoz === "gravador"
+            ? "Gravando… fale seu comando e toque no botão para parar e enviar (X cancela)."
+            : "Ouvindo… fale seu comando — envio sozinha quando você terminar."}
+        </p>
+      )}
+      {transcrevendo && (
+        <p className="px-5 pb-4 text-xs font-medium text-brand-strong" aria-live="polite">
+          Transcrevendo o que você falou…
         </p>
       )}
       {!suportaVoz && (
@@ -371,6 +606,14 @@ function BalaoAssistente({ resposta }: { resposta: RespostaAssistente }) {
           <Sparkles className="h-3.5 w-3.5" />
         </span>
         <div className="min-w-0 rounded-2xl rounded-bl-md border border-border bg-surface-card px-4 py-2.5 shadow-[var(--shadow-soft)]">
+          {resposta.viaIa && (
+            <span
+              className="mb-1.5 inline-flex items-center rounded-full border border-gold/40 bg-gold-soft px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-gold-strong"
+              title="Comando entendido com ajuda de IA"
+            >
+              IA
+            </span>
+          )}
           <p className="whitespace-pre-line text-sm text-foreground">{resposta.texto}</p>
 
           {resposta.eventos && resposta.eventos.length > 0 && (

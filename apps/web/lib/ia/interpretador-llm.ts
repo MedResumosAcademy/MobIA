@@ -1,0 +1,284 @@
+// INTERPRETADOR LLM — fallback do assistente quando o motor determinístico
+// (@imobia/core) não reconhece o comando. Server-side APENAS (a chave vive em
+// process.env.GROQ_API_KEY, carregada de .env.local pelo Next).
+//
+// PRINCÍPIOS (invariantes):
+//   - O motor puro é o caminho RÁPIDO; este módulo é fallback/ampliação.
+//   - Sem chave ⇒ iaDisponivel() === false e nada muda no produto.
+//   - Erro/timeout/saída inconsistente ⇒ null (NUNCA lança) — o chamador
+//     degrada para a resposta "ajuda" de sempre.
+//   - A saída é REVALIDADA aqui (datas, instantes, valor em centavos) antes de
+//     virar um ComandoInterpretado — o LLM não é confiável por construção.
+
+import { groq } from "@ai-sdk/groq";
+import { generateObject } from "ai";
+import { z } from "zod";
+import type { ComandoInterpretado } from "@imobia/core";
+
+// Cascata de modelos: o 70b é o preferido; o scout é o plano B porque, na
+// prática, a org da chave atual limita o 70b (TPM 1 ⇒ 413 imediato). A
+// cascata para no primeiro sucesso e tem DOIS níveis de orçamento:
+//   - total (~10s): teto da cascata inteira, com folga para cold start
+//     (primeira chamada do processo carrega o AI SDK + leva o 413 do 70b
+//     antes de o scout gerar — já medimos ~6s nesse caminho);
+//   - por modelo: o 70b, sabidamente limitado nesta org, ganha no máximo
+//     TIMEOUT_70B_MS para não comer o orçamento do scout.
+// GROQ_PULAR_70B=1 no ambiente pula o 70b de vez (útil até a chave mudar
+// de plano); sem a env, o comportamento é a cascata completa.
+const MODELO_70B = "llama-3.3-70b-versatile";
+const MODELO_SCOUT = "meta-llama/llama-4-scout-17b-16e-instruct";
+const TIMEOUT_TOTAL_MS = 10_000;
+const TIMEOUT_70B_MS = 3_000;
+
+function modelosDaCascata(): readonly string[] {
+  return process.env.GROQ_PULAR_70B === "1" ? [MODELO_SCOUT] : [MODELO_70B, MODELO_SCOUT];
+}
+
+/** Há chave da Groq no ambiente? (Nunca logamos/expomos o valor.) */
+export function iaDisponivel(): boolean {
+  return !!process.env.GROQ_API_KEY;
+}
+
+// --- Schema zod que ESPELHA a união ComandoInterpretado do core -------------
+// (o core não exporta zod; reconstruída aqui. Campos opcionais aceitam null —
+// LLMs costumam emitir null em vez de omitir — e são normalizados adiante.)
+
+const opcional = <T extends z.ZodTypeAny>(tipo: T) => tipo.nullish();
+
+const SCHEMA_COMANDO = z.discriminatedUnion("intencao", [
+  z.object({
+    intencao: z.literal("consultar_agenda"),
+    dia: z.string().describe("Dia consultado, YYYY-MM-DD"),
+  }),
+  z.object({
+    intencao: z.literal("criar_evento"),
+    titulo: z.string().describe('Título curto, ex.: "Visita com Ana"'),
+    tipo: z.enum(["visita", "reuniao", "compromisso"]),
+    inicioISO: z
+      .string()
+      .describe("Início ISO com offset, ex.: 2026-07-04T15:00:00-03:00"),
+    local: opcional(z.string()),
+    contato: opcional(z.string()),
+  }),
+  z.object({
+    intencao: z.literal("criar_lembrete"),
+    titulo: z.string(),
+    inicioISO: z.string().describe("ISO com offset -03:00"),
+  }),
+  z.object({
+    intencao: z.literal("criar_tarefa"),
+    titulo: z.string(),
+    contato: opcional(z.string()),
+    venceEm: opcional(z.string().describe("YYYY-MM-DD")),
+  }),
+  z.object({
+    intencao: z.literal("criar_negocio"),
+    contato: z.string(),
+    valor: opcional(z.number().describe("Valor em CENTAVOS de real (inteiro)")),
+    origem: opcional(z.string()),
+  }),
+  z.object({
+    intencao: z.literal("registrar_nota"),
+    contato: z.string(),
+    nota: z.string(),
+  }),
+  z.object({ intencao: z.literal("consultar_avisos") }),
+  z.object({ intencao: z.literal("ajuda"), motivo: opcional(z.string()) }),
+]);
+
+type SaidaLlm = z.infer<typeof SCHEMA_COMANDO>;
+
+// --- Validação/normalização da saída ----------------------------------------
+
+const RE_DATA = /^\d{4}-\d{2}-\d{2}$/;
+
+function dataValida(dia: string): boolean {
+  if (!RE_DATA.test(dia)) return false;
+  const d = new Date(`${dia}T12:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === dia;
+}
+
+function instanteValido(iso: string): boolean {
+  return !Number.isNaN(new Date(iso).getTime());
+}
+
+function texto(s: string | null | undefined): string | undefined {
+  const limpo = s?.trim();
+  return limpo ? limpo : undefined;
+}
+
+/** Converte a saída do LLM num ComandoInterpretado consistente, ou null. */
+function normalizar(saida: SaidaLlm): ComandoInterpretado | null {
+  switch (saida.intencao) {
+    case "consultar_agenda":
+      return dataValida(saida.dia) ? { intencao: "consultar_agenda", dia: saida.dia } : null;
+
+    case "criar_evento": {
+      const titulo = texto(saida.titulo);
+      if (!titulo || !instanteValido(saida.inicioISO)) return null;
+      const local = texto(saida.local);
+      const contato = texto(saida.contato);
+      return {
+        intencao: "criar_evento",
+        titulo,
+        tipo: saida.tipo,
+        inicioISO: saida.inicioISO,
+        ...(local !== undefined ? { local } : {}),
+        ...(contato !== undefined ? { contato } : {}),
+      };
+    }
+
+    case "criar_lembrete": {
+      const titulo = texto(saida.titulo);
+      if (!titulo || !instanteValido(saida.inicioISO)) return null;
+      return { intencao: "criar_lembrete", titulo, inicioISO: saida.inicioISO };
+    }
+
+    case "criar_tarefa": {
+      const titulo = texto(saida.titulo);
+      if (!titulo) return null;
+      const contato = texto(saida.contato);
+      const venceEm = texto(saida.venceEm);
+      if (venceEm !== undefined && !dataValida(venceEm)) return null;
+      return {
+        intencao: "criar_tarefa",
+        titulo,
+        ...(contato !== undefined ? { contato } : {}),
+        ...(venceEm !== undefined ? { venceEm } : {}),
+      };
+    }
+
+    case "criar_negocio": {
+      const contato = texto(saida.contato);
+      if (!contato) return null;
+      const valor = saida.valor ?? undefined;
+      if (valor !== undefined && (!Number.isInteger(valor) || valor < 0)) return null;
+      const origem = texto(saida.origem);
+      return {
+        intencao: "criar_negocio",
+        contato,
+        ...(valor !== undefined ? { valor } : {}),
+        ...(origem !== undefined ? { origem } : {}),
+      };
+    }
+
+    case "registrar_nota": {
+      const contato = texto(saida.contato);
+      const nota = texto(saida.nota);
+      return contato && nota ? { intencao: "registrar_nota", contato, nota } : null;
+    }
+
+    case "consultar_avisos":
+      return { intencao: "consultar_avisos" };
+
+    case "ajuda": {
+      const motivo = texto(saida.motivo);
+      return { intencao: "ajuda", ...(motivo !== undefined ? { motivo } : {}) };
+    }
+  }
+}
+
+// --- Chamada ao LLM -----------------------------------------------------------
+
+const DIAS_SEMANA = [
+  "domingo", "segunda-feira", "terça-feira", "quarta-feira",
+  "quinta-feira", "sexta-feira", "sábado",
+] as const;
+
+/** Dia da semana pt-BR dos componentes locais do ISO (sem mágica de fuso). */
+function diaDaSemanaLocal(agoraISO: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(agoraISO);
+  if (!m) return "";
+  const idx = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))).getUTCDay();
+  return DIAS_SEMANA[idx] ?? "";
+}
+
+/**
+ * Calendário dos próximos 8 dias ("sexta 2026-07-03 (hoje), sábado
+ * 2026-07-04, …") — âncora determinística para o LLM resolver dias da semana.
+ */
+function calendarioProximosDias(agoraISO: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(agoraISO);
+  if (!m) return "";
+  const base = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const itens: string[] = [];
+  for (let i = 0; i < 8; i += 1) {
+    const d = new Date(base + i * 86_400_000);
+    const dia = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    itens.push(`${DIAS_SEMANA[d.getUTCDay()]} ${dia}${i === 0 ? " (hoje)" : i === 1 ? " (amanhã)" : ""}`);
+  }
+  return itens.join(", ");
+}
+
+function montarSystem(agoraISO: string): string {
+  // O modelo roda em modo json_object (o llama-3.3-70b da Groq não aceita
+  // json_schema), então o formato é descrito AQUI e revalidado com zod depois.
+  return [
+    "Você mapeia pedidos de corretores de imóveis brasileiros (pt-BR, voz ou texto) para UM único comando estruturado do CRM.",
+    `Agora é ${agoraISO} (${diaDaSemanaLocal(agoraISO)}), fuso America/Sao_Paulo.`,
+    `Calendário: ${calendarioProximosDias(agoraISO)}.`,
+    "Responda SOMENTE com um objeto JSON num destes formatos (campos com ? são opcionais — OMITA quando o pedido não trouxer):",
+    '{"intencao":"consultar_agenda","dia":"YYYY-MM-DD"}',
+    '{"intencao":"criar_evento","titulo":string,"tipo":"visita"|"reuniao"|"compromisso","inicioISO":"YYYY-MM-DDTHH:mm:ss-03:00","local"?:string,"contato"?:string}',
+    '{"intencao":"criar_lembrete","titulo":string,"inicioISO":"YYYY-MM-DDTHH:mm:ss-03:00"}',
+    '{"intencao":"criar_tarefa","titulo":string,"contato"?:string,"venceEm"?:"YYYY-MM-DD"}',
+    '{"intencao":"criar_negocio","contato":string,"valor"?:number,"origem"?:string}',
+    '{"intencao":"registrar_nota","contato":string,"nota":string}',
+    '{"intencao":"consultar_avisos"}',
+    '{"intencao":"ajuda","motivo"?:string}',
+    "Regras rígidas:",
+    "- Datas relativas (amanhã, sexta, dia 10) SEMPRE resolvem para o FUTURO, no formato YYYY-MM-DD; instantes em ISO com o mesmo offset do agora.",
+    "- Evento/lembrete sem hora explícita: use 09:00.",
+    "- Valores monetários SEMPRE em CENTAVOS de real, inteiro (ex.: 850 mil reais = 85000000).",
+    '- "origem" é o CANAL do lead (ex.: indicação, Instagram, portal); NUNCA o imóvel — omita se o pedido não citar o canal.',
+    '- Se não tiver certeza da intenção, retorne intencao "ajuda".',
+  ].join("\n");
+}
+
+/**
+ * Interpreta `texto` com o LLM (Groq) e devolve um ComandoInterpretado
+ * validado, ou null em QUALQUER falha (chave ausente, timeout — ~10s no total,
+ * ~3s só para o 70b —, erro de rede/modelo, saída inconsistente). Nunca lança.
+ */
+export async function interpretarComLlm(
+  texto: string,
+  agoraISO: string,
+): Promise<ComandoInterpretado | null> {
+  if (!iaDisponivel()) return null;
+  const system = montarSystem(agoraISO);
+  const sinalTotal = AbortSignal.timeout(TIMEOUT_TOTAL_MS); // teto da cascata
+  for (const modelo of modelosDaCascata()) {
+    // O 70b tem teto próprio (curto) além do total; o scout usa só o total.
+    const sinal =
+      modelo === MODELO_70B
+        ? AbortSignal.any([sinalTotal, AbortSignal.timeout(TIMEOUT_70B_MS)])
+        : sinalTotal;
+    try {
+      const { object } = await generateObject({
+        model: groq(modelo),
+        schema: SCHEMA_COMANDO,
+        system,
+        prompt: texto,
+        maxRetries: 1,
+        abortSignal: sinal,
+        // Os llama da Groq não suportam response_format json_schema — usa
+        // json_object (schema vai no system e a validação zod segue local).
+        providerOptions: { groq: { structuredOutputs: false } },
+      });
+      const cmd = normalizar(object);
+      // Guarda determinística (mesma heurística do core): "origem" só vale se
+      // o corretor FALOU "origem" — modelos tendem a inventar esse campo.
+      if (cmd?.intencao === "criar_negocio" && cmd.origem !== undefined && !/origem/i.test(texto)) {
+        return {
+          intencao: "criar_negocio",
+          contato: cmd.contato,
+          ...(cmd.valor !== undefined ? { valor: cmd.valor } : {}),
+        };
+      }
+      return cmd;
+    } catch {
+      if (sinalTotal.aborted) return null; // estourou o orçamento total — não insiste
+    }
+  }
+  return null;
+}
