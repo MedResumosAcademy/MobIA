@@ -155,6 +155,69 @@ h2 {
   border-radius: 0.5rem;
 }
 
+/*
+ * === HERO imersivo (landing) — animações 100% CSS ===
+ * O delay é parametrizado pela custom property --atraso (setada inline via
+ * style no JSX), permitindo entrada escalonada e flutuações defasadas sem
+ * gerar uma classe por delay. Tudo desligado em prefers-reduced-motion.
+ */
+
+/* Ken Burns sutil na foto de fundo do hero (scale 1 → 1.06 em 24s). */
+@keyframes hero-kenburns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+.animar-kenburns {
+  animation: hero-kenburns 24s ease-out infinite alternate;
+  will-change: transform;
+}
+
+/* Entrada escalonada: fade-up (opacity 0→1, translateY 16px→0, 600ms).
+ * `both` segura o estado inicial durante o delay (sem piscar) — por isso a
+ * variante reduced-motion PRECISA zerar a animação para o conteúdo aparecer. */
+@keyframes entrada-suave {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animar-entrada {
+  animation: entrada-suave 0.6s ease-out both;
+  animation-delay: var(--atraso, 0ms);
+}
+
+/* Flutuação suave dos cards do hero (translateY ±8px, 6s, vai-e-vem).
+ * Use --atraso NEGATIVO para defasar sem "pulo" inicial. */
+@keyframes flutuar-suave {
+  from {
+    transform: translateY(-8px);
+  }
+  to {
+    transform: translateY(8px);
+  }
+}
+.animar-flutuar {
+  animation: flutuar-suave 6s ease-in-out infinite alternate;
+  animation-delay: var(--atraso, 0ms);
+}
+
+/* Acessibilidade: sem movimento — conteúdo visível direto, foto parada. */
+@media (prefers-reduced-motion: reduce) {
+  .animar-kenburns,
+  .animar-entrada,
+  .animar-flutuar {
+    animation: none;
+  }
+}
+
 /* Header sticky com hairline sutil; ganha sombra quente suave ao rolar. */
 .header-sticky {
   box-shadow: 0 1px 0 0 var(--border);
