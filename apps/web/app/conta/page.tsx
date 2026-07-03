@@ -6,9 +6,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ControleConsentimento } from "@/components/ControleConsentimento";
+import { ControleTelefone } from "@/components/ControleTelefone";
 import { classesBotao } from "@/components/ui/Botao";
 import { obterSessao } from "@/lib/auth/sessao";
-import { obterConsentimento } from "@/lib/dados/consentimento";
+import { obterConsentimento, obterMeuTelefone } from "@/lib/dados/consentimento";
 
 export const metadata: Metadata = { title: "Minha conta — ImobIA" };
 
@@ -51,7 +52,10 @@ export default async function PaginaConta() {
 }
 
 async function ContaConteudo() {
-  const consentimento = await obterConsentimento();
+  const [consentimento, telefone] = await Promise.all([
+    obterConsentimento(),
+    obterMeuTelefone(),
+  ]);
 
   return (
     <section className="flex flex-col gap-4">
@@ -59,6 +63,7 @@ async function ContaConteudo() {
         Privacidade
       </h2>
       <ControleConsentimento inicial={consentimento} />
+      <ControleTelefone inicial={telefone} />
     </section>
   );
 }

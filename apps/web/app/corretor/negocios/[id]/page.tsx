@@ -17,6 +17,7 @@ import { BotaoConcluir } from "../../tarefas/BotaoConcluir";
 import { formatarVencimento } from "../../tarefas/data";
 import { AdicionarTarefa } from "./AdicionarTarefa";
 import { ControlesNegocio } from "./Controles";
+import { EditarNegocio } from "./EditarNegocio";
 import { ROTULO_ATIVIDADE, ROTULO_ETAPA, ROTULO_RESULTADO } from "../rotulos";
 
 /** Só dígitos, para montar links tel:/wa.me. Vazio → null. */
@@ -75,6 +76,20 @@ export default async function PaginaNegocio({
           )}
         </div>
 
+        {!fechado && negocio.atencao !== "ok" && (
+          <p
+            className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${
+              negocio.atencao === "parado"
+                ? "border-brand/40 bg-brand-soft text-brand-strong"
+                : "border-gold/40 bg-gold-soft text-gold-strong"
+            }`}
+          >
+            {negocio.atencao === "parado" ? "Parado" : "Atenção"} há{" "}
+            {negocio.diasSemMovimento}{" "}
+            {negocio.diasSemMovimento === 1 ? "dia" : "dias"} sem movimento
+          </p>
+        )}
+
         <section className="mt-6 rounded-2xl border border-border bg-surface-card p-6 shadow-[var(--shadow-soft)]">
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Dado rotulo="Etapa" valor={ROTULO_ETAPA[negocio.etapa]} />
@@ -127,6 +142,19 @@ export default async function PaginaNegocio({
             </div>
           )}
         </section>
+
+        {!fechado && (
+          <div className="mt-6">
+            <EditarNegocio
+              id={negocio.id}
+              nomeContato={negocio.nomeContato}
+              telefoneContato={negocio.telefoneContato}
+              emailContato={negocio.emailContato}
+              origem={negocio.origem}
+              valor={negocio.valor}
+            />
+          </div>
+        )}
 
         <div className="mt-8">
           <ControlesNegocio id={negocio.id} etapaAtual={negocio.etapa} fechado={fechado} />

@@ -32,6 +32,7 @@ export type Database = {
           renda_conjuge: number | null
           renda_mensal: number | null
           renda_outros_membros: number | null
+          telefone: string | null
           uf: string | null
           usuario_id: string
         }
@@ -48,6 +49,7 @@ export type Database = {
           renda_conjuge?: number | null
           renda_mensal?: number | null
           renda_outros_membros?: number | null
+          telefone?: string | null
           uf?: string | null
           usuario_id: string
         }
@@ -64,6 +66,7 @@ export type Database = {
           renda_conjuge?: number | null
           renda_mensal?: number | null
           renda_outros_membros?: number | null
+          telefone?: string | null
           uf?: string | null
           usuario_id?: string
         }

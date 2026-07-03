@@ -88,3 +88,25 @@ export const negocioAtividadeSchema = z
   .strict();
 
 export type NegocioAtividade = z.infer<typeof negocioAtividadeSchema>;
+
+/**
+ * Filtros de listagem de negócios no board/funil. Todos opcionais: a ausência
+ * de um campo significa "não filtrar por ele".
+ */
+export type FiltrosNegocios = {
+  /** Restringe a uma etapa do funil. */
+  etapa?: EtapaNegocio;
+  /** Restringe ao corretor responsável (id). */
+  responsavelId?: string;
+  /** Restringe à origem do negócio. */
+  origem?: string;
+  /** Busca livre (nome/contato/etc.). */
+  busca?: string;
+};
+
+/**
+ * Nível de atenção de um negócio segundo há quanto tempo está sem movimento:
+ * `ok` (recente), `atencao` (esfriando) ou `parado` (estagnado). Calculado no
+ * motor (@imobia/core/atencao) a partir dos dias sem movimento.
+ */
+export type NivelAtencao = "ok" | "atencao" | "parado";

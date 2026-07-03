@@ -5,6 +5,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Phone, MessageCircle } from "lucide-react";
 import { formatarReais } from "@imobia/core";
 import { obterLead } from "@/lib/dados/leads";
 import { listarCorretoresDaOrg, obterPapelEOrg } from "@/lib/dados/gestor";
@@ -27,7 +28,7 @@ export default async function PaginaLead({
   if (!detalhe) {
     notFound();
   }
-  const { lead, timeline, capacidadeCliente } = detalhe;
+  const { lead, timeline, capacidadeCliente, clienteTelefone } = detalhe;
 
   // Só gestor/admin veem o controle de reatribuição; corretor comum, não.
   const papelEOrg = await obterPapelEOrg();
@@ -52,6 +53,8 @@ export default async function PaginaLead({
           <ChipTermometro temperatura={lead.temperatura} />
         </div>
         <p className="mt-2 text-muted">{lead.imovelTitulo}</p>
+
+        {clienteTelefone && <ContatoCliente telefone={clienteTelefone} />}
 
         <form action={converterLeadEmNegocioAction} className="mt-4">
           <input type="hidden" name="leadId" value={lead.id} />
@@ -119,6 +122,54 @@ export default async function PaginaLead({
           />
         )}
       </main>
+    </div>
+  );
+}
+
+// Formata dígitos BR ("5511988887777" / "11988887777") para exibição.
+// Aceita 10–11 dígitos nacionais, com ou sem o 55 na frente.
+function formatarTelefone(digitos: string): string {
+  const nacional = digitos.startsWith("55") && digitos.length > 11
+    ? digitos.slice(2)
+    : digitos;
+  if (nacional.length === 11) {
+    return `(${nacional.slice(0, 2)}) ${nacional.slice(2, 7)}-${nacional.slice(7)}`;
+  }
+  if (nacional.length === 10) {
+    return `(${nacional.slice(0, 2)}) ${nacional.slice(2, 6)}-${nacional.slice(6)}`;
+  }
+  return digitos;
+}
+
+// Telefone do cliente + ações Ligar (tel:) e WhatsApp (wa.me). Só aparece quando
+// o cliente consentiu e cadastrou um número (a RLS/dados já gateiam a exibição).
+// wa.me exige DDI: prefixa 55 se o número não vier com código de país.
+function ContatoCliente({ telefone }: { telefone: string }) {
+  const so = telefone.replace(/\D/g, "");
+  const comDdi = so.length <= 11 ? `55${so}` : so;
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-3">
+      <span className="text-sm font-medium tabular-nums text-foreground">
+        {formatarTelefone(so)}
+      </span>
+      <div className="flex items-center gap-2">
+        <a
+          href={`tel:+${comDdi}`}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-border-strong bg-surface-card px-3.5 py-1.5 text-sm font-semibold text-foreground shadow-[var(--shadow-soft)] transition-colors hover:border-brand/40 hover:bg-surface"
+        >
+          <Phone aria-hidden className="h-4 w-4" />
+          Ligar
+        </a>
+        <a
+          href={`https://wa.me/${comDdi}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-3.5 py-1.5 text-sm font-semibold text-brand-contrast shadow-[var(--shadow-soft)] transition-colors hover:bg-brand-hover"
+        >
+          <MessageCircle aria-hidden className="h-4 w-4" />
+          WhatsApp
+        </a>
+      </div>
     </div>
   );
 }

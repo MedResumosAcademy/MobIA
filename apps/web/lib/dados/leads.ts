@@ -50,7 +50,7 @@ export type ItemTimeline = {
   criadoEm: string;
 };
 
-/** Lead + timeline + capacidade do cliente (se a RLS a expõe). */
+/** Lead + timeline + capacidade + telefone do cliente (se a RLS os expõe). */
 export type LeadDetalhe = {
   lead: LeadPainel;
   timeline: ItemTimeline[];
@@ -59,6 +59,11 @@ export type LeadDetalhe = {
    * corretor SÓ se o cliente consentiu (policy 0007). null quando indisponível.
    */
   capacidadeCliente: number | null;
+  /**
+   * Telefone de contato do cliente (cliente_profiles.telefone) — visível ao
+   * corretor SÓ se o cliente consentiu (policy 0007). null quando indisponível.
+   */
+  clienteTelefone: string | null;
 };
 
 // --- Helpers ---
@@ -237,10 +242,10 @@ export async function obterLead(leadId: string): Promise<LeadDetalhe | null> {
     criadoEm: e.criado_em,
   }));
 
-  // Capacidade do Sonhômetro do cliente — visível só se consentiu (policy 0007).
+  // Capacidade + telefone do cliente — visíveis só se consentiu (policy 0007).
   const { data: perfilCliente } = await supabase
     .from("cliente_profiles")
-    .select("capacidade_calculada")
+    .select("capacidade_calculada, telefone")
     .eq("usuario_id", l.cliente_id)
     .maybeSingle();
 
@@ -248,5 +253,6 @@ export async function obterLead(leadId: string): Promise<LeadDetalhe | null> {
     lead,
     timeline,
     capacidadeCliente: perfilCliente?.capacidade_calculada ?? null,
+    clienteTelefone: perfilCliente?.telefone ?? null,
   };
 }

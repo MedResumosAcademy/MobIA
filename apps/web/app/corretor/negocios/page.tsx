@@ -1,35 +1,99 @@
-// BOARD do FUNIL de negócios (CRM) do corretor/gestor. Colunas por etapa aberta
-// (Novo → Fechamento) com os cards de negócio; contador e valor total por coluna;
-// negócios fechados (ganho/perdido) numa seção à parte. A RLS (0011) já escopa o
-// que aparece: corretor vê os seus, gestor/admin os da org. PURA apresentação.
+// PIPELINE do funil de negócios (CRM) do corretor/gestor. Server Component que
+// orquestra: parseia searchParams (vista + filtros + ordem), detecta papel
+// (gestor/admin vê o filtro de responsável), busca os negócios já filtrados/
+// escopados (listarNegocios — a RLS de 0011 impõe: corretor vê os seus,
+// gestor/admin os da org) e delega a interatividade a componentes cliente:
+//   - AlternarVista  (Kanban <-> Lista, ?vista=)
+//   - FiltrosPipeline (etapa/origem/responsável/busca, URL-driven)
+//   - KanbanNegocios  (board com arrastar-e-soltar + select acessível)
+//   - ListaNegocios   (tabela ordenável por parado/valor)
+// Os fechados (ganho/perdido) ficam numa seção à parte. PURA orquestração.
 
 import type { Metadata } from "next";
 import Link from "next/link";
 import { formatarReais } from "@imobia/core";
-import { listarNegocios, type NegocioResumo } from "@/lib/dados/negocios";
-import { ChipTermometro } from "../leads/termometro";
+import type { EtapaNegocio } from "@imobia/domain";
+import {
+  listarNegocios,
+  listarOrigens,
+  listarResponsaveisDaOrg,
+  type NegocioResumo,
+} from "@/lib/dados/negocios";
+import type { CorretorOpcao } from "@/lib/dados/gestor";
+import { obterPapelEOrg } from "@/lib/dados/gestor";
 import { classesBotao } from "@/components/ui/Botao";
-import { ETAPAS_ORDEM, ROTULO_ETAPA, ROTULO_RESULTADO } from "./rotulos";
+import { AlternarVista, type Vista } from "./AlternarVista";
+import { FiltrosPipeline } from "./FiltrosPipeline";
+import { KanbanNegocios } from "./KanbanNegocios";
+import { ListaNegocios, type OrdemLista } from "./ListaNegocios";
+import { ETAPAS_ORDEM, ROTULO_RESULTADO } from "./rotulos";
 
 export const metadata: Metadata = { title: "Negócios — ImobIA" };
 export const dynamic = "force-dynamic";
 
-function somaValores(negocios: NegocioResumo[]): number {
-  return negocios.reduce((total, n) => total + (n.valor ?? 0), 0);
+type Params = {
+  vista?: string;
+  etapa?: string;
+  origem?: string;
+  responsavel?: string;
+  busca?: string;
+  ordem?: string;
+};
+
+function normalizarVista(v: string | undefined): Vista {
+  return v === "lista" ? "lista" : "kanban";
 }
 
-export default async function PaginaNegocios() {
-  const negocios = await listarNegocios();
+function normalizarOrdem(v: string | undefined): OrdemLista {
+  return v === "valor" ? "valor" : "parado";
+}
 
-  // Abertos = ainda sem resultado; entram no board por etapa. Fechados = com
-  // resultado (ganho/perdido); vão para a seção separada, mais recentes primeiro.
+function normalizarEtapa(v: string | undefined): EtapaNegocio | undefined {
+  return ETAPAS_ORDEM.includes(v as EtapaNegocio) ? (v as EtapaNegocio) : undefined;
+}
+
+export default async function PaginaNegocios({
+  searchParams,
+}: {
+  searchParams: Promise<Params>;
+}) {
+  const sp = await searchParams;
+  const vista = normalizarVista(sp.vista);
+  const ordem = normalizarOrdem(sp.ordem);
+
+  const papelEOrg = await obterPapelEOrg();
+  const ehGestor = papelEOrg?.papel === "gestor" || papelEOrg?.papel === "admin";
+
+  // Filtros para a camada de dados (a RLS já escopou; estes só refinam).
+  const filtros = {
+    etapa: normalizarEtapa(sp.etapa),
+    origem: sp.origem?.trim() || undefined,
+    // Responsável só faz sentido para gestor (corretor já vê só os seus).
+    responsavelId: ehGestor ? sp.responsavel?.trim() || undefined : undefined,
+    busca: sp.busca?.trim() || undefined,
+  };
+
+  // Só o gestor precisa da lista de responsáveis (a função exige gestor/admin).
+  const [negocios, origens, responsaveis] = await Promise.all([
+    listarNegocios(filtros),
+    listarOrigens(),
+    ehGestor ? listarResponsaveisDaOrg() : Promise.resolve([] as CorretorOpcao[]),
+  ]);
+
+  // Abertos entram no board/lista; fechados (com resultado) vão à parte.
   const abertos = negocios.filter((n) => n.resultado === null);
   const fechados = negocios.filter((n) => n.resultado !== null);
 
-  const porEtapa = ETAPAS_ORDEM.map((etapa) => ({
-    etapa,
-    itens: abertos.filter((n) => n.etapa === etapa),
-  }));
+  const nomePorResponsavel: Record<string, string | null> = {};
+  for (const c of responsaveis) {
+    nomePorResponsavel[c.id] = c.nome;
+  }
+
+  const temFiltro =
+    Boolean(filtros.etapa) ||
+    Boolean(filtros.origem) ||
+    Boolean(filtros.responsavelId) ||
+    Boolean(filtros.busca);
 
   return (
     <div className="flex flex-1 flex-col bg-background px-6 py-16 font-sans">
@@ -44,51 +108,53 @@ export default async function PaginaNegocios() {
               fechamento.
             </p>
           </div>
-          <Link href="/corretor/negocios/novo" className={classesBotao("primario", "md")}>
-            Novo negócio
-          </Link>
+          <div className="flex items-center gap-3">
+            <AlternarVista vista={vista} />
+            <Link
+              href="/corretor/negocios/novo"
+              className={classesBotao("primario", "md")}
+            >
+              Novo negócio
+            </Link>
+          </div>
         </div>
 
+        <FiltrosPipeline
+          origens={origens}
+          responsaveis={responsaveis}
+          ehGestor={ehGestor}
+        />
+
         {abertos.length === 0 && fechados.length === 0 ? (
-          <div className="mt-10 rounded-2xl border border-dashed border-border-strong bg-surface-card p-10 text-center text-subtle">
-            Nenhum negócio ainda. Crie o primeiro ou converta um lead em negócio.
+          <div className="mt-8 rounded-2xl border border-dashed border-border-strong bg-surface-card p-10 text-center text-subtle">
+            {temFiltro
+              ? "Nenhum negócio corresponde aos filtros. Ajuste ou limpe os filtros."
+              : "Nenhum negócio ainda. Crie o primeiro ou converta um lead em negócio."}
           </div>
         ) : (
           <>
-            {/* Board: colunas por etapa, roláveis no mobile. */}
-            <div className="mt-8 flex gap-4 overflow-x-auto pb-4">
-              {porEtapa.map(({ etapa, itens }) => (
-                <section
-                  key={etapa}
-                  className="flex w-72 shrink-0 flex-col rounded-2xl border border-border bg-surface p-3"
-                >
-                  <header className="flex items-baseline justify-between gap-2 px-1 pb-3">
-                    <h2 className="text-sm font-semibold text-foreground">
-                      {ROTULO_ETAPA[etapa]}
-                    </h2>
-                    <span className="text-xs text-subtle tabular-nums">
-                      {itens.length} · {formatarReais(somaValores(itens))}
-                    </span>
-                  </header>
-                  <div className="flex flex-col gap-2.5">
-                    {itens.length === 0 ? (
-                      <p className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-xs text-subtle">
-                        Sem negócios
-                      </p>
-                    ) : (
-                      itens.map((n) => <CartaoNegocio key={n.id} negocio={n} />)
-                    )}
-                  </div>
-                </section>
-              ))}
-            </div>
+            {abertos.length === 0 ? (
+              <div className="mt-6 rounded-2xl border border-dashed border-border-strong bg-surface-card p-10 text-center text-subtle">
+                Nenhum negócio aberto no momento.
+              </div>
+            ) : vista === "lista" ? (
+              <ListaNegocios
+                negocios={abertos}
+                ordem={ordem}
+                mostrarResponsavel={ehGestor}
+                nomePorResponsavel={nomePorResponsavel}
+              />
+            ) : (
+              <KanbanNegocios
+                negocios={abertos}
+                mostrarResponsavel={ehGestor}
+                nomePorResponsavel={nomePorResponsavel}
+              />
+            )}
 
-            {/* Fechados: seção separada (ganho/perdido). */}
             {fechados.length > 0 && (
               <section className="mt-10">
-                <h2 className="text-lg font-semibold text-foreground">
-                  Fechados
-                </h2>
+                <h2 className="text-lg font-semibold text-foreground">Fechados</h2>
                 <ul className="mt-4 flex flex-col gap-2.5">
                   {fechados.map((n) => (
                     <li key={n.id}>
@@ -124,32 +190,6 @@ export default async function PaginaNegocios() {
         )}
       </main>
     </div>
-  );
-}
-
-function CartaoNegocio({ negocio }: { negocio: NegocioResumo }) {
-  return (
-    <Link
-      href={`/corretor/negocios/${negocio.id}`}
-      className="flex flex-col gap-2 rounded-xl border border-border bg-surface-card p-3 shadow-[var(--shadow-soft)] transition-[border-color,box-shadow] hover:border-brand/40 hover:shadow-[var(--shadow-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <p className="min-w-0 truncate font-semibold text-foreground">
-          {negocio.nomeContato}
-        </p>
-        {negocio.temperatura && (
-          <ChipTermometro temperatura={negocio.temperatura} />
-        )}
-      </div>
-      {negocio.imovelTitulo && (
-        <p className="truncate text-xs text-muted">{negocio.imovelTitulo}</p>
-      )}
-      {negocio.valor !== null && (
-        <p className="text-sm font-semibold tabular-nums text-foreground">
-          {formatarReais(negocio.valor)}
-        </p>
-      )}
-    </Link>
   );
 }
 
