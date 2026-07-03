@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@imobia/domain";
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./config";
 
 /**
  * Client de LEITURA PÚBLICA, sem cookies/sessão — para o catálogo anônimo
@@ -8,16 +9,12 @@ import type { Database } from "@imobia/domain";
  * Não persiste nem lê sessão (getAll/setAll no-op).
  */
 export function criarClientePublico() {
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return [];
-        },
-        setAll() {},
+  return createServerClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    cookies: {
+      getAll() {
+        return [];
       },
+      setAll() {},
     },
-  );
+  });
 }

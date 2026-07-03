@@ -2,6 +2,8 @@
 // 'imoveis-plantas'. Convenção de path: {orgId}/{imovelId}/{arquivo}.
 // Upload real fica na server action do cadastro (fase UI).
 
+import { SUPABASE_URL } from "@/lib/supabase/config";
+
 export type BucketMidia = "imoveis-fotos" | "imoveis-plantas";
 
 /**
@@ -12,7 +14,7 @@ export function urlPublicaMidia(bucket: BucketMidia, path: string): string {
   if (/^https?:\/\//i.test(path)) {
     return path;
   }
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const base = SUPABASE_URL;
   const limpo = path.replace(/^\/+/, "");
   return `${base}/storage/v1/object/public/${bucket}/${limpo}`;
 }
