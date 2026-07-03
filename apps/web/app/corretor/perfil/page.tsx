@@ -12,7 +12,11 @@ import { VitrinePerfil } from "./VitrinePerfil";
 export const metadata: Metadata = { title: "Meu perfil — ImobIA" };
 export const dynamic = "force-dynamic";
 
-export default async function PaginaMeuPerfil() {
+export default async function PaginaMeuPerfil({
+  searchParams,
+}: {
+  searchParams: Promise<{ visao?: string }>;
+}) {
   const sessao = await obterSessao();
   if (!sessao) {
     redirect("/entrar");
@@ -23,10 +27,13 @@ export default async function PaginaMeuPerfil() {
     redirect("/corretor?aviso=perfil-indisponivel");
   }
 
+  // ?visao=publica ⇒ o dono vê a própria vitrine como um colega a vê.
+  const { visao } = await searchParams;
+
   return (
     <div className="flex flex-1 flex-col items-center bg-background px-6 py-16 font-sans">
       <main className="w-full max-w-5xl">
-        <VitrinePerfil perfil={perfil} />
+        <VitrinePerfil perfil={perfil} visaoPublica={visao === "publica"} />
       </main>
     </div>
   );

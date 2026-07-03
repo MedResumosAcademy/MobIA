@@ -50,6 +50,11 @@ export default async function RootLayout({
   // (mesma degradação de obterPerfil). Corretor/gestor não veem o link.
   const perfil = sessao ? await obterPerfil(sessao.usuarioId) : null;
   const ehCliente = sessao !== null && (perfil === null || perfil.papel === "cliente");
+  // Profissionais (corretor/gestor/admin) ganham a nav do painel/comunidade.
+  const ehProfissional =
+    sessao !== null &&
+    perfil !== null &&
+    (perfil.papel === "corretor" || perfil.papel === "gestor" || perfil.papel === "admin");
 
   const linkNav =
     "rounded-full px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-foreground";
@@ -85,6 +90,16 @@ export default async function RootLayout({
                 <Link href="/mapa" className={linkNav}>
                   Mapa
                 </Link>
+                {ehProfissional && (
+                  <>
+                    <Link href="/corretor" className={linkNav}>
+                      Painel
+                    </Link>
+                    <Link href="/comunidade" className={linkNav}>
+                      Comunidade
+                    </Link>
+                  </>
+                )}
                 {ehCliente && (
                   <Link href="/favoritos" className={linkNav}>
                     Favoritos
@@ -107,6 +122,11 @@ export default async function RootLayout({
                 {ehCliente && (
                   <Link href="/conta" className={`hidden sm:inline ${linkNav}`}>
                     Minha conta
+                  </Link>
+                )}
+                {ehProfissional && (
+                  <Link href="/corretor/perfil" className={`hidden sm:inline ${linkNav}`}>
+                    Meu perfil
                   </Link>
                 )}
                 <span className="hidden max-w-[16ch] truncate text-sm text-subtle lg:inline">
@@ -173,10 +193,19 @@ export default async function RootLayout({
                 Conta
               </p>
               {sessao ? (
-                ehCliente && (
+                ehCliente ? (
                   <Link href="/conta" className={linkRodape}>
                     Minha conta
                   </Link>
+                ) : (
+                  <>
+                    <Link href="/corretor" className={linkRodape}>
+                      Painel do corretor
+                    </Link>
+                    <Link href="/corretor/perfil" className={linkRodape}>
+                      Meu perfil
+                    </Link>
+                  </>
                 )
               ) : (
                 <Link href="/entrar" className={linkRodape}>

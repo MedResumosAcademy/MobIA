@@ -16,6 +16,7 @@ import {
   Phone,
   MessageCircle,
   AtSign,
+  Eye,
   Handshake,
   Wallet,
   Percent,
@@ -110,7 +111,14 @@ function soDigitos(v: string): string {
   return v.replace(/\D/g, "");
 }
 
-export function VitrinePerfil({ perfil }: { perfil: PerfilCorretor }) {
+export function VitrinePerfil({
+  perfil,
+  visaoPublica = false,
+}: {
+  perfil: PerfilCorretor;
+  /** Renderiza a vitrine exatamente como um colega a vê (esconde ações do dono). */
+  visaoPublica?: boolean;
+}) {
   const {
     nome,
     papel,
@@ -135,8 +143,10 @@ export function VitrinePerfil({ perfil }: { perfil: PerfilCorretor }) {
   const telDigitos = telefone ? soDigitos(telefone) : "";
   const igHandle = instagram ? instagram.replace(/^@/, "") : "";
   const progressoPct = Math.round(gamificacao.progresso * 100);
+  // Na visão pública o dono vê a vitrine sem NENHUMA ação de dono/gestor.
+  const donoAqui = ehProprio && !visaoPublica;
   // Gestor pode gerenciar depoimentos de qualquer corretor da org; corretor só o próprio.
-  const podeGerenciar = ehProprio || ehGestor;
+  const podeGerenciar = visaoPublica ? false : ehProprio || ehGestor;
 
   return (
     <div className="w-full max-w-5xl">
@@ -146,6 +156,21 @@ export function VitrinePerfil({ perfil }: { perfil: PerfilCorretor }) {
       >
         ← Voltar ao painel
       </Link>
+
+      {ehProprio && visaoPublica && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold/40 bg-gold-soft px-4 py-3">
+          <p className="inline-flex items-center gap-2 text-sm text-foreground">
+            <Eye className="h-4 w-4 text-brand-strong" aria-hidden />
+            Você está vendo seu perfil <strong>como os colegas veem</strong>.
+          </p>
+          <Link
+            href="/corretor/perfil"
+            className="rounded-xl border border-border-strong bg-surface-card px-4 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-surface"
+          >
+            Voltar à edição
+          </Link>
+        </div>
+      )}
 
       {/* ————— CABEÇALHO RICO ————— */}
       <section className="mt-4 overflow-hidden rounded-3xl border border-border bg-surface-card shadow-[var(--shadow-card)]">
@@ -199,6 +224,15 @@ export function VitrinePerfil({ perfil }: { perfil: PerfilCorretor }) {
 
             {/* Ações */}
             <div className="mb-1 flex items-center gap-2">
+              {donoAqui && (
+                <Link
+                  href="/corretor/perfil?visao=publica"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-border-strong bg-surface-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-brand/40 hover:bg-surface"
+                >
+                  <Eye className="h-4 w-4" aria-hidden />
+                  Ver perfil público
+                </Link>
+              )}
               <BotaoCompartilhar
                 caminho={`/corretor/perfil/${corretorId}`}
                 nome={nome ?? "corretor"}
@@ -289,8 +323,8 @@ export function VitrinePerfil({ perfil }: { perfil: PerfilCorretor }) {
             </div>
           )}
 
-          {/* Editar (só próprio) */}
-          {ehProprio && (
+          {/* Editar (só próprio, fora da visão pública) */}
+          {donoAqui && (
             <div className="mt-5">
               <EditarPerfil
                 inicial={{ bio, telefone, cidade, instagram, fotoUrl, capaUrl }}

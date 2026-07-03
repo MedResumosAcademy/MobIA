@@ -10,7 +10,7 @@ export default async function LayoutCorretor({ children }: { children: React.Rea
   // Perfil ausente (ou tabela ainda inexistente) ⇒ papel 'cliente' ⇒ sem acesso.
   const perfil = await obterPerfil(sessao.usuarioId);
   const papel = perfil?.papel ?? "cliente";
-  if (papel !== "corretor" && papel !== "gestor") {
+  if (papel !== "corretor" && papel !== "gestor" && papel !== "admin") {
     redirect("/");
   }
 
