@@ -204,8 +204,8 @@ export function VitrinePerfil({
         </div>
 
         <div className="px-6 pb-6 sm:px-8 sm:pb-8">
-          {/* Avatar sobreposto à capa */}
-          <div className="-mt-12 flex items-end justify-between gap-4 sm:-mt-14">
+          {/* Avatar sobreposto à capa (relative: pinta ACIMA da capa posicionada) */}
+          <div className="relative -mt-12 flex items-end justify-between gap-4 sm:-mt-14">
             {fotoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
