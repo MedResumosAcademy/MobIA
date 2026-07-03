@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
+import { cookies } from "next/headers";
 import { Search } from "lucide-react";
+import { BannerCookies } from "@/components/BannerCookies";
 import { NewsletterCaptura } from "@/components/NewsletterCaptura";
 import { sair } from "@/lib/auth/acoes";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
@@ -47,6 +49,11 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const sessao = await obterSessao();
+  // Banner de cookies sem flash: só renderiza se o usuário ainda não aceitou.
+  // Ler cookies() aqui não muda nada no build — este layout já lê cookies em
+  // toda requisição via obterSessao() (cliente Supabase de servidor).
+  const jar = await cookies();
+  const mostrarBannerCookies = jar.get("imobia_cookies") === undefined;
   // "Favoritos" é feature de cliente. Perfil ausente ⇒ tratado como cliente
   // (mesma degradação de obterPerfil). Corretor/gestor não veem o link.
   const perfil = sessao ? await obterPerfil(sessao.usuarioId) : null;
@@ -213,6 +220,9 @@ export default async function RootLayout({
                   Entrar
                 </Link>
               )}
+              <Link href="/privacidade" className={linkRodape}>
+                Privacidade
+              </Link>
             </nav>
 
             {/* Captura pública da newsletter (LGPD: consentimento explícito). */}
@@ -232,6 +242,8 @@ export default async function RootLayout({
             </p>
           </div>
         </footer>
+
+        {mostrarBannerCookies && <BannerCookies />}
       </body>
     </html>
   );
