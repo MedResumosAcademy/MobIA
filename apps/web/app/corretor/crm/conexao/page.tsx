@@ -1,12 +1,19 @@
 // CONEXÃO META (WhatsApp Cloud API) — fotografia honesta da integração via
 // statusConexaoMeta(): cards Conectado/Pendente por item (envio, webhook,
-// service role), a lista do que falta (SÓ NOMES de env — NUNCA valores) e o
+// service role), a lista do que falta (SÓ NOMES de env — NUNCA valores), a
+// SAÚDE do atendimento (IA, mensagens do dia, fila humana, webhook vivo) e o
 // passo a passo resumido com a URL do webhook para colar na Meta. Toda a
 // equipe vê o status; os detalhes de configuração aparecem para gestor/admin.
 
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  Activity,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Bell,
+  Bot,
   Cable,
   CheckCircle2,
   Clock,
@@ -15,7 +22,10 @@ import {
   Webhook,
 } from "lucide-react";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
+import { obterConfigAtendimento } from "@/lib/dados/atendimento-config";
 import { statusConexaoMeta } from "@/lib/dados/meta-config";
+import { saudeDoAtendimento } from "@/lib/dados/saude-atendimento";
+import { tempoRelativo } from "../../leads/tempo";
 
 export const metadata: Metadata = { title: "CRM — Conexão" };
 export const dynamic = "force-dynamic";
@@ -36,6 +46,10 @@ export default async function PaginaConexao() {
   const ehGestor = papel === "gestor" || papel === "admin";
 
   const meta = statusConexaoMeta();
+  const [configIa, saude] = await Promise.all([
+    obterConfigAtendimento(),
+    saudeDoAtendimento(),
+  ]);
   const faltando = new Set(meta.faltando);
   const pendentes = (envs: string[]) => envs.filter((e) => faltando.has(e));
 
@@ -133,6 +147,98 @@ export default async function PaginaConexao() {
             )}
           </div>
         ))}
+      </section>
+
+      {/* ——— SAÚDE do atendimento ——— */}
+      <section className="mt-8" aria-label="Saúde do atendimento">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+          <Activity className="h-5 w-5 text-brand-strong" aria-hidden />
+          Saúde do atendimento
+        </h2>
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* IA */}
+          <div
+            className={`flex flex-col gap-2 rounded-2xl border p-5 shadow-[var(--shadow-soft)] ${
+              configIa?.iaDisponivelNoAmbiente && configIa.config.iaAtiva
+                ? "border-brand/30 bg-brand-soft"
+                : "border-border bg-surface-card"
+            }`}
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Bot className="h-4 w-4 text-brand-strong" aria-hidden />
+              IA de atendimento
+            </span>
+            <p className="text-xs text-muted">
+              {!configIa?.iaDisponivelNoAmbiente
+                ? "Sem GROQ_API_KEY neste ambiente — a IA não responde e tudo cai na fila humana."
+                : configIa.config.iaAtiva
+                  ? `Ligada — a ${configIa.config.nomeAssistente} responde e escala o que precisar de gente.`
+                  : "Chave presente, mas a IA está desligada na organização."}
+            </p>
+            {ehGestor && (
+              <Link
+                href="/corretor/crm/treinar-ia"
+                className="text-xs font-medium text-brand-strong underline-offset-2 hover:underline"
+              >
+                Treinar IA →
+              </Link>
+            )}
+          </div>
+
+          {/* Mensagens de hoje */}
+          <div className="flex flex-col gap-2 rounded-2xl border border-border bg-surface-card p-5 shadow-[var(--shadow-soft)]">
+            <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Send className="h-4 w-4 text-brand-strong" aria-hidden />
+              Mensagens hoje
+            </span>
+            <p className="flex flex-wrap items-center gap-3 text-sm text-foreground">
+              <span className="inline-flex items-center gap-1">
+                <ArrowDownLeft className="h-4 w-4 text-brand-strong" aria-hidden />
+                <strong>{saude?.entradasHoje ?? 0}</strong> recebidas
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <ArrowUpRight className="h-4 w-4 text-gold-strong" aria-hidden />
+                <strong>{saude?.saidasHoje ?? 0}</strong> enviadas
+              </span>
+            </p>
+            <p className="text-xs text-subtle">Dia-calendário de São Paulo.</p>
+          </div>
+
+          {/* Fila humana agora */}
+          <div className="flex flex-col gap-2 rounded-2xl border border-border bg-surface-card p-5 shadow-[var(--shadow-soft)]">
+            <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Bell className="h-4 w-4 text-brand-strong" aria-hidden />
+              Aguardando humano
+            </span>
+            <p className="text-2xl font-semibold tracking-tight text-foreground">
+              {saude?.aguardandoHumano ?? 0}
+            </p>
+            <Link
+              href="/corretor/crm/conversas?fila=precisam"
+              className="text-xs font-medium text-brand-strong underline-offset-2 hover:underline"
+            >
+              Abrir a fila Precisam →
+            </Link>
+          </div>
+
+          {/* Webhook vivo */}
+          <div className="flex flex-col gap-2 rounded-2xl border border-border bg-surface-card p-5 shadow-[var(--shadow-soft)]">
+            <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Webhook className="h-4 w-4 text-brand-strong" aria-hidden />
+              Última recebida
+            </span>
+            <p className="text-sm text-foreground">
+              {saude?.ultimaEntradaEm
+                ? tempoRelativo(saude.ultimaEntradaEm)
+                : "Nenhuma mensagem recebida ainda."}
+            </p>
+            <p className="text-xs text-subtle">
+              {saude?.ultimaEntradaEm
+                ? "Mensagens chegando = webhook vivo."
+                : "Quando o webhook receber a primeira mensagem, ela aparece aqui."}
+            </p>
+          </div>
+        </div>
       </section>
 
       {ehGestor ? (

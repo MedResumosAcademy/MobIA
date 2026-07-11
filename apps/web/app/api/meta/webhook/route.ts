@@ -27,7 +27,7 @@ import { NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { formatarTelefoneBR } from "@imobia/core";
 import { statusMensagemSchema, type Database } from "@imobia/domain";
-import { SUPABASE_URL } from "@/lib/supabase/config";
+import { processarMensagemEntrada } from "@/lib/dados/atendimento";
 import {
   assinaturaWebhookValida,
   extrairEventosWebhook,
@@ -35,6 +35,7 @@ import {
   type MensagemRecebidaMeta,
   type StatusAtualizadoMeta,
 } from "@/lib/meta/webhook-nucleo";
+import { SUPABASE_URL } from "@/lib/supabase/config";
 
 export const runtime = "nodejs";
 
@@ -151,7 +152,12 @@ async function resolverDestino(supabase: ClienteServico): Promise<DestinoWebhook
   return { orgId: data.org_id, responsavelId: data.id };
 }
 
-/** Acha o contato pelo telefone na org; se não existe, cria (origem whatsapp). */
+/**
+ * Acha o contato pelo telefone na org; se não existe, cria (origem whatsapp).
+ * Contato NOVO nasce com a IA atendendo quando a org tem ia_ativa (0029) —
+ * "a IA responde sozinha e só o que precisa de humano sobe para a fila";
+ * contatos existentes preservam o estado que já têm.
+ */
 async function encontrarOuCriarContato(
   supabase: ClienteServico,
   destino: DestinoWebhook,
@@ -165,6 +171,12 @@ async function encontrarOuCriarContato(
     .maybeSingle();
   if (existente.data) return existente.data.id;
 
+  const { data: config } = await supabase
+    .from("atendimento_config")
+    .select("ia_ativa")
+    .eq("org_id", destino.orgId)
+    .maybeSingle();
+
   const criado = await supabase
     .from("contatos")
     .insert({
@@ -173,6 +185,7 @@ async function encontrarOuCriarContato(
       nome: mensagem.nomePerfil ?? formatarTelefoneBR(mensagem.telefone),
       telefone: mensagem.telefone,
       origem: "whatsapp",
+      atendimento: config?.ia_ativa ? "ia" : "humano",
     })
     .select("id")
     .single();
@@ -189,13 +202,17 @@ async function encontrarOuCriarContato(
   return denovo.data?.id ?? null;
 }
 
-/** Grava uma mensagem RECEBIDA (dedup pelo índice único de meta_message_id). */
+/**
+ * Mensagem RECEBIDA → PIPELINE DE ATENDIMENTO (lib/dados/atendimento.ts):
+ * grava a entrada, deixa a IA responder/escalar quando configurada e mantém
+ * a fila. Dedup pelo índice único de meta_message_id (a Meta reentrega
+ * eventos) — checado barato aqui E garantido no INSERT do pipeline.
+ */
 async function registrarMensagemRecebida(
   supabase: ClienteServico,
   destino: DestinoWebhook,
   mensagem: MensagemRecebidaMeta,
 ): Promise<void> {
-  // Dedup barato antes de criar contato (a Meta reentrega eventos).
   const duplicada = await supabase
     .from("mensagens")
     .select("id")
@@ -206,16 +223,9 @@ async function registrarMensagemRecebida(
   const contatoId = await encontrarOuCriarContato(supabase, destino, mensagem);
   if (contatoId === null) return;
 
-  // Se a corrida acontecer ENTRE o select e o insert, o índice único de
-  // meta_message_id derruba o segundo INSERT — erro ignorado de propósito.
-  await supabase.from("mensagens").insert({
-    org_id: destino.orgId,
-    contato_id: contatoId,
-    canal: "whatsapp",
-    direcao: "entrada",
-    corpo: mensagem.corpo,
-    status: "recebida",
-    meta_message_id: mensagem.metaMessageId,
+  await processarMensagemEntrada(supabase, contatoId, mensagem.corpo, {
+    origem: "webhook",
+    metaMessageId: mensagem.metaMessageId,
   });
 }
 

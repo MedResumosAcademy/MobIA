@@ -3,8 +3,10 @@
 // negócio aqui. As etapas do funil reutilizam os rótulos de negocios/rotulos.
 
 import type {
+  CategoriaTemplate,
   StatusCampanha,
   StatusMensagem,
+  StatusMetaTemplate,
   Temperatura,
 } from "@imobia/domain";
 import type { VarianteBadge } from "@/components/ui/Badge";
@@ -39,4 +41,24 @@ export const ROTULO_STATUS_MENSAGEM: Record<StatusMensagem, string> = {
   lida: "Lida",
   falhou: "Falhou",
   recebida: "Recebida",
+};
+
+export const ROTULO_CATEGORIA_TEMPLATE: Record<CategoriaTemplate, string> = {
+  marketing: "Marketing",
+  utility: "Utilidade",
+};
+
+/** Ciclo do template no espelho local (a aprovação em si acontece NA Meta). */
+export const ROTULO_STATUS_TEMPLATE: Record<StatusMetaTemplate, string> = {
+  rascunho: "Rascunho",
+  submetido: "Em análise na Meta",
+  aprovado: "Aprovado",
+  rejeitado: "Rejeitado",
+};
+
+export const BADGE_STATUS_TEMPLATE: Record<StatusMetaTemplate, VarianteBadge> = {
+  rascunho: "neutro",
+  submetido: "lancamento",
+  aprovado: "marca",
+  rejeitado: "alto_padrao",
 };

@@ -1,12 +1,11 @@
 // Testes do NÚCLEO PURO do CRM 2.0 (crm-nucleo.ts) — timeline unificada,
-// agregação da listagem, inbox de conversas, segmentação de campanha (LGPD)
-// e mapeamento de status de envio para o resumo do core.
+// agregação da listagem, segmentação de campanha (LGPD) e mapeamento de
+// status de envio para o resumo do core.
 
 import { describe, expect, it } from "vitest";
 import { resumoCampanha } from "@imobia/core";
 import {
   agregarPorContato,
-  agruparConversas,
   maisQuente,
   montarTimelineContato,
   segmentarContatos,
@@ -156,49 +155,6 @@ describe("agregarPorContato", () => {
     );
     expect(agregados.get("c1")).toEqual({ negociosAbertos: 1, ganho: true, ultimaMensagem: null });
     expect(agregados.get("c2")).toEqual({ negociosAbertos: 0, ganho: false, ultimaMensagem: null });
-  });
-});
-
-// --- agruparConversas ---
-
-describe("agruparConversas", () => {
-  it("agrupa por contato com última mensagem, última entrada e não respondidas", () => {
-    const conversas = agruparConversas([
-      { contatoId: "c1", corpo: "resposta", direcao: "saida", status: "enviada", criadoEm: "2026-07-02T10:00:00Z" },
-      { contatoId: "c1", corpo: "oi", direcao: "entrada", status: "recebida", criadoEm: "2026-07-01T10:00:00Z" },
-      { contatoId: "c1", corpo: "e aí?", direcao: "entrada", status: "recebida", criadoEm: "2026-07-03T10:00:00Z" },
-      { contatoId: "c1", corpo: "alô?", direcao: "entrada", status: "recebida", criadoEm: "2026-07-04T10:00:00Z" },
-    ]);
-    expect(conversas).toHaveLength(1);
-    const c = conversas[0]!;
-    expect(c.ultima.corpo).toBe("alô?");
-    expect(c.ultimaEntradaEm).toBe("2026-07-04T10:00:00Z");
-    // Duas entradas DEPOIS da última saída (2026-07-02) aguardam resposta.
-    expect(c.naoRespondidas).toBe(2);
-  });
-
-  it("sem nenhuma saída, todas as entradas contam como não respondidas", () => {
-    const conversas = agruparConversas([
-      { contatoId: "c2", corpo: "a", direcao: "entrada", status: "recebida", criadoEm: "2026-07-01T10:00:00Z" },
-      { contatoId: "c2", corpo: "b", direcao: "entrada", status: "recebida", criadoEm: "2026-07-02T10:00:00Z" },
-    ]);
-    expect(conversas[0]?.naoRespondidas).toBe(2);
-  });
-
-  it("conversa só de saída tem zero não respondidas e ultimaEntradaEm null (janela fechada)", () => {
-    const conversas = agruparConversas([
-      { contatoId: "c3", corpo: "olá!", direcao: "saida", status: "enviada", criadoEm: "2026-07-01T10:00:00Z" },
-    ]);
-    expect(conversas[0]?.naoRespondidas).toBe(0);
-    expect(conversas[0]?.ultimaEntradaEm).toBeNull();
-  });
-
-  it("ordena as conversas pela última mensagem (mais recente primeiro)", () => {
-    const conversas = agruparConversas([
-      { contatoId: "antiga", corpo: "a", direcao: "entrada", status: "recebida", criadoEm: "2026-07-01T10:00:00Z" },
-      { contatoId: "nova", corpo: "b", direcao: "entrada", status: "recebida", criadoEm: "2026-07-05T10:00:00Z" },
-    ]);
-    expect(conversas.map((c) => c.contatoId)).toEqual(["nova", "antiga"]);
   });
 });
 

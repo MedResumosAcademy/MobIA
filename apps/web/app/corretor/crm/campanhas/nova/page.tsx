@@ -6,6 +6,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { listarContatos } from "@/lib/dados/contatos";
+import { listarTemplates } from "@/lib/dados/templates";
 import { FormularioCampanha } from "../FormularioCampanha";
 
 export const metadata: Metadata = { title: "Nova campanha" };
@@ -22,10 +23,14 @@ export default async function PaginaNovaCampanha() {
     redirect("/corretor?aviso=area-restrita-gestor");
   }
 
-  const contatos = await listarContatos();
+  const [contatos, templates] = await Promise.all([listarContatos(), listarTemplates()]);
   const tagsDisponiveis = [...new Set(contatos.flatMap((c) => c.tags))].sort((a, b) =>
     a.localeCompare(b, "pt-BR"),
   );
+  const templatesDisponiveis = templates.map((t) => ({
+    nome: t.nome,
+    statusMeta: t.statusMeta,
+  }));
 
   return (
     <div className="mx-auto w-full max-w-3xl">
@@ -42,7 +47,10 @@ export default async function PaginaNovaCampanha() {
         Segmente os contatos consentidos, preveja o alcance e salve o rascunho —
         o disparo é sempre por template aprovado na Meta.
       </p>
-      <FormularioCampanha tagsDisponiveis={tagsDisponiveis} />
+      <FormularioCampanha
+        tagsDisponiveis={tagsDisponiveis}
+        templatesDisponiveis={templatesDisponiveis}
+      />
     </div>
   );
 }

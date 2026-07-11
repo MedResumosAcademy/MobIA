@@ -18,12 +18,15 @@ import {
   type Temperatura,
 } from "@imobia/domain";
 import { Botao } from "@/components/ui/Botao";
-import { Campo, CampoTextarea, GrupoCampo } from "@/components/ui/Campo";
+import { Campo, CampoSelect, CampoTextarea, GrupoCampo } from "@/components/ui/Campo";
 import { PilulasCategoria } from "@/components/ui/PilulasCategoria";
 import { preverAlcanceAction, salvarCampanhaAction } from "@/lib/dados/campanhas";
 import { plural } from "@/lib/plural";
 import { ROTULO_ETAPA } from "../../negocios/rotulos";
-import { ROTULO_TEMPERATURA } from "../rotulos";
+import { ROTULO_STATUS_TEMPLATE, ROTULO_TEMPERATURA } from "../rotulos";
+
+/** Opção vinda do espelho local de templates (tela Templates). */
+export type TemplateOpcao = { nome: string; statusMeta: string };
 
 type Previsao = {
   alvo: number;
@@ -34,7 +37,14 @@ function alternar<T extends string>(lista: T[], valor: T): T[] {
   return lista.includes(valor) ? lista.filter((v) => v !== valor) : [...lista, valor];
 }
 
-export function FormularioCampanha({ tagsDisponiveis }: { tagsDisponiveis: string[] }) {
+export function FormularioCampanha({
+  tagsDisponiveis,
+  templatesDisponiveis,
+}: {
+  tagsDisponiveis: string[];
+  /** Espelho local (tela Templates). Vazio ⇒ campo livre com o slug da Meta. */
+  templatesDisponiveis: TemplateOpcao[];
+}) {
   const router = useRouter();
   const [nome, setNome] = useState("");
   const [templateNome, setTemplateNome] = useState("");
@@ -113,15 +123,37 @@ export function FormularioCampanha({ tagsDisponiveis }: { tagsDisponiveis: strin
         <GrupoCampo
           rotulo="Template aprovado na Meta"
           htmlFor="campanha-template"
-          auxilio="Campanha inicia conversa fora da janela de 24h — o disparo exige um template aprovado. Dá para salvar o rascunho sem ele."
+          auxilio={
+            templatesDisponiveis.length > 0
+              ? "Campanha inicia conversa fora da janela de 24h — o disparo real exige um template APROVADO. Dá para salvar o rascunho sem ele."
+              : "Campanha inicia conversa fora da janela de 24h — o disparo exige um template aprovado. Cadastre o espelho na aba Templates para escolher daqui."
+          }
         >
-          <Campo
-            id="campanha-template"
-            value={templateNome}
-            onChange={(e) => setTemplateNome(e.target.value)}
-            placeholder="lancamento_jardins_v1"
-            maxLength={120}
-          />
+          {templatesDisponiveis.length > 0 ? (
+            <CampoSelect
+              id="campanha-template"
+              value={templateNome}
+              onChange={(e) => setTemplateNome(e.target.value)}
+            >
+              <option value="">Sem template (só rascunho)</option>
+              {templatesDisponiveis.map((t) => (
+                <option key={t.nome} value={t.nome}>
+                  {t.nome}
+                  {t.statusMeta === "aprovado"
+                    ? ""
+                    : ` — ${ROTULO_STATUS_TEMPLATE[t.statusMeta as keyof typeof ROTULO_STATUS_TEMPLATE] ?? t.statusMeta}`}
+                </option>
+              ))}
+            </CampoSelect>
+          ) : (
+            <Campo
+              id="campanha-template"
+              value={templateNome}
+              onChange={(e) => setTemplateNome(e.target.value)}
+              placeholder="lancamento_jardins_v1"
+              maxLength={120}
+            />
+          )}
         </GrupoCampo>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <GrupoCampo

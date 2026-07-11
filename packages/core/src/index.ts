@@ -21,3 +21,4 @@ export * from "./selecao-negocio";
 export * from "./whatsapp";
 export * from "./crm";
 export * from "./funil-relatorio";
+export * from "./atendimento";

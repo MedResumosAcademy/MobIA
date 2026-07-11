@@ -4,7 +4,6 @@
 //   - timeline unificada da ficha do contato (negócios, atividades, tarefas
 //     e mensagens em uma linha só, ordenada do mais recente ao mais antigo);
 //   - agregação da listagem de contatos (negócios abertos + última mensagem);
-//   - agrupamento do inbox de conversas (última mensagem + não respondidas);
 //   - segmentação de campanha (a MESMA função para previsão e disparo —
 //     zero divergência) e o mapeamento de status de envio para o resumo.
 //
@@ -219,94 +218,6 @@ export function agregarPorContato(
   }
 
   return porContato;
-}
-
-// ---------------------------------------------------------------------------
-// Inbox de conversas
-// ---------------------------------------------------------------------------
-
-export type MensagemParaConversa = {
-  contatoId: string;
-  corpo: string;
-  direcao: string;
-  status: string;
-  criadoEm: string;
-};
-
-export type ConversaAgregada = {
-  contatoId: string;
-  ultima: { corpo: string; direcao: string; status: string; criadoEm: string };
-  /** Última mensagem RECEBIDA do contato (base da janela de 24h) — null se nunca escreveu. */
-  ultimaEntradaEm: string | null;
-  /** Mensagens de entrada DEPOIS da última saída (aguardando resposta da equipe). */
-  naoRespondidas: number;
-};
-
-/**
- * Agrupa as mensagens por contato em conversas: última mensagem, última
- * ENTRADA (para a janela de 24h) e quantas entradas ainda não foram
- * respondidas. Saída ordenada pela última mensagem (mais recente primeiro).
- */
-export function agruparConversas(
-  mensagens: readonly MensagemParaConversa[],
-): ConversaAgregada[] {
-  type Acumulador = {
-    ultima: MensagemParaConversa;
-    ultimaEntradaEm: string | null;
-    ultimaSaidaEm: string | null;
-    entradas: string[];
-  };
-  const porContato = new Map<string, Acumulador>();
-
-  for (const m of mensagens) {
-    const acc = porContato.get(m.contatoId) ?? {
-      ultima: m,
-      ultimaEntradaEm: null,
-      ultimaSaidaEm: null,
-      entradas: [],
-    };
-    if (instante(m.criadoEm) >= instante(acc.ultima.criadoEm)) {
-      acc.ultima = m;
-    }
-    if (m.direcao === "entrada") {
-      acc.entradas.push(m.criadoEm);
-      if (acc.ultimaEntradaEm === null || instante(m.criadoEm) > instante(acc.ultimaEntradaEm)) {
-        acc.ultimaEntradaEm = m.criadoEm;
-      }
-    } else if (
-      acc.ultimaSaidaEm === null ||
-      instante(m.criadoEm) > instante(acc.ultimaSaidaEm)
-    ) {
-      acc.ultimaSaidaEm = m.criadoEm;
-    }
-    porContato.set(m.contatoId, acc);
-  }
-
-  const conversas: ConversaAgregada[] = [];
-  for (const [contatoId, acc] of porContato) {
-    const corte = acc.ultimaSaidaEm === null ? null : instante(acc.ultimaSaidaEm);
-    const naoRespondidas = acc.entradas.filter(
-      (e) => corte === null || instante(e) > corte,
-    ).length;
-    conversas.push({
-      contatoId,
-      ultima: {
-        corpo: acc.ultima.corpo,
-        direcao: acc.ultima.direcao,
-        status: acc.ultima.status,
-        criadoEm: acc.ultima.criadoEm,
-      },
-      ultimaEntradaEm: acc.ultimaEntradaEm,
-      naoRespondidas,
-    });
-  }
-
-  conversas.sort(
-    (a, b) =>
-      instante(b.ultima.criadoEm) - instante(a.ultima.criadoEm) ||
-      a.contatoId.localeCompare(b.contatoId),
-  );
-  return conversas;
 }
 
 // ---------------------------------------------------------------------------

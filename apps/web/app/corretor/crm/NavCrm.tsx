@@ -1,15 +1,22 @@
 "use client";
 
 // Sub-navegação do hub CRM em pílulas (Contatos | Conversas | Campanhas |
-// Funil | Conexão). Client FOLHA (usePathname) para o layout continuar Server
-// Component. "Funil" é um atalho para o kanban de negócios (fora do hub) e por
-// isso nunca acende aqui. aria-current marca a aba ativa.
+// Templates | Treinar IA | Conexão | Funil). Client FOLHA (usePathname) para o
+// layout continuar Server Component. "Funil" é um atalho para o kanban de
+// negócios (fora do hub) e por isso nunca acende aqui. aria-current marca a
+// aba ativa.
+//
+// DECISÃO: 7 pílulas planas com flex-wrap (sem dropdown "IA & Modelos") —
+// tudo fica a UM clique e o wrap resolve telas estreitas; um dropdown
+// esconderia exatamente as telas novas que queremos que a equipe descubra.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bot,
   Cable,
   KanbanSquare,
+  LayoutTemplate,
   Megaphone,
   MessagesSquare,
   Users,
@@ -29,6 +36,8 @@ type Aba = {
 const PREFIXOS_IRMAOS = [
   "/corretor/crm/conversas",
   "/corretor/crm/campanhas",
+  "/corretor/crm/templates",
+  "/corretor/crm/treinar-ia",
   "/corretor/crm/conexao",
 ];
 
@@ -51,14 +60,24 @@ const ABAS: Aba[] = [
     icone: <Megaphone className="h-4 w-4" aria-hidden />,
   },
   {
-    href: "/corretor/negocios",
-    rotulo: "Funil",
-    icone: <KanbanSquare className="h-4 w-4" aria-hidden />,
+    href: "/corretor/crm/templates",
+    rotulo: "Templates",
+    icone: <LayoutTemplate className="h-4 w-4" aria-hidden />,
+  },
+  {
+    href: "/corretor/crm/treinar-ia",
+    rotulo: "Treinar IA",
+    icone: <Bot className="h-4 w-4" aria-hidden />,
   },
   {
     href: "/corretor/crm/conexao",
     rotulo: "Conexão",
     icone: <Cable className="h-4 w-4" aria-hidden />,
+  },
+  {
+    href: "/corretor/negocios",
+    rotulo: "Funil",
+    icone: <KanbanSquare className="h-4 w-4" aria-hidden />,
   },
 ];
 

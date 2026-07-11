@@ -85,6 +85,47 @@ export type Database = {
           },
         ]
       }
+      atendimento_config: {
+        Row: {
+          atualizado_em: string | null
+          boas_vindas: string | null
+          escalar_quando: string | null
+          faq: Json
+          ia_ativa: boolean
+          nome_assistente: string
+          org_id: string
+          persona: string | null
+        }
+        Insert: {
+          atualizado_em?: string | null
+          boas_vindas?: string | null
+          escalar_quando?: string | null
+          faq?: Json
+          ia_ativa?: boolean
+          nome_assistente?: string
+          org_id: string
+          persona?: string | null
+        }
+        Update: {
+          atualizado_em?: string | null
+          boas_vindas?: string | null
+          escalar_quando?: string | null
+          faq?: Json
+          ia_ativa?: boolean
+          nome_assistente?: string
+          org_id?: string
+          persona?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimento_config_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campanha_envios: {
         Row: {
           campanha_id: string
@@ -274,6 +315,8 @@ export type Database = {
       }
       contatos: {
         Row: {
+          atendimento: string
+          atribuido_a: string | null
           atualizado_em: string | null
           cliente_id: string | null
           consentimento_fonte: string | null
@@ -284,6 +327,7 @@ export type Database = {
           etapa_movida_em: string | null
           funil_id: string | null
           id: string
+          nao_lidas: number
           nome: string
           observacao: string | null
           org_id: string
@@ -292,8 +336,11 @@ export type Database = {
           tags: string[]
           telefone: string | null
           ultima_interacao_em: string | null
+          ultima_mensagem_em: string | null
         }
         Insert: {
+          atendimento?: string
+          atribuido_a?: string | null
           atualizado_em?: string | null
           cliente_id?: string | null
           consentimento_fonte?: string | null
@@ -304,6 +351,7 @@ export type Database = {
           etapa_movida_em?: string | null
           funil_id?: string | null
           id?: string
+          nao_lidas?: number
           nome: string
           observacao?: string | null
           org_id: string
@@ -312,8 +360,11 @@ export type Database = {
           tags?: string[]
           telefone?: string | null
           ultima_interacao_em?: string | null
+          ultima_mensagem_em?: string | null
         }
         Update: {
+          atendimento?: string
+          atribuido_a?: string | null
           atualizado_em?: string | null
           cliente_id?: string | null
           consentimento_fonte?: string | null
@@ -324,6 +375,7 @@ export type Database = {
           etapa_movida_em?: string | null
           funil_id?: string | null
           id?: string
+          nao_lidas?: number
           nome?: string
           observacao?: string | null
           org_id?: string
@@ -332,8 +384,16 @@ export type Database = {
           tags?: string[]
           telefone?: string | null
           ultima_interacao_em?: string | null
+          ultima_mensagem_em?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contatos_atribuido_a_fkey"
+            columns: ["atribuido_a"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contatos_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -820,6 +880,7 @@ export type Database = {
       }
       mensagens: {
         Row: {
+          autor_ia: boolean
           canal: string
           contato_id: string
           corpo: string
@@ -834,6 +895,7 @@ export type Database = {
           template_nome: string | null
         }
         Insert: {
+          autor_ia?: boolean
           canal?: string
           contato_id: string
           corpo: string
@@ -848,6 +910,7 @@ export type Database = {
           template_nome?: string | null
         }
         Update: {
+          autor_ia?: boolean
           canal?: string
           contato_id?: string
           corpo?: string
@@ -1574,6 +1637,47 @@ export type Database = {
           },
         ]
       }
+      whatsapp_templates: {
+        Row: {
+          categoria: string
+          corpo: string
+          criado_em: string
+          id: string
+          idioma: string
+          nome: string
+          org_id: string
+          status_meta: string
+        }
+        Insert: {
+          categoria: string
+          corpo: string
+          criado_em?: string
+          id?: string
+          idioma?: string
+          nome: string
+          org_id: string
+          status_meta?: string
+        }
+        Update: {
+          categoria?: string
+          corpo?: string
+          criado_em?: string
+          id?: string
+          idioma?: string
+          nome?: string
+          org_id?: string
+          status_meta?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       ranking_comunidade: {
@@ -1598,6 +1702,15 @@ export type Database = {
       }
     }
     Functions: {
+      atualizar_estado_conversa: {
+        Args: {
+          p_atendimento?: string
+          p_atribuir?: string
+          p_contato_id: string
+          p_zerar_nao_lidas?: boolean
+        }
+        Returns: undefined
+      }
       mover_contato_de_etapa: {
         Args: {
           p_contato_id: string
@@ -1608,6 +1721,7 @@ export type Database = {
       }
       newsletter_confirmar: { Args: { p_token: string }; Returns: boolean }
       newsletter_total_inscritos: { Args: never; Returns: number }
+      reiniciar_simulacao: { Args: { p_contato_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
