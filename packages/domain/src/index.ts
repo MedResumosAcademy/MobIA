@@ -16,6 +16,7 @@ export * from "./favorito";
 export * from "./parametros";
 export * from "./coringa";
 export * from "./negocio";
+export * from "./crm";
 export * from "./tarefa";
 export * from "./meta";
 export * from "./perfil";

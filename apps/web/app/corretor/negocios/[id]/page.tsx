@@ -6,7 +6,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Mail, MessageCircle, Phone } from "lucide-react";
+import { Mail, MessageCircle, Phone, Users } from "lucide-react";
 import { formatarReais } from "@imobia/core";
 import { obterNegocio } from "@/lib/dados/negocios";
 import { listarTarefasDoNegocio } from "@/lib/dados/tarefas";
@@ -123,8 +123,17 @@ export default async function PaginaNegocio({
             </p>
           )}
 
-          {(telDigitos || negocio.emailContato) && (
+          {(telDigitos || negocio.emailContato || negocio.contatoId) && (
             <div className="mt-5 flex flex-wrap gap-3 border-t border-border pt-5">
+              {negocio.contatoId && (
+                <Link
+                  href={`/corretor/crm/contatos/${negocio.contatoId}`}
+                  className={classesBotao("secundario", "sm")}
+                >
+                  <Users className="h-4 w-4" aria-hidden />
+                  Ver contato no CRM
+                </Link>
+              )}
               {telDigitos && (
                 <a
                   href={`tel:${telDigitos}`}

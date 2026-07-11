@@ -19,3 +19,4 @@ export * from "./moeda";
 export * from "./assistente";
 export * from "./selecao-negocio";
 export * from "./whatsapp";
+export * from "./crm";

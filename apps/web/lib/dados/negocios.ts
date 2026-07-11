@@ -44,6 +44,8 @@ export type NegocioResumo = {
   clienteId: string | null;
   leadId: string | null;
   imovelId: string | null;
+  /** Contato do CRM 2.0 vinculado (0026) — habilita o link para a ficha. */
+  contatoId: string | null;
   nomeContato: string;
   telefoneContato: string | null;
   emailContato: string | null;
@@ -190,6 +192,7 @@ function mapNegocioResumo(
     clienteId: n.cliente_id,
     leadId: n.lead_id,
     imovelId: n.imovel_id,
+    contatoId: n.contato_id,
     nomeContato: n.nome_contato,
     telefoneContato: n.telefone_contato,
     emailContato: n.email_contato,

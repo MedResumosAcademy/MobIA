@@ -85,6 +85,131 @@ export type Database = {
           },
         ]
       }
+      campanha_envios: {
+        Row: {
+          campanha_id: string
+          contato_id: string
+          criado_em: string
+          erro: string | null
+          id: string
+          mensagem_id: string | null
+          org_id: string
+          status: string
+        }
+        Insert: {
+          campanha_id: string
+          contato_id: string
+          criado_em?: string
+          erro?: string | null
+          id?: string
+          mensagem_id?: string | null
+          org_id: string
+          status?: string
+        }
+        Update: {
+          campanha_id?: string
+          contato_id?: string
+          criado_em?: string
+          erro?: string | null
+          id?: string
+          mensagem_id?: string | null
+          org_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campanha_envios_campanha_id_fkey"
+            columns: ["campanha_id"]
+            isOneToOne: false
+            referencedRelation: "campanhas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campanha_envios_contato_id_fkey"
+            columns: ["contato_id"]
+            isOneToOne: false
+            referencedRelation: "contatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campanha_envios_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campanha_envios_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campanhas: {
+        Row: {
+          atualizado_em: string | null
+          autor_id: string
+          criado_em: string
+          id: string
+          mensagem: string
+          nome: string
+          org_id: string
+          segmento: Json
+          status: string
+          template_nome: string | null
+          total_alvo: number
+          total_enviado: number
+          total_falha: number
+        }
+        Insert: {
+          atualizado_em?: string | null
+          autor_id: string
+          criado_em?: string
+          id?: string
+          mensagem: string
+          nome: string
+          org_id: string
+          segmento?: Json
+          status?: string
+          template_nome?: string | null
+          total_alvo?: number
+          total_enviado?: number
+          total_falha?: number
+        }
+        Update: {
+          atualizado_em?: string | null
+          autor_id?: string
+          criado_em?: string
+          id?: string
+          mensagem?: string
+          nome?: string
+          org_id?: string
+          segmento?: Json
+          status?: string
+          template_nome?: string | null
+          total_alvo?: number
+          total_enviado?: number
+          total_falha?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campanhas_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campanhas_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cliente_profiles: {
         Row: {
           atualizado_em: string | null
@@ -142,6 +267,79 @@ export type Database = {
             foreignKeyName: "cliente_profiles_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: true
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contatos: {
+        Row: {
+          atualizado_em: string | null
+          cliente_id: string | null
+          consentimento_fonte: string | null
+          consentimento_marketing_em: string | null
+          criado_em: string
+          email: string | null
+          id: string
+          nome: string
+          observacao: string | null
+          org_id: string
+          origem: string
+          responsavel_id: string
+          tags: string[]
+          telefone: string | null
+        }
+        Insert: {
+          atualizado_em?: string | null
+          cliente_id?: string | null
+          consentimento_fonte?: string | null
+          consentimento_marketing_em?: string | null
+          criado_em?: string
+          email?: string | null
+          id?: string
+          nome: string
+          observacao?: string | null
+          org_id: string
+          origem?: string
+          responsavel_id: string
+          tags?: string[]
+          telefone?: string | null
+        }
+        Update: {
+          atualizado_em?: string | null
+          cliente_id?: string | null
+          consentimento_fonte?: string | null
+          consentimento_marketing_em?: string | null
+          criado_em?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          observacao?: string | null
+          org_id?: string
+          origem?: string
+          responsavel_id?: string
+          tags?: string[]
+          telefone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contatos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contatos_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contatos_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
             referencedRelation: "perfis"
             referencedColumns: ["id"]
           },
@@ -551,6 +749,73 @@ export type Database = {
           },
         ]
       }
+      mensagens: {
+        Row: {
+          canal: string
+          contato_id: string
+          corpo: string
+          criado_em: string
+          direcao: string
+          erro: string | null
+          id: string
+          meta_message_id: string | null
+          negocio_id: string | null
+          org_id: string
+          status: string
+          template_nome: string | null
+        }
+        Insert: {
+          canal?: string
+          contato_id: string
+          corpo: string
+          criado_em?: string
+          direcao: string
+          erro?: string | null
+          id?: string
+          meta_message_id?: string | null
+          negocio_id?: string | null
+          org_id: string
+          status?: string
+          template_nome?: string | null
+        }
+        Update: {
+          canal?: string
+          contato_id?: string
+          corpo?: string
+          criado_em?: string
+          direcao?: string
+          erro?: string | null
+          id?: string
+          meta_message_id?: string | null
+          negocio_id?: string | null
+          org_id?: string
+          status?: string
+          template_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagens_contato_id_fkey"
+            columns: ["contato_id"]
+            isOneToOne: false
+            referencedRelation: "contatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensagens_negocio_id_fkey"
+            columns: ["negocio_id"]
+            isOneToOne: false
+            referencedRelation: "negocios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensagens_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       metas: {
         Row: {
           alvo: number
@@ -713,6 +978,7 @@ export type Database = {
         Row: {
           atualizado_em: string | null
           cliente_id: string | null
+          contato_id: string | null
           corretor_id: string
           criado_em: string
           email_contato: string | null
@@ -733,6 +999,7 @@ export type Database = {
         Insert: {
           atualizado_em?: string | null
           cliente_id?: string | null
+          contato_id?: string | null
           corretor_id: string
           criado_em?: string
           email_contato?: string | null
@@ -753,6 +1020,7 @@ export type Database = {
         Update: {
           atualizado_em?: string | null
           cliente_id?: string | null
+          contato_id?: string | null
           corretor_id?: string
           criado_em?: string
           email_contato?: string | null
@@ -776,6 +1044,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negocios_contato_id_fkey"
+            columns: ["contato_id"]
+            isOneToOne: false
+            referencedRelation: "contatos"
             referencedColumns: ["id"]
           },
           {

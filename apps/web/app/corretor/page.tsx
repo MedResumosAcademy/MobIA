@@ -197,6 +197,13 @@ export default async function PainelCorretor({
           <h2 className="text-lg font-semibold text-foreground">Atalhos</h2>
           <nav className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <CardAtalho
+              href="/corretor/crm"
+              icone={<Users className="h-5 w-5" aria-hidden />}
+              titulo="CRM"
+              descricao="Contatos, conversas e campanhas de WhatsApp"
+              destaque
+            />
+            <CardAtalho
               href="/corretor/coringa"
               icone={<Sparkles className="h-5 w-5" aria-hidden />}
               titulo="Coringa"
