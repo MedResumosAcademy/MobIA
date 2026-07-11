@@ -24,3 +24,7 @@ coverage/
 
 # scripts de workflow (artefato de ferramenta)
 .claude/wf/
+
+# artefatos locais da CLI do Supabase
+supabase/.temp/
+apps/web/supabase/
