@@ -25,6 +25,8 @@ import { EstadoVazio } from "@/components/EstadoVazio";
 import { classesBotao } from "@/components/ui/Botao";
 import { listarMensagensDoContato } from "@/lib/dados/conversas";
 import { obterContato } from "@/lib/dados/contatos";
+import { listarFunis } from "@/lib/dados/funis";
+import { MoverEtapa } from "../../MoverEtapa";
 import { statusConexaoMeta } from "@/lib/dados/meta-config";
 import { plural } from "@/lib/plural";
 import type { OrigemTimeline } from "@/lib/dados/crm-nucleo";
@@ -88,9 +90,10 @@ export default async function PaginaContato({
   if (!UUID_RE.test(id)) {
     notFound();
   }
-  const [detalhe, mensagens] = await Promise.all([
+  const [detalhe, mensagens, funis] = await Promise.all([
     obterContato(id),
     listarMensagensDoContato(id),
+    listarFunis(),
   ]);
   if (!detalhe) {
     notFound();
@@ -148,6 +151,31 @@ export default async function PaginaContato({
         <div className="mt-4">
           <TagsContato contatoId={contato.id} tags={contato.tags} />
         </div>
+        {funis.length > 0 && (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-foreground">Funil:</span>
+            <MoverEtapa
+              contatoId={contato.id}
+              funis={funis.map((f) => ({
+                id: f.id,
+                nome: f.nome,
+                emoji: f.emoji,
+                etapas: f.etapas,
+              }))}
+              funilAtual={contato.funilId}
+              etapaAtual={contato.etapaChave}
+              mostrarFunil
+            />
+            {contato.funilId !== null && (
+              <Link
+                href={`/corretor/crm?funil=${contato.funilId}&vista=kanban`}
+                className="text-sm text-brand-strong underline-offset-2 hover:underline"
+              >
+                ver no kanban →
+              </Link>
+            )}
+          </div>
+        )}
         {contato.observacao && (
           <p className="mt-4 rounded-xl border border-border bg-surface p-3 text-sm text-muted">
             {contato.observacao}

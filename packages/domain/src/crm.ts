@@ -95,15 +95,71 @@ export type ContatoInput = z.input<typeof contatoSchema>;
 export type Contato = z.infer<typeof contatoSchema>;
 
 /**
+ * Etapa de um funil de RELACIONAMENTO — item do array ordenado funis.etapas
+ * (jsonb, migração 0027). `chave` é slug curto estável (identidade da etapa);
+ * `cor` é hex opcional para o kanban/relatório.
+ */
+export const CHAVE_ETAPA_FUNIL_RE = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
+
+export const etapaFunilSchema = z
+  .object({
+    chave: z
+      .string()
+      .regex(CHAVE_ETAPA_FUNIL_RE, "chave deve ser slug curto (a-z, 0-9, _)")
+      .max(40),
+    nome: z.string().trim().min(1).max(60),
+    cor: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/, "cor deve ser hex #rrggbb")
+      .optional(),
+  })
+  .strict();
+
+export type EtapaFunilInput = z.input<typeof etapaFunilSchema>;
+
+/**
+ * Funil de relacionamento (aplica-se a CONTATOS — o funil de negócios é
+ * canônico e separado). Etapas: array ORDENADO de 2 a 15, chaves ÚNICAS no
+ * funil. `diasParaEsfriar` = regra do 🔥 "a contatar" (sem interação há >= N
+ * dias).
+ */
+export const funilSchema = z
+  .object({
+    id: idSchema.optional(),
+    nome: z.string().trim().min(1).max(80),
+    emoji: z.string().trim().min(1).max(8).optional(),
+    descricao: z.string().trim().max(500).optional(),
+    etapas: z
+      .array(etapaFunilSchema)
+      .min(2)
+      .max(15)
+      .refine(
+        (etapas) => new Set(etapas.map((e) => e.chave)).size === etapas.length,
+        "chaves de etapa devem ser únicas no funil",
+      ),
+    diasParaEsfriar: z.number().int().min(1).max(365).default(7),
+  })
+  .strict();
+
+export type FunilInput = z.input<typeof funilSchema>;
+export type Funil = z.infer<typeof funilSchema>;
+
+/**
  * Segmento de uma campanha — filtros combinados por E (todas as chaves
  * presentes precisam bater); cada chave vazia/ausente = "não filtrar".
- * Ex.: {"etapas":["proposta"],"temperaturas":["pronto_para_compra"],"tags":["vip"]}
+ * `etapas` são as do funil de NEGÓCIOS (canônico); `funilId`/`etapasFunil`
+ * segmentam pelo funil de RELACIONAMENTO (0027) — chaves de etapa em slug.
+ * Ex.: {"funilId":"…","etapasFunil":["em_conversa"],"tags":["vip"]}
  */
 export const segmentoSchema = z
   .object({
     etapas: z.array(z.enum(ETAPAS_NEGOCIO)).optional(),
     temperaturas: z.array(z.enum(TEMPERATURAS)).optional(),
     tags: z.array(z.string().trim().min(1).max(40)).optional(),
+    funilId: idSchema.optional(),
+    etapasFunil: z
+      .array(z.string().regex(CHAVE_ETAPA_FUNIL_RE).max(40))
+      .optional(),
   })
   .strict();
 

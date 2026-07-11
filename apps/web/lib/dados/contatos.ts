@@ -46,8 +46,16 @@ export type ContatoResumo = {
   clienteId: string | null;
   /** Carimbo do opt-in de marketing (LGPD) — null = sem consentimento. */
   consentimentoMarketingEm: string | null;
+  /** Funil de RELACIONAMENTO do contato (0027) — null = fora de funil. */
+  funilId: string | null;
+  /** Etapa atual no funil de relacionamento (chave) — null = sem etapa. */
+  etapaChave: string | null;
+  /** Última interação registrada (mensagem) — base do 🔥 "a contatar". */
+  ultimaInteracaoEm: string | null;
   /** Quantos negócios ABERTOS apontam para o contato (visíveis ao usuário). */
   negociosAbertos: number;
+  /** Tem negócio GANHO vinculado (o 🔥 nunca acende para quem ganhou). */
+  ganho: boolean;
   /** Última mensagem trocada — null se nunca conversou. */
   ultimaMensagem: { corpo: string; direcao: string; criadoEm: string } | null;
   criadoEm: string;
@@ -114,7 +122,11 @@ function tituloImovel(
 
 function mapContatoResumo(
   l: LinhaContato,
-  agregado: { negociosAbertos: number; ultimaMensagem: ContatoResumo["ultimaMensagem"] },
+  agregado: {
+    negociosAbertos: number;
+    ganho: boolean;
+    ultimaMensagem: ContatoResumo["ultimaMensagem"];
+  },
 ): ContatoResumo {
   return {
     id: l.id,
@@ -127,6 +139,10 @@ function mapContatoResumo(
     responsavelId: l.responsavel_id,
     clienteId: l.cliente_id,
     consentimentoMarketingEm: l.consentimento_marketing_em,
+    funilId: l.funil_id,
+    etapaChave: l.etapa_chave,
+    ultimaInteracaoEm: l.ultima_interacao_em,
+    ganho: agregado.ganho,
     negociosAbertos: agregado.negociosAbertos,
     ultimaMensagem: agregado.ultimaMensagem,
     criadoEm: l.criado_em,
@@ -183,9 +199,8 @@ export async function listarContatos(
     query.order("criado_em", { ascending: false }),
     supabase
       .from("negocios")
-      .select("contato_id")
-      .not("contato_id", "is", null)
-      .is("resultado", null),
+      .select("contato_id, resultado")
+      .not("contato_id", "is", null),
     supabase
       .from("mensagens")
       .select("contato_id, corpo, direcao, criado_em")
@@ -203,7 +218,7 @@ export async function listarContatos(
   }
 
   const agregados = agregarPorContato(
-    (negociosRes.data ?? []).map((n) => ({ contatoId: n.contato_id })),
+    (negociosRes.data ?? []).map((n) => ({ contatoId: n.contato_id, resultado: n.resultado })),
     (mensagensRes.data ?? []).map((m) => ({
       contatoId: m.contato_id,
       corpo: m.corpo,
@@ -213,7 +228,10 @@ export async function listarContatos(
   );
 
   return (contatosRes.data ?? []).map((l) =>
-    mapContatoResumo(l, agregados.get(l.id) ?? { negociosAbertos: 0, ultimaMensagem: null }),
+    mapContatoResumo(
+      l,
+      agregados.get(l.id) ?? { negociosAbertos: 0, ganho: false, ultimaMensagem: null },
+    ),
   );
 }
 
@@ -346,6 +364,7 @@ export async function obterContato(id: string): Promise<ContatoDetalhe | null> {
 
   const resumoBase = mapContatoResumo(linha, {
     negociosAbertos: negocios.filter((n) => n.resultado === null).length,
+    ganho: negocios.some((n) => n.resultado === "ganho"),
     ultimaMensagem: mensagensRes.data?.[0]
       ? {
           corpo: mensagensRes.data[0].corpo,

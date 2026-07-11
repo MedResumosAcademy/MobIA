@@ -169,16 +169,19 @@ export type MensagemParaAgregacao = {
 export type AgregadoContato = {
   /** Quantos negócios ABERTOS (sem resultado) apontam para o contato. */
   negociosAbertos: number;
+  /** Tem negócio GANHO vinculado (governa o 🔥 do funil de relacionamento). */
+  ganho: boolean;
   /** Última mensagem trocada com o contato — null se nunca conversou. */
   ultimaMensagem: { corpo: string; direcao: string; criadoEm: string } | null;
 };
 
 /**
- * Agrega, por contato, a contagem de negócios abertos e a última mensagem.
- * Robusto à ordem de chegada das mensagens (compara criadoEm, não posição).
+ * Agrega, por contato, a contagem de negócios ABERTOS (resultado null/ausente),
+ * o flag de GANHO (resultado "ganho") e a última mensagem. Robusto à ordem de
+ * chegada das mensagens (compara criadoEm, não posição).
  */
 export function agregarPorContato(
-  negociosAbertos: readonly { contatoId: string | null }[],
+  negocios: readonly { contatoId: string | null; resultado?: string | null }[],
   mensagens: readonly MensagemParaAgregacao[],
 ): Map<string, AgregadoContato> {
   const porContato = new Map<string, AgregadoContato>();
@@ -188,14 +191,20 @@ export function agregarPorContato(
     if (atual) {
       return atual;
     }
-    const novo: AgregadoContato = { negociosAbertos: 0, ultimaMensagem: null };
+    const novo: AgregadoContato = { negociosAbertos: 0, ganho: false, ultimaMensagem: null };
     porContato.set(id, novo);
     return novo;
   };
 
-  for (const n of negociosAbertos) {
-    if (n.contatoId !== null) {
-      garantir(n.contatoId).negociosAbertos += 1;
+  for (const n of negocios) {
+    if (n.contatoId === null) {
+      continue;
+    }
+    const agregado = garantir(n.contatoId);
+    if (n.resultado == null) {
+      agregado.negociosAbertos += 1;
+    } else if (n.resultado === "ganho") {
+      agregado.ganho = true;
     }
   }
 

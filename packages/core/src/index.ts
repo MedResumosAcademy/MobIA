@@ -20,3 +20,4 @@ export * from "./assistente";
 export * from "./selecao-negocio";
 export * from "./whatsapp";
 export * from "./crm";
+export * from "./funil-relatorio";

@@ -280,6 +280,9 @@ export type Database = {
           consentimento_marketing_em: string | null
           criado_em: string
           email: string | null
+          etapa_chave: string | null
+          etapa_movida_em: string | null
+          funil_id: string | null
           id: string
           nome: string
           observacao: string | null
@@ -288,6 +291,7 @@ export type Database = {
           responsavel_id: string
           tags: string[]
           telefone: string | null
+          ultima_interacao_em: string | null
         }
         Insert: {
           atualizado_em?: string | null
@@ -296,6 +300,9 @@ export type Database = {
           consentimento_marketing_em?: string | null
           criado_em?: string
           email?: string | null
+          etapa_chave?: string | null
+          etapa_movida_em?: string | null
+          funil_id?: string | null
           id?: string
           nome: string
           observacao?: string | null
@@ -304,6 +311,7 @@ export type Database = {
           responsavel_id: string
           tags?: string[]
           telefone?: string | null
+          ultima_interacao_em?: string | null
         }
         Update: {
           atualizado_em?: string | null
@@ -312,6 +320,9 @@ export type Database = {
           consentimento_marketing_em?: string | null
           criado_em?: string
           email?: string | null
+          etapa_chave?: string | null
+          etapa_movida_em?: string | null
+          funil_id?: string | null
           id?: string
           nome?: string
           observacao?: string | null
@@ -320,6 +331,7 @@ export type Database = {
           responsavel_id?: string
           tags?: string[]
           telefone?: string | null
+          ultima_interacao_em?: string | null
         }
         Relationships: [
           {
@@ -327,6 +339,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contatos_funil_id_fkey"
+            columns: ["funil_id"]
+            isOneToOne: false
+            referencedRelation: "funis"
             referencedColumns: ["id"]
           },
           {
@@ -563,6 +582,56 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funis: {
+        Row: {
+          arquivado: boolean
+          atualizado_em: string | null
+          criado_em: string
+          descricao: string | null
+          dias_para_esfriar: number
+          emoji: string | null
+          etapas: Json
+          id: string
+          nome: string
+          org_id: string
+          padrao: boolean
+        }
+        Insert: {
+          arquivado?: boolean
+          atualizado_em?: string | null
+          criado_em?: string
+          descricao?: string | null
+          dias_para_esfriar?: number
+          emoji?: string | null
+          etapas: Json
+          id?: string
+          nome: string
+          org_id: string
+          padrao?: boolean
+        }
+        Update: {
+          arquivado?: boolean
+          atualizado_em?: string | null
+          criado_em?: string
+          descricao?: string | null
+          dias_para_esfriar?: number
+          emoji?: string | null
+          etapas?: Json
+          id?: string
+          nome?: string
+          org_id?: string
+          padrao?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funis_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
             referencedColumns: ["id"]
           },
         ]
@@ -1529,6 +1598,14 @@ export type Database = {
       }
     }
     Functions: {
+      mover_contato_de_etapa: {
+        Args: {
+          p_contato_id: string
+          p_etapa_chave: string
+          p_funil_id: string
+        }
+        Returns: undefined
+      }
       newsletter_confirmar: { Args: { p_token: string }; Returns: boolean }
       newsletter_total_inscritos: { Args: never; Returns: number }
     }

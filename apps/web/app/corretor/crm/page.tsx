@@ -11,9 +11,18 @@ import { MessagesSquare, Plus, ShieldCheck, Users } from "lucide-react";
 import { EstadoVazio } from "@/components/EstadoVazio";
 import { classesBotao } from "@/components/ui/Botao";
 import { listarContatos } from "@/lib/dados/contatos";
+import { contarContatosPorFunil, dadosDoFunil, listarFunis } from "@/lib/dados/funis";
+import { obterPapelEOrg } from "@/lib/dados/gestor";
 import { plural } from "@/lib/plural";
 import { tempoRelativo } from "../leads/tempo";
 import { FiltrosContatos } from "./FiltrosContatos";
+import {
+  BarraDoFunil,
+  ChipsFunis,
+  VistaKanban,
+  VistaListaFunil,
+  VistaRelatorio,
+} from "./VistasFunil";
 
 export const metadata: Metadata = { title: "CRM — Contatos" };
 export const dynamic = "force-dynamic";
@@ -21,9 +30,83 @@ export const dynamic = "force-dynamic";
 export default async function PaginaContatos({
   searchParams,
 }: {
-  searchParams: Promise<{ busca?: string; tag?: string; meus?: string }>;
+  searchParams: Promise<{
+    busca?: string;
+    tag?: string;
+    meus?: string;
+    funil?: string;
+    vista?: string;
+    etapa?: string;
+  }>;
 }) {
-  const { busca, tag, meus } = await searchParams;
+  const { busca, tag, meus, funil, vista, etapa } = await searchParams;
+
+  const [funis, contagens, contexto] = await Promise.all([
+    listarFunis(),
+    contarContatosPorFunil(),
+    obterPapelEOrg(),
+  ]);
+  const ehGestor = contexto?.papel === "gestor" || contexto?.papel === "admin";
+
+  // ——— VISTA POR FUNIL (kanban | relatório | lista do funil) ———
+  const funilEscolhido = funis.find((f) => f.id === funil) ?? null;
+  if (funilEscolhido !== null) {
+    const dados = await dadosDoFunil(funilEscolhido.id);
+    const vistaAtiva =
+      vista === "lista" || vista === "relatorio" ? vista : ("kanban" as const);
+    return (
+      <>
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+              {funilEscolhido.emoji ? `${funilEscolhido.emoji} ` : ""}
+              {funilEscolhido.nome}
+            </h1>
+            <p className="mt-1 text-muted">
+              {funilEscolhido.descricao ??
+                "Funil de relacionamento — cada contato no próximo passo certo."}
+            </p>
+          </div>
+          <Link href="/corretor/crm/contatos/novo" className={classesBotao("primario", "md")}>
+            <Plus className="h-4 w-4" aria-hidden />
+            Novo contato
+          </Link>
+        </header>
+
+        <ChipsFunis
+          funis={funis}
+          contagens={contagens}
+          funilAtivo={funilEscolhido.id}
+          ehGestor={ehGestor}
+        />
+
+        {dados === null ? (
+          <p className="mt-6 rounded-2xl border border-dashed border-border px-4 py-10 text-center text-sm text-subtle">
+            Não foi possível carregar o funil agora — recarregue a página.
+          </p>
+        ) : (
+          <>
+            <BarraDoFunil funil={dados.funil} relatorio={dados.relatorio} vista={vistaAtiva} />
+            {vistaAtiva === "kanban" && (
+              <VistaKanban funil={dados.funil} contatos={dados.contatos} />
+            )}
+            {vistaAtiva === "relatorio" && (
+              <VistaRelatorio funil={dados.funil} relatorio={dados.relatorio} />
+            )}
+            {vistaAtiva === "lista" && (
+              <VistaListaFunil
+                funil={dados.funil}
+                contatos={dados.contatos}
+                etapaFiltro={etapa}
+              />
+            )}
+          </>
+        )}
+      </>
+    );
+  }
+
+  // ——— AGENDA COMPLETA ("Todos") ———
   const todos = await listarContatos({ busca, apenasMeus: meus === "1" });
 
   // Opções do select de tag = todas as tags dos contatos visíveis (ordenadas).
@@ -54,6 +137,8 @@ export default async function PaginaContatos({
           Novo contato
         </Link>
       </header>
+
+      <ChipsFunis funis={funis} contagens={contagens} funilAtivo={null} ehGestor={ehGestor} />
 
       <FiltrosContatos tags={tags} />
 

@@ -129,9 +129,10 @@ describe("agregarPorContato", () => {
     );
     expect(agregados.get("c1")).toEqual({
       negociosAbertos: 2,
+      ganho: false,
       ultimaMensagem: { corpo: "recente", direcao: "entrada", criadoEm: "2026-07-05T10:00:00Z" },
     });
-    expect(agregados.get("c2")).toEqual({ negociosAbertos: 1, ultimaMensagem: null });
+    expect(agregados.get("c2")).toEqual({ negociosAbertos: 1, ganho: false, ultimaMensagem: null });
     expect(agregados.has("null")).toBe(false);
   });
 
@@ -142,6 +143,19 @@ describe("agregarPorContato", () => {
     );
     expect(agregados.get("c3")?.negociosAbertos).toBe(0);
     expect(agregados.get("c3")?.ultimaMensagem?.corpo).toBe("oi");
+  });
+
+  it("resultado: 'ganho' liga o flag, 'perdido' não conta como aberto nem ganho", () => {
+    const agregados = agregarPorContato(
+      [
+        { contatoId: "c1", resultado: "ganho" },
+        { contatoId: "c1", resultado: null },
+        { contatoId: "c2", resultado: "perdido" },
+      ],
+      [],
+    );
+    expect(agregados.get("c1")).toEqual({ negociosAbertos: 1, ganho: true, ultimaMensagem: null });
+    expect(agregados.get("c2")).toEqual({ negociosAbertos: 0, ganho: false, ultimaMensagem: null });
   });
 });
 

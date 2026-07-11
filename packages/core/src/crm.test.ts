@@ -195,6 +195,49 @@ describe("contatoCasaSegmento", () => {
       contatoCasaSegmento(CONTATO_OK, { ...extras, temperatura: "morno" }, seg).casa,
     ).toBe(false);
   });
+
+  it("funilId: casa só quem está NAQUELE funil de relacionamento", () => {
+    const seg: Segmento = { funilId: "funil-1" };
+    expect(
+      contatoCasaSegmento({ ...CONTATO_OK, funilId: "funil-1" }, {}, seg).casa,
+    ).toBe(true);
+    expect(
+      contatoCasaSegmento({ ...CONTATO_OK, funilId: "funil-2" }, {}, seg).motivoExclusao,
+    ).toBe("fora_do_segmento");
+    // Fora de qualquer funil (null/ausente) nunca casa com o critério.
+    expect(
+      contatoCasaSegmento({ ...CONTATO_OK, funilId: null }, {}, seg).motivoExclusao,
+    ).toBe("fora_do_segmento");
+    expect(contatoCasaSegmento(CONTATO_OK, {}, seg).motivoExclusao).toBe("fora_do_segmento");
+  });
+
+  it("etapasFunil: precisa estar em UMA das etapas aceitas; sem etapa ⇒ fora", () => {
+    const seg: Segmento = { etapasFunil: ["em_conversa", "aguardando_retorno"] };
+    expect(
+      contatoCasaSegmento({ ...CONTATO_OK, etapaChave: "em_conversa" }, {}, seg).casa,
+    ).toBe(true);
+    expect(
+      contatoCasaSegmento({ ...CONTATO_OK, etapaChave: "novo_contato" }, {}, seg)
+        .motivoExclusao,
+    ).toBe("fora_do_segmento");
+    expect(
+      contatoCasaSegmento({ ...CONTATO_OK, etapaChave: null }, {}, seg).motivoExclusao,
+    ).toBe("fora_do_segmento");
+  });
+
+  it("funilId + etapasFunil juntos: E entre si e com a LGPD intacta", () => {
+    const seg: Segmento = { funilId: "funil-1", etapasFunil: ["em_conversa"] };
+    const noFunil = { ...CONTATO_OK, funilId: "funil-1", etapaChave: "em_conversa" };
+    expect(contatoCasaSegmento(noFunil, {}, seg)).toEqual({ casa: true });
+    expect(
+      contatoCasaSegmento({ ...noFunil, etapaChave: "encerrado" }, {}, seg).motivoExclusao,
+    ).toBe("fora_do_segmento");
+    // Casa com o funil mas não consentiu ⇒ 'sem_consentimento' (nunca vira alvo).
+    expect(
+      contatoCasaSegmento({ ...noFunil, consentimentoMarketingEm: null }, {}, seg)
+        .motivoExclusao,
+    ).toBe("sem_consentimento");
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -54,12 +54,16 @@ export function formatarTelefoneBR(e164: string): string {
 
 /** Critérios de um segmento de campanha. Campos ausentes não filtram. */
 export interface Segmento {
-  /** Etapas do funil aceitas (o contato precisa ter negócio aberto em alguma). */
+  /** Etapas do funil de NEGÓCIOS aceitas (o contato precisa ter negócio aberto em alguma). */
   etapas?: string[];
   /** Temperaturas do termômetro aceitas ("quente", "morno", "frio"...). */
   temperaturas?: string[];
   /** Tags aceitas (basta o contato ter UMA delas). */
   tags?: string[];
+  /** Funil de RELACIONAMENTO exigido (o contato precisa estar nele). */
+  funilId?: string;
+  /** Etapas do funil de relacionamento aceitas (chaves; exige estar em alguma). */
+  etapasFunil?: string[];
   /**
    * Segmento de ENVIO exige consentimento + telefone. Default true SEMPRE;
    * só passe false para segmentos analíticos que nunca disparam mensagem.
@@ -78,6 +82,10 @@ export interface ContatoSegmentavel {
   /** Quando o contato consentiu marketing (ISO) — null = nunca consentiu. */
   consentimentoMarketingEm: string | null;
   telefone: string | null;
+  /** Funil de RELACIONAMENTO do contato — null/ausente = fora de funil. */
+  funilId?: string | null;
+  /** Etapa atual no funil de relacionamento (chave) — null/ausente = sem etapa. */
+  etapaChave?: string | null;
 }
 
 /** Dados derivados (negócios/termômetro) que chegam de fora do contato. */
@@ -115,6 +123,16 @@ export function contatoCasaSegmento(
 
   if (seg.tags && seg.tags.length > 0) {
     if (!contato.tags.some((t) => seg.tags!.includes(t))) return FORA;
+  }
+
+  // Funil de RELACIONAMENTO: exige estar no funil (e, se pedido, em uma das
+  // etapas aceitas). Contato fora de funil nunca casa com estes critérios.
+  if (seg.funilId !== undefined && seg.funilId !== "") {
+    if (contato.funilId !== seg.funilId) return FORA;
+  }
+  if (seg.etapasFunil && seg.etapasFunil.length > 0) {
+    const chave = contato.etapaChave ?? null;
+    if (chave === null || !seg.etapasFunil.includes(chave)) return FORA;
   }
 
   if (typeof seg.diasSemMovimentoMin === "number") {
