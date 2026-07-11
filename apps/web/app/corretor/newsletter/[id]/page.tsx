@@ -12,6 +12,7 @@ import { Badge, type VarianteBadge } from "@/components/ui/Badge";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { gerarHtmlEdicao } from "@/lib/email/newsletter-html";
 import { obterEdicao, obterImoveisDaEdicao } from "@/lib/dados/newsletter";
+import { obterOrgConfig } from "@/lib/dados/org-config";
 import { AcoesEdicao } from "./AcoesEdicao";
 
 export const metadata: Metadata = { title: "Edição da newsletter" };
@@ -21,6 +22,7 @@ const BADGE_STATUS: Record<StatusEdicaoNewsletter, { rotulo: string; variante: V
   rascunho: { rotulo: "Rascunho", variante: "neutro" },
   pronta: { rotulo: "Pronta", variante: "destaque" },
   enviada: { rotulo: "Enviada", variante: "marca" },
+  simulada: { rotulo: "Envio simulado", variante: "lancamento" },
 };
 
 export default async function PaginaEdicaoNewsletter({
@@ -44,9 +46,14 @@ export default async function PaginaEdicaoNewsletter({
     notFound();
   }
 
-  const imoveis = await obterImoveisDaEdicao(edicao.imovelIds);
+  const [imoveis, orgConfig] = await Promise.all([
+    obterImoveisDaEdicao(edicao.imovelIds),
+    obterOrgConfig(),
+  ]);
   const html = gerarHtmlEdicao(edicao, imoveis);
   const badge = BADGE_STATUS[edicao.status];
+  // GATE de e-mail (0033): default seguro é SIMULADO (sem config = simulado).
+  const emailSimulado = orgConfig === null || orgConfig.emailModo !== "real";
 
   return (
     <div className="flex flex-1 flex-col items-center bg-background px-6 py-16 font-sans">
@@ -88,6 +95,7 @@ export default async function PaginaEdicaoNewsletter({
             status={edicao.status}
             html={html}
             envioConfigurado={Boolean(process.env.RESEND_API_KEY)}
+            emailSimulado={emailSimulado}
           />
         </section>
 

@@ -29,6 +29,7 @@ import {
   CheckCircle2,
   PartyPopper,
   Lock,
+  Settings,
 } from "lucide-react";
 import { formatarReais } from "@imobia/core";
 import { ETAPAS_NEGOCIO, type EtapaNegocio } from "@imobia/domain";
@@ -259,6 +260,14 @@ export default async function PainelCorretor({
                 icone={<UsersRound className="h-5 w-5" aria-hidden />}
                 titulo="Equipe"
                 descricao="Visão da imobiliária"
+              />
+            )}
+            {ehGestor && (
+              <CardAtalho
+                href="/corretor/config"
+                icone={<Settings className="h-5 w-5" aria-hidden />}
+                titulo="Configurações"
+                descricao="Modo de envio, integrações, convites e metas"
               />
             )}
           </nav>

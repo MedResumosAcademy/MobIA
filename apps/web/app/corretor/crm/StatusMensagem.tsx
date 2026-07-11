@@ -3,7 +3,7 @@
 // contato e pelo inbox de conversas. Só faz sentido para mensagens de SAÍDA;
 // para entrada/desconhecido não renderiza nada.
 
-import { AlertTriangle, Check, CheckCheck, Clock } from "lucide-react";
+import { AlertTriangle, Check, CheckCheck, Clock, ShieldAlert } from "lucide-react";
 import { statusMensagemSchema } from "@imobia/domain";
 import { ROTULO_STATUS_MENSAGEM } from "./rotulos";
 
@@ -21,12 +21,15 @@ export function TicksMensagem({ status }: { status: string }) {
       <Check className="h-3.5 w-3.5" aria-hidden />
     ) : s === "falhou" ? (
       <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+    ) : s === "bloqueada_teste" ? (
+      // Retida pelo MODO TESTE da org (0033/0034) — a Meta nunca foi chamada.
+      <ShieldAlert className="h-3.5 w-3.5" aria-hidden />
     ) : (
       // entregue e lida: dois ticks; a lida ganha a cor da marca (abaixo).
       <CheckCheck className="h-3.5 w-3.5" aria-hidden />
     );
   const cor =
-    s === "falhou"
+    s === "falhou" || s === "bloqueada_teste"
       ? "text-gold-strong"
       : s === "lida"
         ? "text-brand-strong"

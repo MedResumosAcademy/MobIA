@@ -8,8 +8,10 @@
 import { z } from "zod";
 import { idSchema } from "./primitivas";
 
-/** Status possíveis de uma edição de newsletter. */
-export const statusEdicaoNewsletter = ["rascunho", "pronta", "enviada"] as const;
+/** Status possíveis de uma edição de newsletter. 'simulada' (0034): passou
+ * pelo fluxo de envio com email_modo='simulado' na central de configuração —
+ * nada saiu pelo Resend e a edição AINDA pode ser enviada de verdade. */
+export const statusEdicaoNewsletter = ["rascunho", "pronta", "enviada", "simulada"] as const;
 
 export type StatusEdicaoNewsletter = (typeof statusEdicaoNewsletter)[number];
 

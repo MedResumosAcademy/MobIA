@@ -21,6 +21,7 @@
 // antes de entrar no motor.
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import {
   contatoEstaAContatar,
   formatarTelefoneBR,
@@ -32,6 +33,7 @@ import { funilSchema, type Database, type FunilInput, type Papel } from "@imobia
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { agoraSaoPauloISO, isoSaoPaulo } from "@/lib/fuso";
 import { criarClienteServidor } from "@/lib/supabase/server";
+import { emitirEvento } from "@/lib/webhooks/saida";
 
 type LinhaFunil = Database["public"]["Tables"]["funis"]["Row"];
 
@@ -451,8 +453,9 @@ export async function moverContatoDeEtapaAction(
   funilId: string,
   etapaChave: string,
 ): Promise<ResultadoAcaoFunil> {
+  let ctx: { orgId: string };
   try {
-    await exigirEquipe();
+    ctx = await exigirEquipe();
   } catch {
     return { ok: false, erro: "Sem permissão. Entre novamente." };
   }
@@ -474,6 +477,14 @@ export async function moverContatoDeEtapaAction(
     }
     return { ok: false, erro: "Não foi possível mover o contato. Tente novamente." };
   }
+  // Webhook de saída (0033) DEPOIS da resposta — nunca atrasa o kanban.
+  after(() =>
+    emitirEvento(ctx.orgId, "contato.mudou_etapa", {
+      contatoId,
+      funilId,
+      etapaChave,
+    }),
+  );
   revalidatePath("/corretor/crm");
   revalidatePath(`/corretor/crm/contatos/${contatoId}`);
   return { ok: true };

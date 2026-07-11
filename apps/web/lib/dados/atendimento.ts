@@ -29,6 +29,10 @@ import { z } from "zod";
 import { contarConversaAtual, type ConfigContexto, type MensagemContexto } from "@imobia/core";
 import { faqItemSchema, type Database } from "@imobia/domain";
 import { responderComoAtendente } from "@/lib/ia/atendente";
+import {
+  podeEnviarPara,
+  type GateEnvio,
+} from "@/lib/dados/envio-whatsapp";
 import { enviarTextoWhatsApp, metaDisponivel } from "@/lib/meta/whatsapp";
 
 type Cliente = SupabaseClient<Database>;
@@ -89,12 +93,18 @@ async function carregarConfigAtiva(
  *   - simulador: status 'enviada' direto — o simulador NUNCA chama a Meta;
  *   - webhook: 'pendente' → envia via Meta → 'enviada'/'falhou' (sem Meta
  *     configurada, registra 'falhou' honesto — o texto fica no histórico).
+ *
+ * GATE do modo de envio (0033): com a org em modo TESTE e o número fora da
+ * lista, a resposta NÃO sai pela Meta — fica registrada com status
+ * 'bloqueada_teste' (0034) e anotação, para o histórico contar a verdade.
+ * `gate` chega calculado do processarMensagemEntrada (1 leitura por evento).
  */
 async function registrarSaidaIa(
   supabase: Cliente,
   contato: { id: string; org_id: string; telefone: string | null },
   corpo: string,
   origem: OrigemEntrada,
+  gate: GateEnvio,
 ): Promise<void> {
   if (origem === "simulador") {
     await supabase.from("mensagens").insert({
@@ -104,6 +114,21 @@ async function registrarSaidaIa(
       direcao: "saida",
       corpo,
       status: "enviada",
+      autor_ia: true,
+    });
+    return;
+  }
+
+  if (!gate.pode) {
+    await supabase.from("mensagens").insert({
+      org_id: contato.org_id,
+      contato_id: contato.id,
+      canal: "whatsapp",
+      direcao: "saida",
+      corpo,
+      status: "bloqueada_teste",
+      erro:
+        "Modo teste: número fora da lista de números de teste — a resposta da IA não foi enviada.",
       autor_ia: true,
     });
     return;
@@ -257,6 +282,14 @@ export async function processarMensagemEntrada(
     conversaAtualLen,
   );
 
+  // GATE do modo de envio (0033), calculado UMA vez por evento: no simulador
+  // não se aplica (a Meta nunca é chamada); no webhook, decide se a saída da
+  // IA pode ir para a Meta ou fica retida como 'bloqueada_teste'.
+  const gate: GateEnvio =
+    opcoes.origem === "simulador"
+      ? { pode: true }
+      : await podeEnviarPara(supabase, contato.org_id, contato.telefone);
+
   if (resposta === null) {
     // IA indisponível (sem chave/cascata falhou) ⇒ fila humana SILENCIOSA.
     await supabase
@@ -268,9 +301,9 @@ export async function processarMensagemEntrada(
 
   if (resposta.tipo === "resposta") {
     if (boasVindas !== null) {
-      await registrarSaidaIa(supabase, contato, boasVindas, opcoes.origem);
+      await registrarSaidaIa(supabase, contato, boasVindas, opcoes.origem, gate);
     }
-    await registrarSaidaIa(supabase, contato, resposta.texto, opcoes.origem);
+    await registrarSaidaIa(supabase, contato, resposta.texto, opcoes.origem, gate);
     return { ok: true, acao: "ia_respondeu", respostaIa: resposta.texto };
   }
 
@@ -282,7 +315,7 @@ export async function processarMensagemEntrada(
     .update({ atendimento: "humano" })
     .eq("id", contato.id);
   const transicao = mensagemDeTransicao(config.contexto.nomeAssistente);
-  await registrarSaidaIa(supabase, contato, transicao, opcoes.origem);
+  await registrarSaidaIa(supabase, contato, transicao, opcoes.origem, gate);
   // O trigger 0029 ZEROU nao_lidas ao gravar a saída — restaura o contador
   // (entradas do cliente que nenhum humano leu) para a conversa aparecer na
   // fila "Precisam" (critério: humano + nao_lidas > 0).

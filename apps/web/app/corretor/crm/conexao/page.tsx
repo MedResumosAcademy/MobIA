@@ -19,8 +19,10 @@ import {
   Clock,
   KeyRound,
   Send,
+  Settings,
   Webhook,
 } from "lucide-react";
+import { classesBotao } from "@/components/ui/Botao";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { obterConfigAtendimento } from "@/lib/dados/atendimento-config";
 import { statusConexaoMeta } from "@/lib/dados/meta-config";
@@ -81,14 +83,22 @@ export default async function PaginaConexao() {
 
   return (
     <>
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          Conexão WhatsApp
-        </h1>
-        <p className="mt-1 text-muted">
-          Integração oficial com a Meta (WhatsApp Cloud API) — status honesto do
-          que já funciona neste ambiente.
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+            Conexão WhatsApp
+          </h1>
+          <p className="mt-1 text-muted">
+            Integração oficial com a Meta (WhatsApp Cloud API) — status honesto do
+            que já funciona neste ambiente.
+          </p>
+        </div>
+        {ehGestor && (
+          <Link href="/corretor/config" className={classesBotao("secundario", "sm")}>
+            <Settings className="h-4 w-4" aria-hidden />
+            Central de configurações
+          </Link>
+        )}
       </header>
 
       {tudoPronto ? (

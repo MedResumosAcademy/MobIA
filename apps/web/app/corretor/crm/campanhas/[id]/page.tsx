@@ -168,8 +168,10 @@ export default async function PaginaCampanha({
             </dl>
             <p className="mt-3 text-xs text-subtle">
               Exclusões: {campanha.exclusoes.semConsentimento} sem consentimento de
-              marketing (LGPD) · {campanha.exclusoes.semTelefone} sem telefone — a
-              Meta nunca é chamada para eles.
+              marketing (LGPD) · {campanha.exclusoes.semTelefone} sem telefone
+              {campanha.exclusoes.bloqueadosModoTeste > 0 &&
+                ` · ${campanha.exclusoes.bloqueadosModoTeste} bloqueado(s) pelo modo teste`}{" "}
+              — a Meta nunca é chamada para eles.
             </p>
           </>
         )}

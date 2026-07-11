@@ -31,6 +31,7 @@ import { criarClientePublico } from "@/lib/supabase/publico";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { ImovelParaEmail } from "@/lib/email/newsletter-html";
 import { BASE_URL_SITE, gerarHtmlEdicao } from "@/lib/email/newsletter-html";
+import { obterOrgConfig } from "./org-config";
 import { urlPublicaMidia } from "./storage";
 
 type LinhaEdicao = Database["public"]["Tables"]["newsletter_edicoes"]["Row"];
@@ -69,7 +70,14 @@ export type ResultadoEdicao =
 export type ResultadoAcao = { ok: true } | { ok: false; erro: string };
 
 export type ResultadoEnvio =
-  | { ok: true; enviados: number }
+  | {
+      ok: true;
+      enviados: number;
+      /** true quando o e-mail está em modo SIMULADO (0033) — nada saiu. */
+      simulado?: boolean;
+      /** No modo simulado: quantos inscritos ativos RECEBERIAM. */
+      inscritosAtivos?: number;
+    }
   | { ok: false; erro: string };
 
 // --- Helpers internos ---
@@ -487,6 +495,51 @@ export async function enviarEdicaoAction(id: string): Promise<ResultadoEnvio> {
   } catch {
     return { ok: false, erro: "Sem permissão para gerenciar a newsletter. Entre novamente." };
   }
+
+  // GATE de e-mail (central de configuração, 0033): email_modo 'simulado' (o
+  // DEFAULT — org sem config também cai aqui) roda o fluxo SEM chamar o
+  // Resend e marca a edição como 'simulada' (status 0034; escolha documentada:
+  // não há coluna de flag/observação em newsletter_edicoes, e 'enviada' aqui
+  // seria mentira que bloquearia o envio real depois). A "segmentação" da
+  // newsletter é a lista de inscritos ativos — devolvemos o total que
+  // RECEBERIA (agregado LGPD-safe, sem e-mails crus).
+  const orgConfig = await obterOrgConfig();
+  if (orgConfig === null || orgConfig.emailModo !== "real") {
+    let edicaoSim: EdicaoNewsletterDetalhe | null;
+    try {
+      edicaoSim = await obterEdicao(id);
+    } catch {
+      return {
+        ok: false,
+        erro: "Falha temporária ao carregar a edição. Nenhum e-mail foi enviado — tente novamente.",
+      };
+    }
+    if (!edicaoSim) {
+      return { ok: false, erro: "Edição não encontrada." };
+    }
+    if (edicaoSim.status === "enviada") {
+      return { ok: false, erro: "Esta edição já foi enviada." };
+    }
+    let alcance = 0;
+    try {
+      alcance = await totalInscritos();
+    } catch {
+      return {
+        ok: false,
+        erro: "Falha temporária ao contar os inscritos. Nada foi enviado — tente novamente.",
+      };
+    }
+    const supabaseSim = await criarClienteServidor();
+    await supabaseSim
+      .from("newsletter_edicoes")
+      .update({ status: "simulada", atualizado_em: new Date().toISOString() })
+      .eq("id", id)
+      .neq("status", "enviada");
+    revalidatePath("/corretor/newsletter");
+    revalidatePath(`/corretor/newsletter/${id}`);
+    return { ok: true, enviados: 0, simulado: true, inscritosAtivos: alcance };
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     return {

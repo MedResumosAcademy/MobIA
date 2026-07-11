@@ -12,6 +12,7 @@
 // do motor puro (@imobia/core) a partir dos contadores da linha do lead —
 // NUNCA da coluna `temperatura`. Dinheiro em CENTAVOS. pt-BR.
 
+import { after } from "next/server";
 import { calcularTemperatura, classificarAtencao, diasSemMovimento } from "@imobia/core";
 import {
   etapaNegocioSchema,
@@ -29,6 +30,7 @@ import { z } from "zod";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { listarCorretoresDaOrg } from "@/lib/dados/gestor";
 import { criarClienteServidor } from "@/lib/supabase/server";
+import { emitirEvento } from "@/lib/webhooks/saida";
 
 type LinhaNegocio = Database["public"]["Tables"]["negocios"]["Row"];
 type LinhaAtividade = Database["public"]["Tables"]["negocio_atividades"]["Row"];
@@ -686,7 +688,21 @@ export async function definirResultado(
   if (erroAtividade) {
     throw new Error(`definirResultado(atividade): ${erroAtividade.message}`);
   }
-  return separarEnriquecida(data as LinhaEnriquecida);
+  const resumo = separarEnriquecida(data as LinhaEnriquecida);
+  // Webhook de saída (0033): negócio GANHO avisa os sistemas do gestor —
+  // DEPOIS da resposta (after), payload mínimo sem dados sensíveis.
+  if (r === "ganho") {
+    after(() =>
+      emitirEvento(orgId, "negocio.ganho", {
+        negocioId: resumo.id,
+        contatoId: resumo.contatoId,
+        nomeContato: resumo.nomeContato,
+        telefoneContato: resumo.telefoneContato,
+        valorCentavos: resumo.valor,
+      }),
+    );
+  }
+  return resumo;
 }
 
 /**

@@ -280,12 +280,17 @@ export function segmentarContatos(
 // ---------------------------------------------------------------------------
 
 /**
- * Mapeia o status de campanha_envios (0026) para o vocabulário do
- * resumoCampanha do core: as exclusões LGPD/telefone contam como "excluido";
- * o resto passa direto ("enviado" soma em enviados, "falhou" em falhas).
+ * Mapeia o status de campanha_envios (0026/0034) para o vocabulário do
+ * resumoCampanha do core: exclusões LGPD/telefone E o bloqueio do modo teste
+ * (0033) contam como "excluido"; o resto passa direto ("enviado" soma em
+ * enviados, "falhou" em falhas).
  */
 export function statusEnvioParaResumo(status: string): string {
-  return status === "sem_consentimento" || status === "sem_telefone" ? "excluido" : status;
+  return status === "sem_consentimento" ||
+    status === "sem_telefone" ||
+    status === "bloqueado_modo_teste"
+    ? "excluido"
+    : status;
 }
 
 // Rank crescente de temperatura (índice em TEMPERATURAS = mais quente).

@@ -6,12 +6,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Megaphone, Plus } from "lucide-react";
+import { Megaphone, Plus, ShieldAlert } from "lucide-react";
 import { EstadoVazio } from "@/components/EstadoVazio";
 import { Badge } from "@/components/ui/Badge";
 import { classesBotao } from "@/components/ui/Botao";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { listarCampanhas } from "@/lib/dados/campanhas";
+import { obterOrgConfig } from "@/lib/dados/org-config";
 import { tempoRelativo } from "../../leads/tempo";
 import { BADGE_STATUS_CAMPANHA, ROTULO_STATUS_CAMPANHA } from "../rotulos";
 
@@ -23,12 +24,14 @@ export default async function PaginaCampanhas() {
   if (!sessao) {
     redirect("/entrar");
   }
-  const [perfil, campanhas] = await Promise.all([
+  const [perfil, campanhas, orgConfig] = await Promise.all([
     obterPerfil(sessao.usuarioId),
     listarCampanhas(),
+    obterOrgConfig(),
   ]);
   const papel = perfil?.papel ?? "cliente";
   const ehGestor = papel === "gestor" || papel === "admin";
+  const modoTeste = orgConfig === null || orgConfig.whatsappModo !== "producao";
 
   return (
     <>
@@ -52,6 +55,23 @@ export default async function PaginaCampanhas() {
           </Link>
         )}
       </header>
+
+      {/* Banner discreto do MODO TESTE (central de configuração, 0033) */}
+      {modoTeste && (
+        <p className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-gold/40 bg-gold-soft px-3 py-2 text-xs font-medium text-gold-strong">
+          <ShieldAlert className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          Modo teste ativo: disparos só chegam aos números de teste da
+          organização — os demais alvos ficam bloqueados (sem envio).
+          {ehGestor && (
+            <Link
+              href="/corretor/config#whatsapp"
+              className="font-semibold underline underline-offset-2 hover:opacity-80"
+            >
+              Ajustar na central →
+            </Link>
+          )}
+        </p>
+      )}
 
       {!ehGestor && (
         <p className="mt-4 rounded-xl border border-border bg-surface p-3 text-sm text-subtle">

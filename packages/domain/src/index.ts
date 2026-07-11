@@ -25,4 +25,5 @@ export * from "./comunidade";
 export * from "./onboarding";
 export * from "./agenda";
 export * from "./newsletter";
+export * from "./config-central";
 export type { Database, Json } from "./database.types";

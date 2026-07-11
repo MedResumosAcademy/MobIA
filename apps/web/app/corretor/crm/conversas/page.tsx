@@ -17,6 +17,7 @@ import {
   FlaskConical,
   Inbox,
   MessagesSquare,
+  ShieldAlert,
   UserRound,
 } from "lucide-react";
 import { EstadoVazio } from "@/components/EstadoVazio";
@@ -30,6 +31,7 @@ import {
   type ConversaResumo,
 } from "@/lib/dados/conversas";
 import { statusConexaoMeta } from "@/lib/dados/meta-config";
+import { obterOrgConfig } from "@/lib/dados/org-config";
 import { listarTemplates } from "@/lib/dados/templates";
 import { plural } from "@/lib/plural";
 import { tempoRelativo } from "../../leads/tempo";
@@ -106,12 +108,15 @@ export default async function PaginaConversas({
   const contatoId =
     contatoParam !== undefined && UUID_RE.test(contatoParam) ? contatoParam : null;
 
-  const [{ conversas: daFila, contadores }, configIa, templates, aberta] = await Promise.all([
-    listarConversas({ fila }),
-    obterConfigAtendimento(),
-    listarTemplates(),
-    contatoId !== null ? obterContatoDaConversa(contatoId) : Promise.resolve(null),
-  ]);
+  const [{ conversas: daFila, contadores }, configIa, templates, aberta, orgConfig] =
+    await Promise.all([
+      listarConversas({ fila }),
+      obterConfigAtendimento(),
+      listarTemplates(),
+      contatoId !== null ? obterContatoDaConversa(contatoId) : Promise.resolve(null),
+      obterOrgConfig(),
+    ]);
+  const modoTeste = orgConfig === null || orgConfig.whatsappModo !== "producao";
   const mensagens =
     aberta !== null ? await listarMensagensDoContato(aberta.contatoId, 200) : [];
   const meta = statusConexaoMeta();
@@ -139,6 +144,23 @@ export default async function PaginaConversas({
         </div>
         {ehGestor && <BotaoSimular />}
       </header>
+
+      {/* Banner discreto do MODO TESTE (central de configuração, 0033) */}
+      {modoTeste && (
+        <p className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-gold/40 bg-gold-soft px-3 py-2 text-xs font-medium text-gold-strong">
+          <ShieldAlert className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          Modo teste ativo: mensagens reais só saem para os números de teste da
+          organização ({orgConfig?.whatsappNumerosTeste.length ?? 0} cadastrado(s)).
+          {ehGestor && (
+            <Link
+              href="/corretor/config#whatsapp"
+              className="font-semibold underline underline-offset-2 hover:opacity-80"
+            >
+              Ajustar na central →
+            </Link>
+          )}
+        </p>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)]">
         {/* ——— Coluna esquerda: filas + lista ——— */}

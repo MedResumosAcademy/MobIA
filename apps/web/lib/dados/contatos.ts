@@ -17,10 +17,12 @@
 // fonte) ou as ações dedicadas tocam nesses campos.
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { formatarTelefoneBR, janelaAtendimento } from "@imobia/core";
 import { contatoSchema, type ContatoInput, type Database, type Papel } from "@imobia/domain";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
+import { emitirEvento } from "@/lib/webhooks/saida";
 import {
   agregarPorContato,
   montarTimelineContato,
@@ -437,6 +439,17 @@ export async function criarContatoAction(input: ContatoInput): Promise<Resultado
     }
     return { ok: false, erro: "Não foi possível criar o contato. Tente novamente." };
   }
+  // Webhook de saída (0033) DEPOIS da resposta — nunca atrasa a action.
+  const contatoId = data.id;
+  after(() =>
+    emitirEvento(ctx.orgId, "contato.criado", {
+      contatoId,
+      nome: d.nome,
+      telefone: d.telefone ?? null,
+      email: d.email ?? null,
+      origem: "manual",
+    }),
+  );
   revalidatePath("/corretor/crm");
   return { ok: true, id: data.id };
 }

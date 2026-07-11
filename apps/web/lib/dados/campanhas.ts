@@ -30,6 +30,7 @@ import {
   type StatusCampanha,
 } from "@imobia/domain";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
+import { avaliarGateEnvio, type ConfigGateEnvio } from "@/lib/dados/envio-whatsapp";
 import { enviarTemplateWhatsApp, metaDisponivel } from "@/lib/meta/whatsapp";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import {
@@ -60,8 +61,12 @@ export type CampanhaResumo = {
 export type CampanhaDetalhe = CampanhaResumo & {
   /** Números consolidados (motor puro resumoCampanha sobre os envios). */
   resumo: ResumoCampanha;
-  /** Detalhe das exclusões LGPD/telefone (parte dos "excluidos" do resumo). */
-  exclusoes: { semConsentimento: number; semTelefone: number };
+  /** Detalhe das exclusões (LGPD/telefone/modo teste — "excluidos" do resumo). */
+  exclusoes: {
+    semConsentimento: number;
+    semTelefone: number;
+    bloqueadosModoTeste: number;
+  };
   /**
    * 'enviando' sem progresso (atualizado_em parado além do limite) — o envio
    * foi interrompido no meio e pode ser retomado pelo disparo.
@@ -76,7 +81,14 @@ export type ResultadoPrevisao =
   | { ok: false; erro: string };
 
 export type ResultadoDisparo =
-  | { ok: true; enviados: number; falhas: number; excluidos: number }
+  | {
+      ok: true;
+      enviados: number;
+      falhas: number;
+      excluidos: number;
+      /** Alvos aptos que NÃO receberam por causa do modo teste (0033). */
+      bloqueadosModoTeste: number;
+    }
   | { ok: false; erro: string };
 
 // --- Helpers internos ---
@@ -247,6 +259,8 @@ export async function obterCampanha(id: string): Promise<CampanhaDetalhe | null>
     exclusoes: {
       semConsentimento: envios.filter((e) => e.status === "sem_consentimento").length,
       semTelefone: envios.filter((e) => e.status === "sem_telefone").length,
+      bloqueadosModoTeste: envios.filter((e) => e.status === "bloqueado_modo_teste")
+        .length,
     },
     envioTravado:
       resumo.status === "enviando" &&
@@ -424,6 +438,29 @@ export async function dispararCampanhaAction(id: string): Promise<ResultadoDispa
   }
   const seg = segmentarContatos(itens, lerSegmento(campanha.segmento));
   const totalExcluidos = seg.semConsentimento.length + seg.semTelefone.length;
+
+  // GATE do modo de envio (0033): a config é lida UMA vez e aplicada por alvo
+  // (função pura). Alvo fora da lista em modo teste vira 'bloqueado_modo_teste'
+  // — a Meta NUNCA é chamada para ele e o resumo conta como excluído.
+  const { data: cfgEnvio } = await supabase
+    .from("org_config")
+    .select("whatsapp_modo, whatsapp_numeros_teste")
+    .eq("org_id", ctx.orgId)
+    .maybeSingle();
+  const gateConfig: ConfigGateEnvio | null = cfgEnvio
+    ? {
+        whatsappModo: cfgEnvio.whatsapp_modo,
+        whatsappNumerosTeste: cfgEnvio.whatsapp_numeros_teste,
+      }
+    : null;
+  const porId = new Map(itens.map((i) => [i.id, i]));
+  const bloqueadosModoTeste = new Set(
+    seg.alvos.filter((contatoId) => {
+      const telefone = porId.get(contatoId)?.contato.telefone ?? null;
+      return !avaliarGateEnvio(gateConfig, telefone).pode;
+    }),
+  );
+
   if (seg.alvos.length === 0) {
     return {
       ok: false,
@@ -484,11 +521,17 @@ export async function dispararCampanhaAction(id: string): Promise<ResultadoDispa
 
   // Refaz só os envios NÃO concluídos (linhas já enviadas ficam; o UNIQUE
   // campanha+contato segue respeitado porque jaEnviados sai das inserções).
-  await supabase
+  // A policy DELETE existe desde a 0035 — sem ela o RLS zerava o delete em
+  // silêncio e o INSERT abaixo estourava o UNIQUE (re-disparo em loop eterno).
+  const { error: erroLimpeza } = await supabase
     .from("campanha_envios")
     .delete()
     .eq("campanha_id", id)
     .not("status", "in", '("enviado","entregue","lido")');
+  if (erroLimpeza) {
+    await supabase.from("campanhas").update({ status: "falhou" }).eq("id", id);
+    return { ok: false, erro: "Falha ao preparar os envios — tente novamente." };
+  }
   const linhasEnvio = [
     // LGPD: excluídos ganham registro auditável e NUNCA geram chamada à Meta.
     ...seg.semConsentimento
@@ -507,8 +550,18 @@ export async function dispararCampanhaAction(id: string): Promise<ResultadoDispa
         org_id: ctx.orgId,
         status: "sem_telefone",
       })),
+    // Modo teste (0033): alvo apto fora da lista ganha registro honesto e a
+    // Meta nunca é chamada para ele.
     ...seg.alvos
-      .filter((contatoId) => !jaEnviados.has(contatoId))
+      .filter((contatoId) => !jaEnviados.has(contatoId) && bloqueadosModoTeste.has(contatoId))
+      .map((contatoId) => ({
+        campanha_id: id,
+        contato_id: contatoId,
+        org_id: ctx.orgId,
+        status: "bloqueado_modo_teste",
+      })),
+    ...seg.alvos
+      .filter((contatoId) => !jaEnviados.has(contatoId) && !bloqueadosModoTeste.has(contatoId))
       .map((contatoId) => ({
         campanha_id: id,
         contato_id: contatoId,
@@ -516,21 +569,30 @@ export async function dispararCampanhaAction(id: string): Promise<ResultadoDispa
         status: "pendente",
       })),
   ];
+  // Upsert (não insert): se alguma linha não-concluída sobreviveu ao delete
+  // acima, ela é ATUALIZADA em vez de estourar o UNIQUE campanha+contato —
+  // re-disparo nunca trava em 23505 (resiliência além da policy 0035).
   const { error: erroEnvios } =
     linhasEnvio.length > 0
-      ? await supabase.from("campanha_envios").insert(linhasEnvio)
+      ? await supabase
+          .from("campanha_envios")
+          .upsert(linhasEnvio, { onConflict: "campanha_id,contato_id" })
       : { error: null };
   if (erroEnvios) {
     await supabase.from("campanhas").update({ status: "falhou" }).eq("id", id);
     return { ok: false, erro: "Falha ao preparar os envios. Nada foi enviado — tente novamente." };
   }
 
-  const porId = new Map(itens.map((i) => [i.id, i]));
   // Contagem honesta: quem já tinha recebido (retomada) conta como enviado.
   let enviados = jaEnviados.size;
   let falhas = 0;
   let primeiroErro: string | null = null;
-  const alvosPendentes = seg.alvos.filter((contatoId) => !jaEnviados.has(contatoId));
+  const bloqueadosNovos = seg.alvos.filter(
+    (contatoId) => !jaEnviados.has(contatoId) && bloqueadosModoTeste.has(contatoId),
+  ).length;
+  const alvosPendentes = seg.alvos.filter(
+    (contatoId) => !jaEnviados.has(contatoId) && !bloqueadosModoTeste.has(contatoId),
+  );
 
   for (const contatoId of alvosPendentes) {
     const item = porId.get(contatoId);
@@ -589,8 +651,11 @@ export async function dispararCampanhaAction(id: string): Promise<ResultadoDispa
     await pausa(PAUSA_ENTRE_ENVIOS_MS);
   }
 
-  // Fim honesto: 'concluida' se ALGO saiu; 'falhou' se nada saiu (retry seguro).
-  const statusFinal = enviados === 0 && falhas > 0 ? "falhou" : "concluida";
+  // Fim honesto: 'concluida' se ALGO saiu; 'falhou' se nada saiu (retry
+  // seguro) — inclusive quando o modo teste bloqueou todos os alvos (após
+  // ajustar a lista/modo na central, o disparo pode ser refeito).
+  const statusFinal =
+    enviados === 0 && (falhas > 0 || bloqueadosNovos > 0) ? "falhou" : "concluida";
   await supabase
     .from("campanhas")
     .update({ status: statusFinal, total_enviado: enviados, total_falha: falhas })
@@ -599,10 +664,21 @@ export async function dispararCampanhaAction(id: string): Promise<ResultadoDispa
   revalidatePath(`/corretor/crm/campanhas/${id}`);
 
   if (statusFinal === "falhou") {
+    const aviso =
+      bloqueadosNovos > 0
+        ? ` Modo teste ativo: ${bloqueadosNovos} contato(s) fora da lista de números de teste.`
+        : "";
     return {
       ok: false,
-      erro: `Nenhuma mensagem saiu (${falhas} falha(s)). ${primeiroErro ?? ""}`.trim(),
+      erro:
+        `Nenhuma mensagem saiu (${falhas} falha(s)).${aviso} ${primeiroErro ?? ""}`.trim(),
     };
   }
-  return { ok: true, enviados, falhas, excluidos: totalExcluidos };
+  return {
+    ok: true,
+    enviados,
+    falhas,
+    excluidos: totalExcluidos,
+    bloqueadosModoTeste: bloqueadosNovos,
+  };
 }

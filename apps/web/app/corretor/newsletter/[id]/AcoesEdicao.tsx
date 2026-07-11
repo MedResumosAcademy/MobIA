@@ -17,11 +17,14 @@ export function AcoesEdicao({
   status,
   html,
   envioConfigurado,
+  emailSimulado,
 }: {
   id: string;
   status: StatusEdicaoNewsletter;
   html: string;
   envioConfigurado: boolean;
+  /** true quando email_modo='simulado' na central (0033) — nada sai de verdade. */
+  emailSimulado: boolean;
 }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -62,7 +65,12 @@ export function AcoesEdicao({
         setErro(resultado.erro);
         return;
       }
-      setMensagem(`Edição enviada para ${resultado.enviados} inscrito(s). 📬`);
+      setMensagem(
+        resultado.simulado
+          ? `Envio SIMULADO (central de configuração): ${resultado.inscritosAtivos ?? 0} ` +
+              "inscrito(s) receberiam — nenhum e-mail real saiu."
+          : `Edição enviada para ${resultado.enviados} inscrito(s). 📬`,
+      );
       router.refresh();
     });
   }
@@ -97,19 +105,33 @@ export function AcoesEdicao({
         <Botao
           type="button"
           variante="primario"
-          disabled={pendente || enviada || !envioConfigurado}
+          // Em modo SIMULADO o Resend não é chamado — o botão funciona mesmo
+          // sem a chave (a simulação é justamente para validar sem enviar).
+          disabled={pendente || enviada || (!envioConfigurado && !emailSimulado)}
           onClick={enviar}
           title={
-            !envioConfigurado
+            !envioConfigurado && !emailSimulado
               ? "Envio automático não configurado — copie o HTML e envie pela sua ferramenta."
               : undefined
           }
         >
           <Send size={16} aria-hidden strokeWidth={2} />
-          {pendente ? "Enviando…" : enviada ? "Já enviada" : "Enviar aos inscritos"}
+          {pendente
+            ? "Enviando…"
+            : enviada
+              ? "Já enviada"
+              : emailSimulado
+                ? "Simular envio"
+                : "Enviar aos inscritos"}
         </Botao>
       </div>
 
+      {emailSimulado && !enviada && (
+        <p className="text-xs text-subtle">
+          Modo simulado ativo na central de configuração — o envio registra a
+          simulação e nenhum e-mail real sai.
+        </p>
+      )}
       {!envioConfigurado && !enviada && (
         <p className="text-xs text-subtle">
           Envio automático não configurado — use “Copiar HTML” e dispare pela sua

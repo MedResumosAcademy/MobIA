@@ -17,13 +17,18 @@ const MENSAGENS_ERRO: Record<string, string> = {
   "erro-inesperado": "Não foi possível criar sua conta agora. Tente novamente em instantes.",
 };
 
+// Código de convite de equipe (emitir_convite 0033): 64 hex minúsculos.
+const CONVITE_RE = /^[a-f0-9]{64}$/;
+
 export default async function PaginaCadastro({
   searchParams,
 }: {
-  searchParams: Promise<{ erro?: string }>;
+  searchParams: Promise<{ erro?: string; convite?: string }>;
 }) {
-  const { erro } = await searchParams;
+  const { erro, convite: conviteBruto } = await searchParams;
   const mensagemErro = erro ? (MENSAGENS_ERRO[erro] ?? MENSAGENS_ERRO["erro-inesperado"]) : null;
+  // Convite chega pelo link enviado pelo gestor; formato inválido é ignorado.
+  const convite = conviteBruto && CONVITE_RE.test(conviteBruto) ? conviteBruto : null;
 
   return (
     <div className="flex flex-1 items-center justify-center bg-background px-6 py-16 font-sans">
@@ -44,7 +49,15 @@ export default async function PaginaCadastro({
           </p>
         )}
 
+        {convite && (
+          <p className="mt-4 rounded-xl border border-brand/30 bg-brand-soft px-3.5 py-2.5 text-sm text-brand-strong">
+            Você recebeu um convite de uma imobiliária — cadastre-se com o
+            mesmo e-mail que recebeu o convite para entrar na equipe.
+          </p>
+        )}
+
         <form action={cadastrar} className="mt-6 flex flex-col gap-4">
+          {convite && <input type="hidden" name="convite" value={convite} />}
           <GrupoCampo rotulo="E-mail" htmlFor="email" obrigatorio>
             <Campo
               id="email"

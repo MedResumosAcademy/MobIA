@@ -41,6 +41,7 @@ export const ROTULO_STATUS_MENSAGEM: Record<StatusMensagem, string> = {
   lida: "Lida",
   falhou: "Falhou",
   recebida: "Recebida",
+  bloqueada_teste: "Bloqueada (modo teste)",
 };
 
 export const ROTULO_CATEGORIA_TEMPLATE: Record<CategoriaTemplate, string> = {

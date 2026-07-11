@@ -23,7 +23,12 @@ type Props = {
   etapaAtual: EtapaNegocio;
   /** true quando o negócio já foi fechado (ganho/perdido) — some com os botões. */
   fechado: boolean;
+  /** Motivos de perda da org (central de configuração, 0033) para o select. */
+  motivosPerda: string[];
 };
+
+// Sentinela do select: "Outro" abre o campo livre (nunca vira motivo gravado).
+const MOTIVO_OUTRO = "__outro";
 
 function formData(entradas: Record<string, string>): FormData {
   const fd = new FormData();
@@ -33,11 +38,19 @@ function formData(entradas: Record<string, string>): FormData {
   return fd;
 }
 
-export function ControlesNegocio({ id, etapaAtual, fechado }: Props) {
+export function ControlesNegocio({ id, etapaAtual, fechado, motivosPerda }: Props) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
   const [mostrarPerda, setMostrarPerda] = useState(false);
-  const [motivo, setMotivo] = useState("");
+  // Motivos da org no select; "Outro" (literal da lista sai — vira a opção
+  // sentinela) abre o campo livre.
+  const opcoesMotivo = motivosPerda.filter((m) => m.trim().toLowerCase() !== "outro");
+  const [motivoSelecionado, setMotivoSelecionado] = useState(
+    opcoesMotivo[0] ?? MOTIVO_OUTRO,
+  );
+  const [motivoLivre, setMotivoLivre] = useState("");
+  const motivo =
+    motivoSelecionado === MOTIVO_OUTRO ? motivoLivre.trim() : motivoSelecionado;
   const [tipoNota, setTipoNota] = useState("nota");
   const [textoNota, setTextoNota] = useState("");
   // Mensagem da última falha de ação (sessão expirada, RLS, rede) — as actions
@@ -102,7 +115,7 @@ export function ControlesNegocio({ id, etapaAtual, fechado }: Props) {
       }
       setErro(null);
       setMostrarPerda(false);
-      setMotivo("");
+      setMotivoLivre("");
       router.refresh();
     });
   }
@@ -187,14 +200,35 @@ export function ControlesNegocio({ id, etapaAtual, fechado }: Props) {
           {mostrarPerda && (
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
               <GrupoCampo rotulo="Motivo da perda" htmlFor="motivo-perda" className="flex-1">
-                <Campo
+                <CampoSelect
                   id="motivo-perda"
-                  value={motivo}
+                  value={motivoSelecionado}
                   disabled={pendente}
-                  placeholder="Ex.: comprou com outro corretor"
-                  onChange={(e) => setMotivo(e.target.value)}
-                />
+                  onChange={(e) => setMotivoSelecionado(e.target.value)}
+                >
+                  {opcoesMotivo.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                  <option value={MOTIVO_OUTRO}>Outro…</option>
+                </CampoSelect>
               </GrupoCampo>
+              {motivoSelecionado === MOTIVO_OUTRO && (
+                <GrupoCampo
+                  rotulo="Qual foi o motivo?"
+                  htmlFor="motivo-perda-livre"
+                  className="flex-1"
+                >
+                  <Campo
+                    id="motivo-perda-livre"
+                    value={motivoLivre}
+                    disabled={pendente}
+                    placeholder="Ex.: comprou com outro corretor"
+                    onChange={(e) => setMotivoLivre(e.target.value)}
+                  />
+                </GrupoCampo>
+              )}
               <Botao variante="secundario" disabled={pendente} onClick={() => definir("perdido")}>
                 {pendente ? "Salvando…" : "Confirmar perda"}
               </Botao>

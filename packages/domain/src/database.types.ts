@@ -1,7 +1,3 @@
-// Tipos gerados do banco Supabase (projeto ImobIA - Dev).
-// NÃO editar à mão — regenerar com a ferramenta generate_typescript_types
-// do MCP Supabase após cada migração e colar aqui.
-
 export type Json =
   | string
   | number
@@ -993,6 +989,48 @@ export type Database = {
           },
         ]
       }
+      metas_corretor: {
+        Row: {
+          atualizado_em: string | null
+          corretor_id: string
+          id: string
+          org_id: string
+          receita_mes_centavos: number | null
+          vendas_mes: number | null
+        }
+        Insert: {
+          atualizado_em?: string | null
+          corretor_id: string
+          id?: string
+          org_id: string
+          receita_mes_centavos?: number | null
+          vendas_mes?: number | null
+        }
+        Update: {
+          atualizado_em?: string | null
+          corretor_id?: string
+          id?: string
+          org_id?: string
+          receita_mes_centavos?: number | null
+          vendas_mes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metas_corretor_corretor_id_fkey"
+            columns: ["corretor_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metas_corretor_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       negocio_atividades: {
         Row: {
           autor_id: string | null
@@ -1315,6 +1353,54 @@ export type Database = {
         }
         Relationships: []
       }
+      org_config: {
+        Row: {
+          atualizado_em: string | null
+          email_modo: string
+          leadads_consentimento: boolean
+          leadads_funil_id: string | null
+          motivos_perda: string[]
+          org_id: string
+          whatsapp_modo: string
+          whatsapp_numeros_teste: string[]
+        }
+        Insert: {
+          atualizado_em?: string | null
+          email_modo?: string
+          leadads_consentimento?: boolean
+          leadads_funil_id?: string | null
+          motivos_perda?: string[]
+          org_id: string
+          whatsapp_modo?: string
+          whatsapp_numeros_teste?: string[]
+        }
+        Update: {
+          atualizado_em?: string | null
+          email_modo?: string
+          leadads_consentimento?: boolean
+          leadads_funil_id?: string | null
+          motivos_perda?: string[]
+          org_id?: string
+          whatsapp_modo?: string
+          whatsapp_numeros_teste?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_config_leadads_funil_id_fkey"
+            columns: ["leadads_funil_id"]
+            isOneToOne: false
+            referencedRelation: "funis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_config_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizacoes: {
         Row: {
           assentos: number
@@ -1589,6 +1675,57 @@ export type Database = {
           },
         ]
       }
+      tokens_captacao: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          criado_por: string | null
+          id: string
+          org_id: string
+          origem: string
+          prefixo: string
+          token_hash: string
+          ultimo_uso_em: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          org_id: string
+          origem: string
+          prefixo: string
+          token_hash: string
+          ultimo_uso_em?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          org_id?: string
+          origem?: string
+          prefixo?: string
+          token_hash?: string
+          ultimo_uso_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tokens_captacao_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tokens_captacao_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unidades: {
         Row: {
           andar: number | null
@@ -1630,6 +1767,53 @@ export type Database = {
           },
           {
             foreignKeyName: "unidades_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhooks_saida: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          eventos: string[]
+          falhas_seguidas: number
+          id: string
+          org_id: string
+          segredo: string
+          ultima_entrega_em: string | null
+          ultima_entrega_status: number | null
+          url: string
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          eventos?: string[]
+          falhas_seguidas?: number
+          id?: string
+          org_id: string
+          segredo: string
+          ultima_entrega_em?: string | null
+          ultima_entrega_status?: number | null
+          url: string
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          eventos?: string[]
+          falhas_seguidas?: number
+          id?: string
+          org_id?: string
+          segredo?: string
+          ultima_entrega_em?: string | null
+          ultima_entrega_status?: number | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhooks_saida_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizacoes"
@@ -1711,6 +1895,28 @@ export type Database = {
         }
         Returns: undefined
       }
+      emitir_convite: {
+        Args: { p_email: string; p_papel: string }
+        Returns: {
+          codigo: string
+          email: string
+          expira_em: string
+          id: string
+          papel: string
+        }[]
+      }
+      listar_convites: {
+        Args: never
+        Returns: {
+          consumido_em: string
+          criado_em: string
+          email: string
+          expira_em: string
+          id: string
+          papel: string
+          status: string
+        }[]
+      }
       mover_contato_de_etapa: {
         Args: {
           p_contato_id: string
@@ -1721,7 +1927,11 @@ export type Database = {
       }
       newsletter_confirmar: { Args: { p_token: string }; Returns: boolean }
       newsletter_total_inscritos: { Args: never; Returns: number }
-      reiniciar_simulacao: { Args: { p_contato_id: string }; Returns: undefined }
+      reiniciar_simulacao: {
+        Args: { p_contato_id: string }
+        Returns: undefined
+      }
+      revogar_convite: { Args: { p_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

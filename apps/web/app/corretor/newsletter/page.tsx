@@ -151,6 +151,7 @@ const BADGE_STATUS: Record<StatusEdicaoNewsletter, { rotulo: string; variante: V
   rascunho: { rotulo: "Rascunho", variante: "neutro" },
   pronta: { rotulo: "Pronta", variante: "destaque" },
   enviada: { rotulo: "Enviada", variante: "marca" },
+  simulada: { rotulo: "Envio simulado", variante: "lancamento" },
 };
 
 function ItemEdicao({ edicao }: { edicao: EdicaoNewsletterResumo }) {

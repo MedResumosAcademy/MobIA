@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { Mail, MessageCircle, Phone, Users } from "lucide-react";
 import { formatarReais } from "@imobia/core";
 import { obterNegocio } from "@/lib/dados/negocios";
+import { obterOrgConfig } from "@/lib/dados/org-config";
 import { listarTarefasDoNegocio } from "@/lib/dados/tarefas";
 import { classesBotao } from "@/components/ui/Botao";
 import { ChipTermometro } from "../../leads/termometro";
@@ -47,10 +48,11 @@ export default async function PaginaNegocio({
   if (!UUID_RE.test(id)) {
     notFound();
   }
-  // Detalhe e tarefas dependem só do id ⇒ paralelo (2 round-trips → 1).
-  const [detalhe, tarefas] = await Promise.all([
+  // Detalhe, tarefas e config da org (motivos de perda) ⇒ paralelo.
+  const [detalhe, tarefas, orgConfig] = await Promise.all([
     obterNegocio(id),
     listarTarefasDoNegocio(id),
+    obterOrgConfig(),
   ]);
   if (!detalhe) {
     notFound();
@@ -187,7 +189,12 @@ export default async function PaginaNegocio({
         )}
 
         <div className="mt-8">
-          <ControlesNegocio id={negocio.id} etapaAtual={negocio.etapa} fechado={fechado} />
+          <ControlesNegocio
+            id={negocio.id}
+            etapaAtual={negocio.etapa}
+            fechado={fechado}
+            motivosPerda={orgConfig?.motivosPerda ?? []}
+          />
         </div>
 
         <section className="mt-8 rounded-2xl border border-border bg-surface-card p-6 shadow-[var(--shadow-soft)]">

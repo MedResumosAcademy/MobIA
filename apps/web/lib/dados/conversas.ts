@@ -23,6 +23,7 @@ import { revalidatePath } from "next/cache";
 import { formatarTelefoneBR, janelaAtendimento, montarLinkWhatsApp } from "@imobia/core";
 import type { Papel } from "@imobia/domain";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
+import { ERRO_MODO_TESTE, podeEnviarPara } from "@/lib/dados/envio-whatsapp";
 import {
   enviarTemplateWhatsApp,
   enviarTextoWhatsApp,
@@ -466,6 +467,13 @@ export async function enviarMensagemAction(
     };
   }
 
+  // GATE do modo de envio (central de configuração, 0033): em modo teste, só
+  // números da lista recebem pela Meta — as demais tentativas param AQUI.
+  const gate = await podeEnviarPara(supabase, ctx.orgId, contato.telefone);
+  if (!gate.pode) {
+    return { ok: false, erro: ERRO_MODO_TESTE };
+  }
+
   // Janela de 24h (regra da Meta): texto livre só com janela ABERTA.
   const { data: ultimaEntrada } = await supabase
     .from("mensagens")
@@ -593,6 +601,13 @@ export async function enviarTemplateAction(
       ok: false,
       erro: "WhatsApp não conectado ainda — templates só saem pela API oficial da Meta.",
     };
+  }
+
+  // GATE do modo de envio (0033): mesmo template aprovado não sai para número
+  // fora da lista quando a org está em modo teste.
+  const gate = await podeEnviarPara(supabase, ctx.orgId, contato.telefone);
+  if (!gate.pode) {
+    return { ok: false, erro: ERRO_MODO_TESTE };
   }
 
   // Espelho local (0029): se o template está registrado aqui, o envio REAL

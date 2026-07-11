@@ -17,7 +17,8 @@ export type CanalMensagem = (typeof CANAIS_MENSAGEM)[number];
 export const DIRECOES_MENSAGEM = ["entrada", "saida"] as const;
 export type DirecaoMensagem = (typeof DIRECOES_MENSAGEM)[number];
 
-/** Ciclo de vida de uma mensagem (statuses da Meta + 'recebida' p/ entrada). */
+/** Ciclo de vida de uma mensagem (statuses da Meta + 'recebida' p/ entrada +
+ * 'bloqueada_teste': saída retida pelo modo teste da org — 0033/0034). */
 export const STATUS_MENSAGEM = [
   "pendente",
   "enviada",
@@ -25,6 +26,7 @@ export const STATUS_MENSAGEM = [
   "lida",
   "falhou",
   "recebida",
+  "bloqueada_teste",
 ] as const;
 export type StatusMensagem = (typeof STATUS_MENSAGEM)[number];
 
@@ -38,13 +40,15 @@ export const STATUS_CAMPANHA = [
 ] as const;
 export type StatusCampanha = (typeof STATUS_CAMPANHA)[number];
 
-/** Resultado de cada envio individual de campanha. */
+/** Resultado de cada envio individual de campanha ('bloqueado_modo_teste':
+ * alvo apto fora da lista de números de teste com a org em modo teste). */
 export const STATUS_CAMPANHA_ENVIO = [
   "pendente",
   "enviado",
   "falhou",
   "sem_consentimento",
   "sem_telefone",
+  "bloqueado_modo_teste",
 ] as const;
 export type StatusCampanhaEnvio = (typeof STATUS_CAMPANHA_ENVIO)[number];
 

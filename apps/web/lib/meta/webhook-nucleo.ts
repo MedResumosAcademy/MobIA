@@ -81,6 +81,9 @@ const RANK_STATUS: Record<StatusMensagem, number> = {
   entregue: 2,
   lida: 3,
   falhou: 4,
+  // Retida pelo modo teste (0034): nunca foi à Meta (sem wamid), então nunca
+  // recebe evento de status — terminal por definição.
+  bloqueada_teste: 4,
 };
 
 /** true se `novo` representa um AVANÇO sobre `atual` (nunca regride). */
