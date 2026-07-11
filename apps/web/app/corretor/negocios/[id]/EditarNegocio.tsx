@@ -8,6 +8,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
+import { centavosParaReaisInput as centavosParaReais } from "@imobia/core";
 import { Botao } from "@/components/ui/Botao";
 import { Campo, GrupoCampo } from "@/components/ui/Campo";
 import { atualizarNegocioAction } from "../acoes";
@@ -21,14 +22,6 @@ type Props = {
   /** Valor em CENTAVOS (como no banco) ou null. */
   valor: number | null;
 };
-
-/** Centavos → string de reais pt-BR para o input (ex.: 128000000 → "1280000,00"). */
-function centavosParaReais(centavos: number | null): string {
-  if (centavos === null) {
-    return "";
-  }
-  return (centavos / 100).toFixed(2).replace(".", ",");
-}
 
 export function EditarNegocio({
   id,

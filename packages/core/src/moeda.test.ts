@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { reaisTextoParaCentavos } from "./moeda";
+import { centavosParaReaisInput, reaisTextoParaCentavos } from "./moeda";
 
 describe("reaisTextoParaCentavos", () => {
   it('ponto único com 2 casas é DECIMAL: "1280000.00" (prefill de edição)', () => {
@@ -55,5 +55,29 @@ describe("reaisTextoParaCentavos", () => {
   it("lança para negativo", () => {
     expect(() => reaisTextoParaCentavos("-100")).toThrow("valor inválido");
     expect(() => reaisTextoParaCentavos("-1.000,00")).toThrow("valor inválido");
+  });
+});
+
+describe("centavosParaReaisInput", () => {
+  it('formata centavos com vírgula decimal: 128000000 → "1280000,00"', () => {
+    expect(centavosParaReaisInput(128000000)).toBe("1280000,00");
+  });
+
+  it('mantém as duas casas: 150050 → "1500,50"', () => {
+    expect(centavosParaReaisInput(150050)).toBe("1500,50");
+  });
+
+  it('zero → "0,00"', () => {
+    expect(centavosParaReaisInput(0)).toBe("0,00");
+  });
+
+  it('null → "" (input vazio)', () => {
+    expect(centavosParaReaisInput(null)).toBe("");
+  });
+
+  it("ida-e-volta com reaisTextoParaCentavos preserva o valor", () => {
+    for (const centavos of [1, 99, 100, 150050, 45000050, 128000000]) {
+      expect(reaisTextoParaCentavos(centavosParaReaisInput(centavos))).toBe(centavos);
+    }
   });
 });

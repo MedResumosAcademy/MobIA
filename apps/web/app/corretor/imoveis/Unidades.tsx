@@ -1,5 +1,5 @@
 import type { Unidade } from "@/lib/dados/imoveis";
-import { formatarReais } from "@imobia/core";
+import { centavosParaReaisInput as centavosParaReais, formatarReais } from "@imobia/core";
 import { Botao } from "@/components/ui/Botao";
 import { classesCampo } from "@/components/ui/Campo";
 import {
@@ -12,10 +12,6 @@ import { ROTULO_STATUS, STATUS } from "./rotulos";
 const rotuloClasse =
   "flex flex-col gap-1 text-xs font-medium text-muted";
 const inputClasse = classesCampo("py-1.5");
-
-function centavosParaReais(v: number): string {
-  return (v / 100).toFixed(2).replace(".", ",");
-}
 
 export function Unidades({ imovelId, unidades }: { imovelId: string; unidades: Unidade[] }) {
   const criar = criarUnidadeAction.bind(null, imovelId);

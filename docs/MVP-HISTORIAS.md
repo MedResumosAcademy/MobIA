@@ -1,5 +1,7 @@
 # ImobIA — Histórias de Usuário do MVP
 
+> ✅ **Todas as 24 histórias (H-01..H-24) foram entregues** — o MVP está completo e em produção (ver [README §Status](../README.md#status)). Este documento é mantido como **registro histórico** do planejamento; os itens listados em "Fora do MVP" (painel do corretor, Coringa, funil) também já foram entregues nas fases V1/V2.
+
 > Escopo: **Fase 0 (Fundação)** + **MVP (Experiência do Cliente)**, conforme [ESCOPO.md §9](ESCOPO.md). Foco em validar a tese central: *o cliente monta a própria compra*.
 
 ## Premissas adotadas (defaults — sobrescrevíveis)
@@ -144,4 +146,4 @@ E0.1 ─┬─▶ E0.2 ─┬─▶ E8 (cadastro) ─▶ E1 ─▶ E2 ─▶ E3 
 4. **E5** (Sonhômetro) e **E6** (favoritos) reforçam a experiência.
 5. **E7** (eventos/leads) integrado desde E1, para já capturar sinais.
 
-*Próximo passo sugerido: priorizar a primeira sprint (proponho E0.1, E0.2, E0.3 e o início de E8) ou iniciar o scaffold do monorepo.*
+*Documento encerrado: todas as histórias foram entregues (E0–E8). O status atual do produto está no [README](../README.md) e no [ESCOPO.md §9](ESCOPO.md).*

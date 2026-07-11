@@ -119,7 +119,12 @@ export async function calcularESalvarCapacidade(
   );
 
   // Efeito 3: sinal de lead (no-op para anônimo/corretor; ver registrarEvento).
-  await registrarEvento("sonhometro_completo");
+  // Best-effort: registrarEvento LANÇA em falha de INSERT, e a perda do sinal
+  // de lead não pode esconder um resultado já calculado e persistido (mesmo
+  // padrão da ficha do imóvel em app/imoveis/[id]/page.tsx).
+  await registrarEvento("sonhometro_completo").catch((e: unknown) => {
+    console.error("sonhometro: falha ao registrar evento", e);
+  });
 
   return resultado;
 }

@@ -43,9 +43,12 @@ const COR_SUAVE = "#8A857C";
 const COR_FUNDO = "#FAF6F0";
 
 function cardImovelHtml(imovel: ImovelParaEmail): string {
-  const url = `${BASE_URL_SITE}/imoveis/${imovel.id}`;
+  // URLs também passam por escape de ATRIBUTO (&amp;/&quot;): o id vem do
+  // banco, mas o path da foto carrega nome de arquivo do upload — uma aspa
+  // ali não pode quebrar o atributo e injetar HTML no e-mail/preview.
+  const url = escaparHtml(`${BASE_URL_SITE}/imoveis/${imovel.id}`);
   const foto = imovel.fotoCapa
-    ? `<a href="${url}" style="text-decoration:none;"><img src="${imovel.fotoCapa}" alt="${escaparHtml(imovel.titulo)}" width="552" style="display:block;width:100%;max-width:552px;height:auto;border-radius:12px 12px 0 0;" /></a>`
+    ? `<a href="${url}" style="text-decoration:none;"><img src="${escaparHtml(imovel.fotoCapa)}" alt="${escaparHtml(imovel.titulo)}" width="552" style="display:block;width:100%;max-width:552px;height:auto;border-radius:12px 12px 0 0;" /></a>`
     : "";
   return `
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;border:1px solid #EBE3D7;border-radius:12px;background-color:#FFFFFF;">

@@ -1,6 +1,6 @@
 # ImobIA — Escopo do Projeto
 
-> Documento vivo. Versão inicial — sujeito a refinamento conforme validação com corretores e clientes.
+> Documento vivo. O produto está **em produção** em https://mob-ia.vercel.app — as seções de visão/funcionalidades seguem válidas; a arquitetura implementada está no início do §8 e o status real de cada fase no §9. Ver também o [README](../README.md) (status atual) e [DECISOES.md](DECISOES.md) (decisões de arquitetura).
 
 ## Decisões tomadas
 
@@ -282,11 +282,23 @@ Cada estratégia retorna impacto em **parcela, total pago, prazo e viabilidade d
 
 ---
 
-## 8. Arquitetura técnica (proposta)
+## 8. Arquitetura técnica
+
+### Como ficou de verdade (implementado)
+
+A stack real do produto em produção difere da proposta original abaixo:
+
+- **Supabase** — Postgres multi-tenant com **RLS por `org_id`**, Auth (papéis cliente/corretor/gestor/admin) e Storage (fotos/plantas por org). Migrações versionadas em `supabase/migrations/`.
+- **Backend** — Server Actions e Route Handlers do **Next.js 16** (`apps/web`); nenhum serviço separado (`services/api` nunca foi criado).
+- **Monorepo** — apenas `packages/core` (motor financeiro/inteligência, TS puro) e `packages/domain` (zod + tipos do banco). `packages/api-client` e `packages/ui` foram **descartados por simplicidade** — cada app fala com o Supabase diretamente e tem seus próprios componentes.
+- **IA** — Groq (cascata llama-70B → scout como fallback do motor determinístico; Whisper para transcrição de voz). Sem chave, tudo degrada graciosamente.
+- **Deploy** — Vercel (web, deploy automático a cada push na `main`) + EAS/Expo (mobile). Ver [DEPLOY.md](DEPLOY.md).
+
+As seções 8.1 e 8.2 abaixo são a **proposta original (superada — mantida como histórico)**.
 
 **Restrição de partida:** web **e** app nativo em paralelo, multi-tenant (autônomo + imobiliária), múltiplas modalidades. A chave para isso não virar dois produtos é **um motor financeiro único compartilhado** por todas as faces.
 
-### 8.1 Monorepo com núcleo compartilhado
+### 8.1 Monorepo com núcleo compartilhado — proposta original (superada)
 
 ```
 mobia/ (Turborepo)
@@ -305,7 +317,7 @@ mobia/ (Turborepo)
 
 O **`packages/core`** é a joia da coroa: TypeScript puro, sem dependência de plataforma, com cobertura de testes alta. A mesma simulação roda idêntica no web, no app e no servidor. Isso é o que torna "web + nativo em paralelo" viável sem duplicar a lógica mais crítica e arriscada.
 
-### 8.2 Stack por camada
+### 8.2 Stack por camada — proposta original (superada; o banco/auth reais são Supabase, ver acima)
 
 | Camada | Escolha | Por quê |
 |---|---|---|
@@ -349,8 +361,8 @@ O **`packages/core`** é a joia da coroa: TypeScript puro, sem dependência de p
 8. ✅ Painel do corretor: leads + timeline + **termômetro** 🔥
 9. ✅ **Coringa** (motor de estratégias) — usa `core`
 10. ✅ Visão de **Imobiliária/Gestor**: dashboard consolidado + distribuição de leads
-11. ⏳ **Ferramenta comercial completa / CRM** (ver §9.1) — funil de negócios, conversão, atividades
-12. Controle financeiro e de pagamentos (entrada %, semestrais, intervalados, balões)
+11. ✅ **Ferramenta comercial completa / CRM** (ver §9.1) — funil de negócios (Kanban/lista), conversão, atividades, tarefas, dashboard gerencial
+12. ⏳ **pendente** — Controle financeiro e de pagamentos (entrada %, semestrais, intervalados, balões)
 
 ### 9.1 Ferramenta comercial completa (CRM) — prioridade da V1
 O produto precisa ser uma **ferramenta comercial completa**, não só captura de leads. Núcleo:
@@ -361,11 +373,13 @@ O produto precisa ser uma **ferramenta comercial completa**, não só captura de
 - Conversão de **lead → negócio** com um clique.
 
 ### V2 — Escala e crescimento
-13. **Chatbot** (atendimento/qualificação automatizada; usa o motor e o catálogo).
-14. **Comunidade / feed social**: tirar dúvidas, postar vídeos, recomendações entre corretores/clientes.
-15. **Ranking de corretores** que mais vendem (gamificação; usa o funil/negócios).
-16. **Newsletter / automações de relacionamento** (e-mail, régua de nutrição de leads).
-17. Integrações (portais, bancos/Caixa, CRMs externos), relatórios avançados / BI, push.
+13. ✅ **Chatbot → Assistente virtual com voz/IA** (rota `/corretor/assistente`): comandos em português que executam de verdade (agenda, CRM por voz, lembretes), motor determinístico + fallback LLM (Groq) e transcrição Whisper.
+14. ✅ **Comunidade / feed social** (rota `/comunidade`): feed nacional cross-org, publicar/curtir/seguir, streak e faixas.
+15. ✅ **Ranking de corretores** (gamificação; exibido na comunidade e na visão de equipe).
+16. ✅ **Newsletter** (rota `/corretor/newsletter`): captura com LGPD/double opt-in, edições do gestor, envio pluggável.
+17. ⏳ **pendente** — Integrações (portais, bancos/Caixa, CRMs externos), relatórios avançados / BI, push.
+
+> **Status:** os itens 12 e 17 são as **únicas pendências** do escopo original; todo o resto está em produção.
 
 > Multi-tenant e suporte às múltiplas modalidades nascem na Fase 0; o que evolui por fase é a **profundidade** de cada uma, não a sua existência. A arquitetura (monorepo + `core` compartilhado + base multi-tenant) já suporta as fases V2 sem retrabalho.
 
@@ -410,4 +424,4 @@ O produto precisa ser uma **ferramenta comercial completa**, não só captura de
 
 ---
 
-*Próximo passo sugerido: resolver as 4 questões em aberto e detalhar o MVP (experiência do cliente) em histórias de usuário.*
+*O MVP, a V1 e a V2 foram entregues e estão em produção (ver §9 e o [README](../README.md)). As pendências do escopo original são os itens 12 (controle financeiro de pagamentos) e 17 (integrações/BI/push); as questões em aberto acima seguem relevantes para a evolução do produto.*

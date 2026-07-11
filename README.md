@@ -13,10 +13,23 @@ ImobIA é um sistema imobiliário com duas faces:
 
 - [Escopo do projeto](docs/ESCOPO.md) — visão, personas, funcionalidades, motor financeiro, dados, arquitetura e roadmap.
 - [Glossário](docs/GLOSSARIO.md) — termos do mercado imobiliário e de financiamento usados no projeto.
+- [Decisões de arquitetura](docs/DECISOES.md) — ADRs curtos: centavos, fuso nas bordas, comunidade cross-org, LGPD, convites.
+- [Deploy e produção](docs/DEPLOY.md) — pipeline Vercel, variáveis de ambiente, migrações e checklist pós-deploy.
 
 ## Status
 
-🏗️ **Fase atual:** Fase 0 (Fundação) — monorepo e motor financeiro concluídos.
+🚀 **Fase atual:** V2 completo, **em produção** em https://mob-ia.vercel.app — próximas frentes: paridade mobile e WhatsApp Business API oficial.
+
+### O que existe hoje
+
+| Persona | Funcionalidades | Rotas |
+|---|---|---|
+| **Cliente** | Catálogo com filtros, ficha com simulação em tempo real, Sonhômetro, comparação, favoritos, mapa por UF | `/imoveis`, `/imoveis/[id]`, `/sonhometro`, `/comparar`, `/favoritos`, `/mapa` |
+| **Corretor** | Painel "Onde agir agora", leads com termômetro 🔥, CRM Kanban, Coringa, assistente com voz/IA, agenda, tarefas, WhatsApp assistido, perfil com gamificação, comunidade nacional | `/corretor`, `/corretor/leads`, `/corretor/negocios`, `/corretor/coringa`, `/corretor/assistente`, `/corretor/agenda`, `/corretor/tarefas`, `/corretor/perfil`, `/comunidade` |
+| **Gestor** | Dashboard da equipe com KPIs, metas, distribuição de leads, ranking, newsletter | `/corretor/equipe`, `/corretor/newsletter` |
+
+<details>
+<summary><strong>Histórico de entregas</strong> (cronológico)</summary>
 
 - ✅ Escopo e histórias do MVP ([docs/MVP-HISTORIAS.md](docs/MVP-HISTORIAS.md))
 - ✅ Monorepo Turborepo: `packages/core`, `packages/domain`, `apps/web` (Next.js 16), `apps/mobile` (Expo 57)
@@ -49,9 +62,36 @@ ImobIA é um sistema imobiliário com duas faces:
 - ✅ **Publicado na Vercel**: https://mob-ia.vercel.app (GitHub MedResumosAcademy/MobIA → deploy automático a cada push; root `apps/web`)
 - 🎉 **Escopo V2 completo** — próximas frentes: melhorias contínuas (auditoria de qualidade, hero imersivo, cookies/privacidade), paridade mobile, WhatsApp Business API oficial
 
+</details>
+
 > Convites de corretor/gestor: signup público sempre nasce `cliente`; promoção só via `privado.convites` (server-side). Seed de dev: `supabase/seed-dev.sql` (usuários @teste.mobia, senha `MobIA!teste1`).
 
 ## Desenvolvimento
+
+### Setup do zero
+
+1. **Variáveis de ambiente** — copie os exemplos e preencha com as chaves do seu projeto Supabase:
+
+   ```bash
+   cp apps/web/.env.example apps/web/.env.local
+   cp apps/mobile/.env.example apps/mobile/.env
+   ```
+
+2. **Banco (Supabase)** — num projeto Supabase novo, aplique as migrações de `supabase/migrations/` **em ordem** (0001, 0002, …), via SQL Editor ou CLI do Supabase. Depois rode `supabase/seed-dev.sql` para criar os usuários de teste `@teste.mobia` (senha `MobIA!teste1`).
+
+3. **Variáveis** — o que cada uma faz e o que degrada sem ela:
+
+   | Variável | Obrigatória? | Sem ela |
+   |---|---|---|
+   | `NEXT_PUBLIC_SUPABASE_URL` | ✅ Sim | O app web não sobe |
+   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | ✅ Sim | O app web não sobe |
+   | `GROQ_API_KEY` | Opcional | Assistente segue com motor determinístico; sem fallback LLM nem transcrição Whisper |
+   | `RESEND_API_KEY` | Opcional | Newsletter segue funcional; gestor copia o HTML em vez de envio automático |
+   | `GROQ_PULAR_70B` | Opcional (debug) | Cascata IA usa a ordem padrão (70B → scout) |
+
+   No mobile: `EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (ambas obrigatórias).
+
+### Comandos
 
 ```bash
 pnpm install        # instala tudo (workspace)
@@ -60,3 +100,5 @@ pnpm typecheck      # typecheck de todos os pacotes
 pnpm --filter web dev      # web em localhost:3000
 pnpm --filter mobile start # Expo dev server
 ```
+
+Deploy e produção: ver [docs/DEPLOY.md](docs/DEPLOY.md).

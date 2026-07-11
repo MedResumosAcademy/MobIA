@@ -231,6 +231,15 @@ export async function definirMeta(tipo: TipoMeta, alvo: number): Promise<Resulta
     return { ok: false, erro: "Não foi possível salvar a meta." };
   }
 
-  const atuais = await agregarAtuais(supabase, "org", usuarioId);
-  return { ok: true, meta: montarProgresso(parse.data.tipo, parse.data.alvo, atuais[parse.data.tipo]) };
+  // A escrita já persistiu; a leitura agregada do progresso é cosmética e não
+  // pode derrubar a action (o EditorMetas ignora resultado.meta e faz
+  // router.refresh(), que recarrega o progresso real).
+  let atual = 0;
+  try {
+    const atuais = await agregarAtuais(supabase, "org", usuarioId);
+    atual = atuais[parse.data.tipo];
+  } catch {
+    // best-effort: devolve ok com atual 0 em vez de lançar após o upsert.
+  }
+  return { ok: true, meta: montarProgresso(parse.data.tipo, parse.data.alvo, atual) };
 }

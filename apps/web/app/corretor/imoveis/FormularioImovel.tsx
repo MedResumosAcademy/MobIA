@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { centavosParaReaisInput as centavosParaReais } from "@imobia/core";
 import type { ImovelDetalhe } from "@/lib/dados/imoveis";
 import { Botao } from "@/components/ui/Botao";
 import { classesCampo } from "@/components/ui/Campo";
@@ -20,10 +21,6 @@ type Props = {
 const rotuloClasse =
   "flex flex-col gap-1.5 text-sm font-medium text-foreground";
 const inputClasse = classesCampo();
-
-function centavosParaReais(v: number): string {
-  return (v / 100).toFixed(2).replace(".", ",");
-}
 
 function fracaoParaPercentual(f: number | undefined): string {
   return f === undefined ? "" : String(+(f * 100).toFixed(4));

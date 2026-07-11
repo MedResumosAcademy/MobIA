@@ -17,13 +17,19 @@ const MENSAGENS_OK: Record<string, string> = {
   atualizado: "Imóvel atualizado com sucesso.",
 };
 
+const MENSAGENS_ERRO: Record<string, string> = {
+  invalido: "Não foi possível aplicar a alteração. Tente novamente.",
+  permissao: "Você não tem permissão para alterar este imóvel.",
+};
+
 export default async function PaginaImoveis({
   searchParams,
 }: {
-  searchParams: Promise<{ ok?: string }>;
+  searchParams: Promise<{ ok?: string; erro?: string }>;
 }) {
-  const { ok } = await searchParams;
+  const { ok, erro } = await searchParams;
   const mensagem = ok ? MENSAGENS_OK[ok] : null;
+  const mensagemErro = erro ? (MENSAGENS_ERRO[erro] ?? MENSAGENS_ERRO.invalido) : null;
   const imoveis = await listarImoveisDaOrg();
 
   return (
@@ -49,6 +55,15 @@ export default async function PaginaImoveis({
             className="mt-4 rounded-xl border border-gold/40 bg-gold-soft px-3.5 py-2.5 text-sm text-gold-strong"
           >
             {mensagem}
+          </p>
+        )}
+
+        {mensagemErro && (
+          <p
+            role="alert"
+            className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-800"
+          >
+            {mensagemErro}
           </p>
         )}
 

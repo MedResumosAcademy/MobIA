@@ -449,65 +449,6 @@ export async function listarImoveisDaOrg(): Promise<ImovelDetalhe[]> {
 }
 
 /**
- * Agrega os imóveis da própria org por UF — TODOS os status, filtro explícito
- * por org_id (sem org ⇒ []). Uso interno futuro (dashboards). Mesma forma de
- * saída de agregarImoveisPorUf, incluindo o total geral sob uf="__total".
- */
-export async function agregarImoveisDaOrgPorUf(): Promise<AgregadoUf[]> {
-  const orgId = await orgDoUsuario();
-  if (!orgId) {
-    return [];
-  }
-  const supabase = await criarClienteServidor();
-  const { data, error } = await supabase
-    .from("imoveis")
-    .select("uf, cidade, valor")
-    .eq("org_id", orgId);
-  if (error) {
-    throw new Error(`agregarImoveisDaOrgPorUf: ${error.message}`);
-  }
-  const linhas = data ?? [];
-
-  const porUf = new Map<
-    string,
-    { quantidade: number; valorMinimo: number; cidades: Map<string, number> }
-  >();
-
-  for (const l of linhas) {
-    const uf = l.uf.toUpperCase();
-    const atual = porUf.get(uf) ?? {
-      quantidade: 0,
-      valorMinimo: Number.POSITIVE_INFINITY,
-      cidades: new Map<string, number>(),
-    };
-    atual.quantidade += 1;
-    atual.valorMinimo = Math.min(atual.valorMinimo, l.valor);
-    atual.cidades.set(l.cidade, (atual.cidades.get(l.cidade) ?? 0) + 1);
-    porUf.set(uf, atual);
-  }
-
-  const agregados: AgregadoUf[] = [...porUf.entries()]
-    .map(([uf, v]) => {
-      const cidadePrincipal = [...v.cidades.entries()].sort(
-        (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
-      )[0]?.[0];
-      return { uf, cidadePrincipal, quantidade: v.quantidade, valorMinimo: v.valorMinimo };
-    })
-    .sort((a, b) => b.quantidade - a.quantidade || a.uf.localeCompare(b.uf));
-
-  const total: AgregadoUf = {
-    uf: "__total",
-    quantidade: linhas.length,
-    valorMinimo: agregados.reduce(
-      (min, a) => Math.min(min, a.valorMinimo),
-      Number.POSITIVE_INFINITY,
-    ),
-  };
-
-  return [...agregados, total];
-}
-
-/**
  * Imóvel + unidades da própria org — TODOS os status, filtro explícito por
  * org_id (id vem do cliente; sem o filtro, 'disponivel' de outra org passaria
  * pela policy pública). Gêmeo org-scoped de obterImovel: use este quando a

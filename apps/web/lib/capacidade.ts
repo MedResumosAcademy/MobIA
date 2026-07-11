@@ -6,20 +6,8 @@
 
 import { cookies } from "next/headers";
 import { obterSessao } from "@/lib/auth/sessao";
-import { COOKIE_CAPACIDADE, type CookieCapacidade } from "@/lib/capacidade-cookie";
+import { COOKIE_CAPACIDADE, lerCookieCapacidade } from "@/lib/capacidade-cookie";
 import { criarClienteServidor } from "@/lib/supabase/server";
-
-function lerCookieCapacidade(bruto: string | undefined): number | null {
-  if (!bruto) {
-    return null;
-  }
-  try {
-    const parsed = JSON.parse(bruto) as Partial<CookieCapacidade>;
-    return typeof parsed.valor === "number" && Number.isFinite(parsed.valor) ? parsed.valor : null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Capacidade atual em CENTAVOS, ou null se desconhecida/desligada. Ordem:

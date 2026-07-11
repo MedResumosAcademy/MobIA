@@ -11,3 +11,19 @@ export const COOKIE_CAPACIDADE_MAX_AGE = 60 * 60 * 24 * 30;
 
 /** Formato serializado no cookie 'imobia_capacidade'. */
 export type CookieCapacidade = { valor: number; criadoEm: string };
+
+/**
+ * Parse RESILIENTE do valor bruto do cookie (entrada não confiável): devolve a
+ * capacidade em CENTAVOS ou null para ausente/JSON malformado/valor não finito.
+ */
+export function lerCookieCapacidade(bruto: string | undefined): number | null {
+  if (!bruto) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(bruto) as Partial<CookieCapacidade>;
+    return typeof parsed.valor === "number" && Number.isFinite(parsed.valor) ? parsed.valor : null;
+  } catch {
+    return null;
+  }
+}

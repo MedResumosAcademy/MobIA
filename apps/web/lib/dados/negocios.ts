@@ -12,13 +12,7 @@
 // do motor puro (@imobia/core) a partir dos contadores da linha do lead —
 // NUNCA da coluna `temperatura`. Dinheiro em CENTAVOS. pt-BR.
 
-import {
-  calcularTemperatura,
-  classificarAtencao,
-  diasSemMovimento,
-  resumoFunil,
-  type ResumoFunil,
-} from "@imobia/core";
+import { calcularTemperatura, classificarAtencao, diasSemMovimento } from "@imobia/core";
 import {
   etapaNegocioSchema,
   resultadoNegocioSchema,
@@ -755,21 +749,4 @@ export async function atualizarNegocio(
     throw new Error(`atualizarNegocio(atividade): ${erroAtividade.message}`);
   }
   return separarEnriquecida(data as LinhaEnriquecida);
-}
-
-// --- Dashboard do gestor: resumo do funil (motor puro @imobia/core) ---
-
-// Reexporta o tipo de saída do motor para conveniência da UI do dashboard.
-export type { ResumoFunil };
-
-/**
- * Resumo do funil sobre os negócios visíveis ao usuário (gestor/admin: a org;
- * corretor: os seus). Usa resumoFunil(@imobia/core) — agregação PURA. Para o
- * dashboard do gestor. Anônimo/cliente ⇒ funil vazio (listarNegocios guarda).
- */
-export async function resumoFunilDaOrg(): Promise<ResumoFunil> {
-  const negocios = await listarNegocios();
-  return resumoFunil(
-    negocios.map((n) => ({ etapa: n.etapa, resultado: n.resultado, valor: n.valor })),
-  );
 }

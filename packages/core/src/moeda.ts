@@ -38,3 +38,16 @@ export function reaisTextoParaCentavos(texto: string): number {
   }
   return Math.round(numero * 100);
 }
+
+/**
+ * Inverso para PREFILL de inputs: CENTAVOS → texto de reais com vírgula decimal
+ * e sem milhar (ex.: 128000000 → "1280000,00"), formato que
+ * reaisTextoParaCentavos aceita de volta (ida-e-volta sem perda).
+ * null → "" (input vazio).
+ */
+export function centavosParaReaisInput(centavos: number | null): string {
+  if (centavos === null) {
+    return "";
+  }
+  return (centavos / 100).toFixed(2).replace(".", ",");
+}

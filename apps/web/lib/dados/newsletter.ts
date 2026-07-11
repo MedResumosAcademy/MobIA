@@ -304,7 +304,13 @@ export async function obterEdicao(
 export async function salvarEdicaoAction(
   input: EdicaoNewsletterInput,
 ): Promise<ResultadoEdicao> {
-  await exigirGestor();
+  // Action de client component: sessão expirada vira erro inline, não crash
+  // (mesmo padrão de reatribuirLeadAction/definirMeta).
+  try {
+    await exigirGestor();
+  } catch {
+    return { ok: false, erro: "Sem permissão para gerenciar a newsletter. Entre novamente." };
+  }
   const parsed = edicaoNewsletterSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, erro: "Preencha título e assunto (até 160 caracteres)." };
@@ -332,7 +338,11 @@ export async function atualizarEdicaoAction(
   id: string,
   input: EdicaoNewsletterInput,
 ): Promise<ResultadoEdicao> {
-  await exigirGestor();
+  try {
+    await exigirGestor();
+  } catch {
+    return { ok: false, erro: "Sem permissão para gerenciar a newsletter. Entre novamente." };
+  }
   const parsed = edicaoNewsletterSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, erro: "Preencha título e assunto (até 160 caracteres)." };
@@ -361,7 +371,11 @@ export async function atualizarEdicaoAction(
 
 /** Marca uma edição rascunho como PRONTA para envio. */
 export async function marcarProntaAction(id: string): Promise<ResultadoAcao> {
-  await exigirGestor();
+  try {
+    await exigirGestor();
+  } catch {
+    return { ok: false, erro: "Sem permissão para gerenciar a newsletter. Entre novamente." };
+  }
   const supabase = await criarClienteServidor();
   const { data, error } = await supabase
     .from("newsletter_edicoes")
@@ -434,12 +448,45 @@ export async function obterImoveisDaEdicao(
 const TAMANHO_LOTE_RESEND = 100;
 
 /**
+ * Envio PARCIAL: os lotes anteriores já chegaram aos destinatários. Marca a
+ * edição como enviada (registrando o envio parcial) para o botão de reenvio
+ * NÃO duplicar o e-mail para as primeiras centenas de inscritos — perder a
+ * cauda é menos danoso que enviar duplicado.
+ */
+async function marcarEnvioParcial(
+  id: string,
+  enviados: number,
+  total: number,
+): Promise<ResultadoEnvio> {
+  const supabase = await criarClienteServidor();
+  const agora = new Date().toISOString();
+  await supabase
+    .from("newsletter_edicoes")
+    .update({ status: "enviada", enviada_em: agora, atualizado_em: agora })
+    .eq("id", id);
+  revalidatePath("/corretor/newsletter");
+  revalidatePath(`/corretor/newsletter/${id}`);
+  return {
+    ok: false,
+    erro:
+      `Falha no provedor após ${enviados} de ${total} e-mails enviados. ` +
+      `NÃO reenvie: os primeiros ${enviados} inscritos já receberam. A edição foi marcada ` +
+      "como enviada para evitar duplicidade — para alcançar o restante, copie o " +
+      "HTML e envie manualmente ou contate o suporte.",
+  };
+}
+
+/**
  * Envia a edição a todos os inscritos ativos. Sem RESEND_API_KEY o envio
  * automático fica indisponível (o gestor copia o HTML) — produto segue
  * funcional. NUNCA loga a lista de e-mails.
  */
 export async function enviarEdicaoAction(id: string): Promise<ResultadoEnvio> {
-  await exigirGestor();
+  try {
+    await exigirGestor();
+  } catch {
+    return { ok: false, erro: "Sem permissão para gerenciar a newsletter. Entre novamente." };
+  }
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     return {
@@ -466,7 +513,18 @@ export async function enviarEdicaoAction(id: string): Promise<ResultadoEnvio> {
     return { ok: false, erro: "Esta edição já foi enviada." };
   }
 
-  const { total, inscritos } = await listarInscritos();
+  // listarInscritos LANÇA em erro de banco; nada foi enviado ainda — degrada
+  // para erro retry-seguro em vez de estourar no error boundary.
+  let total: number;
+  let inscritos: InscritoNewsletter[];
+  try {
+    ({ total, inscritos } = await listarInscritos());
+  } catch {
+    return {
+      ok: false,
+      erro: "Falha temporária ao carregar os inscritos. Nenhum e-mail foi enviado — tente novamente.",
+    };
+  }
   if (inscritos.length === 0) {
     // LGPD (0022): os e-mails crus só existem para o admin da plataforma —
     // gestor com inscritos ativos vê o motivo real, não um "0 inscritos" falso.
@@ -479,7 +537,15 @@ export async function enviarEdicaoAction(id: string): Promise<ResultadoEnvio> {
     };
   }
 
-  const imoveis = await obterImoveisDaEdicao(edicao.imovelIds);
+  let imoveis: ImovelParaEmail[];
+  try {
+    imoveis = await obterImoveisDaEdicao(edicao.imovelIds);
+  } catch {
+    return {
+      ok: false,
+      erro: "Falha temporária ao carregar os imóveis da edição. Nenhum e-mail foi enviado — tente novamente.",
+    };
+  }
   const html = gerarHtmlEdicao(edicao, imoveis);
 
   // Lotes no endpoint /emails/batch (um item por destinatário — sem expor
@@ -491,16 +557,30 @@ export async function enviarEdicaoAction(id: string): Promise<ResultadoEnvio> {
       subject: edicao.assunto,
       html,
     }));
-    const resposta = await fetch("https://api.resend.com/emails/batch", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(lote),
-    });
-    if (!resposta.ok) {
+    // fetch REJEITA em falha de rede (TypeError) — não só devolve !ok em erro
+    // HTTP. Os dois caminhos recebem o MESMO tratamento: nada enviado ⇒ retry
+    // seguro; envio parcial ⇒ marcar enviada para não duplicar.
+    let resposta: Response;
+    try {
+      resposta = await fetch("https://api.resend.com/emails/batch", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(lote),
+      });
+    } catch {
       // i = quantos e-mails JÁ SAÍRAM nos lotes anteriores.
+      if (i === 0) {
+        return {
+          ok: false,
+          erro: "Falha de rede no envio. Nenhum e-mail foi enviado — tente novamente.",
+        };
+      }
+      return marcarEnvioParcial(id, i, inscritos.length);
+    }
+    if (!resposta.ok) {
       if (i === 0) {
         // Nada foi enviado — o retry é seguro.
         return {
@@ -508,26 +588,7 @@ export async function enviarEdicaoAction(id: string): Promise<ResultadoEnvio> {
           erro: "Falha no envio pelo provedor. Nenhum e-mail foi enviado — tente novamente.",
         };
       }
-      // Envio PARCIAL: os lotes 1..N-1 já chegaram aos destinatários. Marca a
-      // edição como enviada (registrando o envio parcial) para o botão de
-      // reenvio NÃO duplicar o e-mail para as primeiras centenas de inscritos —
-      // perder a cauda é menos danoso que enviar duplicado.
-      const supabaseParcial = await criarClienteServidor();
-      const agoraParcial = new Date().toISOString();
-      await supabaseParcial
-        .from("newsletter_edicoes")
-        .update({ status: "enviada", enviada_em: agoraParcial, atualizado_em: agoraParcial })
-        .eq("id", id);
-      revalidatePath("/corretor/newsletter");
-      revalidatePath(`/corretor/newsletter/${id}`);
-      return {
-        ok: false,
-        erro:
-          `Falha no provedor após ${i} de ${inscritos.length} e-mails enviados. ` +
-          `NÃO reenvie: os primeiros ${i} inscritos já receberam. A edição foi marcada ` +
-          "como enviada para evitar duplicidade — para alcançar o restante, copie o " +
-          "HTML e envie manualmente ou contate o suporte.",
-      };
+      return marcarEnvioParcial(id, i, inscritos.length);
     }
   }
 

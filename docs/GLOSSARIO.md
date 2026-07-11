@@ -9,6 +9,18 @@ Termos do mercado imobiliário e de financiamento usados no projeto.
 - **Coringa** — motor de inteligência que gera estratégias de compra (A/B/C/D) para o corretor a partir do cenário financeiro do cliente.
 - **Termômetro / temperatura** — classificação automática da intenção de compra do lead (🔥 quente, 🔥🔥 muito quente, 🔥🔥🔥 pronto para compra).
 - **Lead** — interesse de um cliente em um imóvel, criado automaticamente a partir do comportamento.
+- **Assistente** — chat com voz/texto do corretor (`/corretor/assistente`); comandos em português viram um `ComandoInterpretado` (intenção + parâmetros) pelo motor determinístico do `@imobia/core`, com fallback de IA (Groq) para frases coloquiais.
+- **Intenção** — o que o corretor quis fazer num comando do assistente (ex.: `agendar`, `criar_negocio`, `mover_etapa`), extraída da frase.
+
+## Comunidade e produtividade
+
+- **Streak** — dias **consecutivos** com publicação na comunidade; exibido com 🔥 e recorde pessoal no "Seu placar".
+- **Faixa** — nível do corretor na comunidade conforme os pontos: Iniciante → … → **Lenda**.
+- **Pontos da comunidade** — pontuação por publicações, curtidas recebidas e seguidores; alimenta o Ranking Nacional.
+- **Gamificação (perfil)** — nível/XP e **conquistas (badges)** do corretor no perfil (ex.: Primeira venda, Top closer, Milionário), calculados pelo `@imobia/core` a partir do funil.
+- **Onde agir agora** — fila priorizada de ações no painel do corretor: negócios parados, tarefas atrasadas e leads quentes sem negócio, com atalho direto.
+- **Negócio parado ("parado há X dias")** — negócio sem atividade há tempo demais; indicador de atenção/parado no Kanban, calculado no `@imobia/core`.
+- **Double opt-in** — inscrição na newsletter só ativa após o inscrito confirmar por e-mail (exigência LGPD).
 
 ## Financiamento e pagamento
 
@@ -19,6 +31,7 @@ Termos do mercado imobiliário e de financiamento usados no projeto.
 - **Chaves** — entrega do imóvel ao comprador.
 - **FGTS** — Fundo de Garantia do Tempo de Serviço; pode compor a entrada ou amortizar o saldo.
 - **Comprometimento de renda** — percentual máximo da renda mensal que pode ir para a parcela (regra usual ~30%).
+- **Centavos** — convenção do sistema: **todo valor monetário é um inteiro em centavos** (tipo `Centavos` no `@imobia/core`, colunas do banco); a conversão para reais acontece só na exibição.
 
 ## Modalidades
 

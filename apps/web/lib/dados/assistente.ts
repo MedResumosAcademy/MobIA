@@ -21,6 +21,9 @@ import {
   formatarInstanteCurto,
   formatarReais,
   interpretarComando,
+  normalizarParaBusca,
+  rotuloDia,
+  selecionarNegocioPorContato,
   type ComandoInterpretado,
 } from "@imobia/core";
 import type { EtapaNegocio, ResultadoNegocio } from "@imobia/domain";
@@ -89,29 +92,8 @@ const ERRO_GENERICO: RespostaAssistente = {
 };
 
 // --- Helpers ---
-
-/** "2026-07-04" ⇒ "04/07" (rótulo curto de dia para as respostas). */
-function rotuloDia(diaISO: string, hojeISO: string): string {
-  if (diaISO === hojeISO) {
-    return "hoje";
-  }
-  const [, mes, dia] = diaISO.split("-");
-  return `no dia ${dia}/${mes}`;
-}
-
-/**
- * Normaliza texto para busca TOLERANTE A ACENTOS e caixa: "Patricia" deve
- * casar "Patrícia Nunes" (digitação sem acento e transcrição de voz divergem
- * do cadastro com frequência em pt-BR). NFD separa a marca diacrítica da
- * letra; \p{M} remove as marcas; lowercase fecha o casamento case-insensitive.
- */
-function normalizarParaBusca(texto: string): string {
-  return texto
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .trim();
-}
+// rotuloDia, normalizarParaBusca e selecionarNegocioPorContato são PUROS e
+// vivem em @imobia/core (selecao-negocio.ts) — testados lá, sem banco.
 
 /**
  * Negócio ABERTO do corretor logado cujo nome_contato casa com `contato`
@@ -195,23 +177,19 @@ async function localizarNegocioPorContato(contato: string): Promise<NegocioLocal
   if (error || !todos) {
     return null;
   }
-  const data = todos.filter((n) => normalizarParaBusca(n.nome_contato).includes(padrao));
-  if (data.length === 0) {
+  // A decisão (prefere abertos, fechado p/ erro gentil, flag de ambiguidade)
+  // é pura e vive em @imobia/core — a lista já chega ordenada como exigido.
+  const sel = selecionarNegocioPorContato(todos, contato);
+  if (!sel) {
     return null;
   }
-  const abertos = data.filter((n) => n.resultado === null);
-  const escolhido = abertos[0] ?? data[0];
-  if (!escolhido) {
-    return null;
-  }
-  const nomesAbertos = new Set(abertos.map((n) => n.nome_contato.trim().toLowerCase()));
   return {
-    id: escolhido.id,
-    nomeContato: escolhido.nome_contato,
-    etapa: escolhido.etapa as EtapaNegocio,
-    resultado: (escolhido.resultado as ResultadoNegocio | null) ?? null,
-    valor: escolhido.valor,
-    ambiguo: nomesAbertos.size > 1,
+    id: sel.negocio.id,
+    nomeContato: sel.negocio.nome_contato,
+    etapa: sel.negocio.etapa as EtapaNegocio,
+    resultado: (sel.negocio.resultado as ResultadoNegocio | null) ?? null,
+    valor: sel.negocio.valor,
+    ambiguo: sel.ambiguo,
   };
 }
 

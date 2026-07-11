@@ -7,108 +7,38 @@
 // usamos minhasTarefas; para "org", tarefasDaOrg (que exige gestor) com fallback
 // gracioso para as próprias tarefas se o usuário não for gestor.
 //
-// A fila combina, ranqueada por urgência:
-//   (a) NEGÓCIOS PARADOS: abertos com atenção 'parado' (>=14d) e depois 'atencao'
-//       (7-13d) — a atenção vem do motor puro (via listarNegocios);
-//   (b) TAREFAS ATRASADAS: vence_em < hoje e não concluída;
-//   (c) LEADS QUENTES sem negócio: temperatura 'pronto_para_compra' que ainda NÃO
-//       têm negócio ABERTO vinculado.
-// Ordena por nível (crítico no topo) e limita a ~10 itens. pt-BR.
+// A COMBINAÇÃO/RANQUEAMENTO é pura e vive em prioridades-fila.ts (montarFila,
+// testada sem banco); aqui ficam as leituras e o ícone lucide por categoria.
 
 import type { LucideIcon } from "lucide-react";
 import { AlertTriangle, Clock, Flame } from "lucide-react";
 import { listarLeads } from "@/lib/dados/leads";
-import { listarNegocios, type NegocioResumo } from "@/lib/dados/negocios";
-import { minhasTarefas, tarefasDaOrg, type TarefaResumo } from "@/lib/dados/tarefas";
+import { listarNegocios } from "@/lib/dados/negocios";
+import {
+  montarFila,
+  type CategoriaPrioridade,
+  type ItemPrioridadeBase,
+} from "@/lib/dados/prioridades-fila";
+import { minhasTarefas, tarefasDaOrg } from "@/lib/dados/tarefas";
 import { obterSessao } from "@/lib/auth/sessao";
+
+export type { CategoriaPrioridade, NivelPrioridade } from "@/lib/dados/prioridades-fila";
 
 /** Escopo da fila: toda a org (gestor) ou só os dados do corretor. */
 export type EscopoPrioridades = "org" | "meu";
 
-/** Categoria do item — governa ícone/cor e ordenação secundária. */
-export type CategoriaPrioridade = "negocio_parado" | "tarefa_atrasada" | "lead_quente";
-
-/** Nível de urgência (governa a cor do selo e o ranqueamento primário). */
-export type NivelPrioridade = "critico" | "alto" | "medio";
-
 /** Um item acionável da fila de prioridades — pronto para a UI. */
-export type ItemPrioridade = {
-  /** Chave estável (categoria + id da entidade). */
-  id: string;
-  categoria: CategoriaPrioridade;
-  nivel: NivelPrioridade;
-  titulo: string;
-  subtitulo: string;
-  /** Rota de ação (ficha do negócio, tarefas do negócio ou conversão do lead). */
-  href: string;
+export type ItemPrioridade = ItemPrioridadeBase & {
   /** Ícone lucide-react (componente) para a UI renderizar. */
   icone: LucideIcon;
 };
 
-// Peso de ordenação primário por nível (crítico primeiro).
-const PESO_NIVEL: Record<NivelPrioridade, number> = { critico: 0, alto: 1, medio: 2 };
-// Desempate por categoria: parados/atrasadas acima de leads quentes.
-const PESO_CATEGORIA: Record<CategoriaPrioridade, number> = {
-  negocio_parado: 0,
-  tarefa_atrasada: 1,
-  lead_quente: 2,
+/** Ícone por categoria (a montagem pura não conhece componentes de UI). */
+const ICONE_POR_CATEGORIA: Record<CategoriaPrioridade, LucideIcon> = {
+  negocio_parado: AlertTriangle,
+  tarefa_atrasada: Clock,
+  lead_quente: Flame,
 };
-
-const LIMITE_ITENS = 10;
-
-/** Um negócio está ABERTO quando ainda não tem resultado (ganho/perdido). */
-function negocioAberto(n: NegocioResumo): boolean {
-  return n.resultado === null;
-}
-
-/** Monta o item de um NEGÓCIO PARADO/EM ATENÇÃO (aberto, sem movimento). */
-function itemNegocioParado(n: NegocioResumo): ItemPrioridade {
-  const critico = n.atencao === "parado";
-  return {
-    id: `negocio_parado:${n.id}`,
-    categoria: "negocio_parado",
-    nivel: critico ? "critico" : "alto",
-    titulo: n.nomeContato,
-    subtitulo: `${n.diasSemMovimento} dia(s) sem movimento${
-      n.imovelTitulo ? ` · ${n.imovelTitulo}` : ""
-    }`,
-    href: `/corretor/negocios/${n.id}`,
-    icone: AlertTriangle,
-  };
-}
-
-/** Monta o item de uma TAREFA ATRASADA (vence_em passado, não concluída). */
-function itemTarefaAtrasada(t: TarefaResumo): ItemPrioridade {
-  const sobre = t.negocioNomeContato ? ` · ${t.negocioNomeContato}` : "";
-  return {
-    id: `tarefa_atrasada:${t.id}`,
-    categoria: "tarefa_atrasada",
-    nivel: "critico",
-    titulo: t.titulo,
-    subtitulo: `Vencida em ${t.venceEm ?? "—"}${sobre}`,
-    // As tarefas de um negócio vivem na ficha do negócio (não há sub-rota /tarefas).
-    href: `/corretor/negocios/${t.negocioId}`,
-    icone: Clock,
-  };
-}
-
-/** Monta o item de um LEAD QUENTE sem negócio aberto (pronto para converter). */
-function itemLeadQuente(lead: {
-  id: string;
-  clienteNome: string | null;
-  imovelTitulo: string;
-}): ItemPrioridade {
-  return {
-    id: `lead_quente:${lead.id}`,
-    categoria: "lead_quente",
-    nivel: "medio",
-    titulo: lead.clienteNome ?? "Lead pronto para compra",
-    subtitulo: `Pronto para compra · ${lead.imovelTitulo}`,
-    // A conversão em negócio acontece na ficha do lead (não há sub-rota /converter).
-    href: `/corretor/leads/${lead.id}`,
-    icone: Flame,
-  };
-}
 
 /**
  * Fila de prioridades ranqueada para o `escopo`. Combina negócios parados/em
@@ -138,40 +68,8 @@ export async function prioridades(escopo: EscopoPrioridades): Promise<ItemPriori
     listarLeads(),
   ]);
 
-  const itens: ItemPrioridade[] = [];
-
-  // (a) Negócios abertos parados (>=14d) ou em atenção (7-13d).
-  for (const n of negocios) {
-    if (negocioAberto(n) && (n.atencao === "parado" || n.atencao === "atencao")) {
-      itens.push(itemNegocioParado(n));
-    }
-  }
-
-  // (b) Tarefas atrasadas (a flag `atrasada` já é vence_em<hoje && !concluída).
-  for (const t of tarefas) {
-    if (t.atrasada) {
-      itens.push(itemTarefaAtrasada(t));
-    }
-  }
-
-  // (c) Leads quentes SEM negócio aberto vinculado (por lead_id).
-  const leadsComNegocioAberto = new Set<string>();
-  for (const n of negocios) {
-    if (negocioAberto(n) && n.leadId) {
-      leadsComNegocioAberto.add(n.leadId);
-    }
-  }
-  for (const lead of leads) {
-    if (lead.temperatura === "pronto_para_compra" && !leadsComNegocioAberto.has(lead.id)) {
-      itens.push(itemLeadQuente(lead));
-    }
-  }
-
-  itens.sort(
-    (a, b) =>
-      PESO_NIVEL[a.nivel] - PESO_NIVEL[b.nivel] ||
-      PESO_CATEGORIA[a.categoria] - PESO_CATEGORIA[b.categoria],
-  );
-
-  return itens.slice(0, LIMITE_ITENS);
+  return montarFila(negocios, tarefas, leads).map((item) => ({
+    ...item,
+    icone: ICONE_POR_CATEGORIA[item.categoria],
+  }));
 }

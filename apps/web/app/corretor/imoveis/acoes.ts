@@ -250,22 +250,37 @@ export async function atualizarImovelAction(id: string, formData: FormData) {
 export async function definirStatusImovelAction(formData: FormData) {
   await exigirOrg();
   const id = String(formData.get("id") ?? "");
-  const status = statusImovelSchema.parse(String(formData.get("status") ?? ""));
-  await definirStatusImovel(id, status);
+  // safeParse + try/catch: erro de banco/RLS vira ?erro= na listagem (mesmo
+  // padrão de criarImovelAction) em vez de derrubar a página no error boundary.
+  const status = statusImovelSchema.safeParse(String(formData.get("status") ?? ""));
+  if (!status.success) {
+    redirect("/corretor/imoveis?erro=invalido");
+  }
+  try {
+    await definirStatusImovel(id, status.data);
+  } catch (e) {
+    redirect(`/corretor/imoveis?erro=${codigoErro(e)}`);
+  }
   revalidatePath("/corretor/imoveis");
 }
 
 // --- Ações de unidade (H-24) ---
 
+// null quando o status do formulário é inválido (as actions redirecionam
+// com ?erro=invalido em vez de lançar ZodError na cara do usuário).
 function montarUnidade(formData: FormData) {
+  const status = statusImovelSchema.safeParse(
+    String(formData.get("status") ?? "disponivel"),
+  );
+  if (!status.success) {
+    return null;
+  }
   return {
     identificador: String(formData.get("identificador") ?? "").trim(),
     andar: numeroOpcionalInteiro(formData.get("andar")),
     posicao: opcional(formData.get("posicao")),
     valor: reaisParaCentavos(formData.get("valor")),
-    status: statusImovelSchema.parse(
-      String(formData.get("status") ?? "disponivel"),
-    ),
+    status: status.data,
   };
 }
 
@@ -280,7 +295,15 @@ function numeroOpcionalInteiro(raw: FormDataEntryValue | null): number | null {
 
 export async function criarUnidadeAction(imovelId: string, formData: FormData) {
   await exigirOrg();
-  await criarUnidade(imovelId, montarUnidade(formData));
+  const unidade = montarUnidade(formData);
+  if (!unidade) {
+    redirect(`/corretor/imoveis/${imovelId}/editar?erro=invalido`);
+  }
+  try {
+    await criarUnidade(imovelId, unidade);
+  } catch (e) {
+    redirect(`/corretor/imoveis/${imovelId}/editar?erro=${codigoErro(e)}`);
+  }
   revalidatePath(`/corretor/imoveis/${imovelId}/editar`);
 }
 
@@ -290,7 +313,15 @@ export async function atualizarUnidadeAction(
   formData: FormData,
 ) {
   await exigirOrg();
-  await atualizarUnidade(unidadeId, montarUnidade(formData));
+  const unidade = montarUnidade(formData);
+  if (!unidade) {
+    redirect(`/corretor/imoveis/${imovelId}/editar?erro=invalido`);
+  }
+  try {
+    await atualizarUnidade(unidadeId, unidade);
+  } catch (e) {
+    redirect(`/corretor/imoveis/${imovelId}/editar?erro=${codigoErro(e)}`);
+  }
   revalidatePath(`/corretor/imoveis/${imovelId}/editar`);
 }
 
@@ -298,7 +329,11 @@ export async function removerUnidadeAction(formData: FormData) {
   await exigirOrg();
   const imovelId = String(formData.get("imovelId") ?? "");
   const unidadeId = String(formData.get("unidadeId") ?? "");
-  await removerUnidade(unidadeId);
+  try {
+    await removerUnidade(unidadeId);
+  } catch (e) {
+    redirect(`/corretor/imoveis/${imovelId}/editar?erro=${codigoErro(e)}`);
+  }
   revalidatePath(`/corretor/imoveis/${imovelId}/editar`);
 }
 

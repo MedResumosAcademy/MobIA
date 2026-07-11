@@ -31,19 +31,6 @@ export type ResumoOrg = {
   corretoresTotal: number;
 };
 
-export type DesempenhoCorretor = {
-  corretorId: string;
-  nome: string | null;
-  /** Imóveis sob responsabilidade do corretor (corretor_responsavel_id). */
-  imoveis: number;
-  /** Leads atribuídos ao corretor, visíveis (consentidos). */
-  leads: number;
-  /** Leads com temperatura 'pronto_para_compra'. */
-  leadsQuentes: number;
-  /** Timestamp ISO do evento mais recente entre os leads do corretor. */
-  ultimoEventoEm: string | null;
-};
-
 export type CorretorOpcao = { id: string; nome: string | null };
 
 export type ResultadoReatribuir =
@@ -169,77 +156,6 @@ export async function resumoDaOrg(): Promise<ResumoOrg> {
     leadsPorTemperatura,
     corretoresTotal: (corretores.data ?? []).length,
   };
-}
-
-/**
- * Desempenho por corretor da org (perfis papel 'corretor'): imóveis sob sua
- * responsabilidade, leads visíveis atribuídos, leads 'pronto_para_compra' e o
- * evento mais recente. Ordena por leadsQuentes desc, depois leads desc. A RLS
- * limita imóveis/leads/perfis à org e aos clientes consentidos.
- */
-export async function desempenhoPorCorretor(): Promise<DesempenhoCorretor[]> {
-  const { orgId } = await exigirGestor();
-  const supabase = await criarClienteServidor();
-
-  const [corretores, imoveis, leads] = await Promise.all([
-    supabase.from("perfis").select("id, nome").eq("papel", "corretor"),
-    // Escopo explícito à org (mesma razão de resumoDaOrg): evita contar imóveis
-    // 'disponivel' de outras orgs expostos por `imoveis_select_publico`.
-    supabase.from("imoveis").select("corretor_responsavel_id").eq("org_id", orgId),
-    supabase
-      .from("leads")
-      .select(
-        "corretor_id, visitas, simulacoes, favoritos, cliques_financiamento, retornos, ultimo_evento_em",
-      ),
-  ]);
-
-  if (corretores.error) {
-    throw new Error(`desempenhoPorCorretor(corretores): ${corretores.error.message}`);
-  }
-  if (imoveis.error) {
-    throw new Error(`desempenhoPorCorretor(imoveis): ${imoveis.error.message}`);
-  }
-  if (leads.error) {
-    throw new Error(`desempenhoPorCorretor(leads): ${leads.error.message}`);
-  }
-
-  const imoveisPorCorretor = new Map<string, number>();
-  for (const im of imoveis.data ?? []) {
-    const id = im.corretor_responsavel_id;
-    imoveisPorCorretor.set(id, (imoveisPorCorretor.get(id) ?? 0) + 1);
-  }
-
-  type Acc = { leads: number; leadsQuentes: number; ultimoEventoEm: string | null };
-  const leadsPorCorretor = new Map<string, Acc>();
-  for (const l of leads.data ?? []) {
-    const id = l.corretor_id;
-    const acc = leadsPorCorretor.get(id) ?? { leads: 0, leadsQuentes: 0, ultimoEventoEm: null };
-    acc.leads += 1;
-    if (temperaturaDaLinha(l as LinhaLead) === "pronto_para_compra") {
-      acc.leadsQuentes += 1;
-    }
-    if (
-      l.ultimo_evento_em &&
-      (acc.ultimoEventoEm === null || l.ultimo_evento_em > acc.ultimoEventoEm)
-    ) {
-      acc.ultimoEventoEm = l.ultimo_evento_em;
-    }
-    leadsPorCorretor.set(id, acc);
-  }
-
-  const linhas: DesempenhoCorretor[] = (corretores.data ?? []).map((c) => {
-    const stats = leadsPorCorretor.get(c.id) ?? { leads: 0, leadsQuentes: 0, ultimoEventoEm: null };
-    return {
-      corretorId: c.id,
-      nome: c.nome ?? null,
-      imoveis: imoveisPorCorretor.get(c.id) ?? 0,
-      leads: stats.leads,
-      leadsQuentes: stats.leadsQuentes,
-      ultimoEventoEm: stats.ultimoEventoEm,
-    };
-  });
-
-  return linhas.sort((a, b) => b.leadsQuentes - a.leadsQuentes || b.leads - a.leads);
 }
 
 /**
