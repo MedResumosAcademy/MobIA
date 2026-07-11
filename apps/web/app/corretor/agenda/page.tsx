@@ -19,6 +19,7 @@ import {
   Users,
 } from "lucide-react";
 import type { TipoEventoAgenda } from "@imobia/domain";
+import { EstadoVazio } from "@/components/EstadoVazio";
 import { Badge, type VarianteBadge } from "@/components/ui/Badge";
 import {
   listarAgenda,
@@ -92,7 +93,13 @@ export default async function PaginaAgenda() {
             </span>
           </h2>
           {itensDeHoje.length === 0 ? (
-            <EstadoVazio texto="Dia livre por aqui ✨ Que tal avançar um negócio do funil?" />
+            <EstadoVazio
+              className="mt-5"
+              icone={<CalendarClock className="h-6 w-6" aria-hidden />}
+              titulo="Dia livre por aqui ✨"
+              descricao="Nenhum compromisso ou tarefa para hoje. Que tal aproveitar para avançar um negócio do funil?"
+              cta={{ href: "/corretor/negocios", rotulo: "Ver funil de negócios" }}
+            />
           ) : (
             <ol className="mt-5">
               {itensDeHoje.map((entrada, i) => (
@@ -117,7 +124,13 @@ export default async function PaginaAgenda() {
         <section className="mt-8">
           <h2 className="text-lg font-semibold text-foreground">Próximos 7 dias</h2>
           {proximosDias.length === 0 ? (
-            <EstadoVazio texto="Nada marcado na semana — sua agenda está aberta para novas visitas." />
+            <EstadoVazio
+              className="mt-4"
+              icone={<CalendarDays className="h-6 w-6" aria-hidden />}
+              titulo="Semana aberta"
+              descricao="Nada marcado nos próximos 7 dias — boa hora para agendar novas visitas com seus leads."
+              cta={{ href: "/corretor/leads", rotulo: "Ver leads" }}
+            />
           ) : (
             <div className="mt-4 flex flex-col gap-4">
               {proximosDias.map((dia) => (
@@ -245,13 +258,5 @@ function LinhaTarefa({ tarefa }: { tarefa: TarefaResumo }) {
         </p>
       </div>
     </div>
-  );
-}
-
-function EstadoVazio({ texto }: { texto: string }) {
-  return (
-    <p className="mt-5 rounded-xl border border-dashed border-border-strong bg-surface p-6 text-center text-sm text-subtle">
-      {texto}
-    </p>
   );
 }

@@ -276,7 +276,11 @@ export async function listarEdicoes(): Promise<EdicaoNewsletterResumo[]> {
   return (data ?? []).map(mapResumo);
 }
 
-/** Edição por id — null se fora do escopo (RLS) ou inexistente. */
+/**
+ * Edição por id — null se fora do escopo (RLS) ou inexistente. Erro REAL de
+ * banco (transitório/permissão) LANÇA em vez de virar um falso 404 — o error
+ * boundary pt-BR cobre; PGRST116 (0 ou 2+ linhas no maybeSingle) segue null.
+ */
 export async function obterEdicao(
   id: string,
 ): Promise<EdicaoNewsletterDetalhe | null> {
@@ -287,7 +291,10 @@ export async function obterEdicao(
     .select("*")
     .eq("id", id)
     .maybeSingle();
-  if (error || !data) {
+  if (error && error.code !== "PGRST116") {
+    throw new Error(`obterEdicao: ${error.message}`);
+  }
+  if (!data) {
     return null;
   }
   return mapDetalhe(data);
@@ -441,7 +448,17 @@ export async function enviarEdicaoAction(id: string): Promise<ResultadoEnvio> {
     };
   }
 
-  const edicao = await obterEdicao(id);
+  // obterEdicao agora LANÇA em erro real de banco; aqui (ação com retorno
+  // estruturado, nada enviado ainda) degradamos para erro retry-seguro.
+  let edicao: EdicaoNewsletterDetalhe | null;
+  try {
+    edicao = await obterEdicao(id);
+  } catch {
+    return {
+      ok: false,
+      erro: "Falha temporária ao carregar a edição. Nenhum e-mail foi enviado — tente novamente.",
+    };
+  }
   if (!edicao) {
     return { ok: false, erro: "Edição não encontrada." };
   }

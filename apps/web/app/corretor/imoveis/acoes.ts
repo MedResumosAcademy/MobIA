@@ -20,6 +20,7 @@ import {
   criarImovel,
   criarUnidade,
   definirStatusImovel,
+  obterImovelDaOrg,
   removerUnidade,
   type ImovelEntrada,
 } from "@/lib/dados/imoveis";
@@ -212,6 +213,13 @@ export async function atualizarImovelAction(id: string, formData: FormData) {
   const orgId = await exigirOrg();
   let destino = "/corretor/imoveis?ok=atualizado";
   try {
+    // Posse ANTES de qualquer upload: sem esta checagem um corretor gravaria
+    // arquivos no Storage sob o id de um imóvel de outra org antes de o
+    // update falhar na RLS.
+    const existente = await obterImovelDaOrg(id);
+    if (!existente) {
+      throw new Error("sem permissão sobre o imóvel");
+    }
     const entrada = montarEntrada(formData);
     const fotos = await enviarArquivos(
       "imoveis-fotos",

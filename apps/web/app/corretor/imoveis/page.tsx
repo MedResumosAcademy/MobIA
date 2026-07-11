@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Building2 } from "lucide-react";
 import { formatarReais } from "@imobia/core";
+import { EstadoVazio } from "@/components/EstadoVazio";
 import { listarImoveisDaOrg } from "@/lib/dados/imoveis";
 import { Botao, classesBotao } from "@/components/ui/Botao";
 import { CampoSelect } from "@/components/ui/Campo";
@@ -27,10 +29,15 @@ export default async function PaginaImoveis({
   return (
     <div className="flex flex-1 flex-col items-center bg-background px-6 py-16 font-sans">
       <main className="w-full max-w-4xl">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            Meus imóveis
-          </h1>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <header>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-strong">
+              Minha carteira
+            </p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+              Meus imóveis
+            </h1>
+          </header>
           <Link href="/corretor/imoveis/novo" className={classesBotao("primario", "md")}>
             Novo imóvel
           </Link>
@@ -47,8 +54,13 @@ export default async function PaginaImoveis({
 
         <ul className="mt-8 flex flex-col gap-3">
           {imoveis.length === 0 && (
-            <li className="rounded-2xl border border-dashed border-border-strong bg-surface-card p-8 text-center text-subtle">
-              Nenhum imóvel cadastrado ainda.
+            <li>
+              <EstadoVazio
+                icone={<Building2 className="h-6 w-6" aria-hidden />}
+                titulo="Nenhum imóvel cadastrado ainda"
+                descricao="Cadastre o primeiro imóvel da sua carteira — ele vira vitrine para os clientes e alimenta o funil de negócios."
+                cta={{ href: "/corretor/imoveis/novo", rotulo: "Cadastrar imóvel" }}
+              />
             </li>
           )}
           {imoveis.map((imovel) => (

@@ -71,6 +71,9 @@ export function PostCard({ post }: { post: PostFeed }) {
           <img
             src={post.autorFotoUrl}
             alt={post.autorNome}
+            width={40}
+            height={40}
+            loading="lazy"
             className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-border"
           />
         ) : (

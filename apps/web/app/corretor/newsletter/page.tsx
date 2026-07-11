@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronDown, Mail, PenLine, Plus, Users } from "lucide-react";
+import { EstadoVazio } from "@/components/EstadoVazio";
 import { Badge, type VarianteBadge } from "@/components/ui/Badge";
 import { classesBotao } from "@/components/ui/Botao";
 import type { StatusEdicaoNewsletter } from "@imobia/domain";
@@ -68,9 +69,12 @@ export default async function PaginaNewsletter() {
         {/* Edições */}
         <section className="mt-8" aria-label="Edições">
           {edicoes.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-border-strong bg-surface-card p-8 text-center text-subtle">
-              Nenhuma edição ainda — crie a primeira em “Nova edição”.
-            </p>
+            <EstadoVazio
+              icone={<Mail className="h-6 w-6" aria-hidden />}
+              titulo="Nenhuma edição ainda"
+              descricao="Monte a primeira edição com os imóveis da sua carteira e mantenha os inscritos aquecidos."
+              cta={{ href: "/corretor/newsletter/nova", rotulo: "Criar primeira edição" }}
+            />
           ) : (
             <ul className="flex flex-col gap-3">
               {edicoes.map((edicao) => (

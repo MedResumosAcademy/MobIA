@@ -72,9 +72,14 @@ export default async function PaginaEditarImovel({
         >
           ← Voltar
         </Link>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
-          {imovel.titulo}
-        </h1>
+        <header className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-strong">
+            Minha carteira
+          </p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+            {imovel.titulo}
+          </h1>
+        </header>
 
         {mensagemErro && (
           <p

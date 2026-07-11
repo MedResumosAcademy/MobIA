@@ -412,14 +412,12 @@ async function despachar(cmd: ComandoInterpretado, agoraISO: string): Promise<Re
       if (negocio.resultado !== null) {
         return erroNegocioFechado(negocio);
       }
-      // Valor primeiro (se veio), para o negócio fechar já com o valor certo.
-      if (cmd.valor !== undefined) {
-        await atualizarNegocio(negocio.id, { valor: cmd.valor });
-      }
       // Reusa definirResultado (negocios.ts) — mesmo caminho do detalhe:
       // etapa='fechamento' + resultado + atividade 'ganho'/'perdido'; o
-      // trigger negocios_gerenciar_fechamento carimba fechado_em.
-      await definirResultado(negocio.id, cmd.resultado);
+      // trigger negocios_gerenciar_fechamento carimba fechado_em. O valor
+      // (se veio) entra no MESMO update — uma única escrita atômica, sem
+      // deixar valor alterado com o negócio ainda aberto se algo falhar.
+      await definirResultado(negocio.id, cmd.resultado, undefined, cmd.valor);
       revalidatePath("/corretor/negocios");
       revalidatePath(`/corretor/negocios/${negocio.id}`);
       const valorFinal = cmd.valor ?? negocio.valor;

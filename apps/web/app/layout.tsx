@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { Search } from "lucide-react";
 import { BannerCookies } from "@/components/BannerCookies";
 import { MenuMobile } from "@/components/MenuMobile";
+import { NavLink } from "@/components/NavLink";
 import { NewsletterCaptura } from "@/components/NewsletterCaptura";
 import { sair } from "@/lib/auth/acoes";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
@@ -84,8 +85,6 @@ export default async function RootLayout({
     perfil !== null &&
     (perfil.papel === "corretor" || perfil.papel === "gestor" || perfil.papel === "admin");
 
-  const linkNav =
-    "rounded-full px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-foreground";
   const linkRodape =
     "text-sm text-muted transition-colors hover:text-foreground";
 
@@ -114,30 +113,18 @@ export default async function RootLayout({
                 className="hidden items-center gap-1 md:flex"
                 aria-label="Navegação principal"
               >
-                <Link href="/imoveis" className={linkNav}>
-                  Comprar
-                </Link>
-                <Link href="/sonhometro" className={linkNav}>
-                  Sonhômetro
-                </Link>
-                <Link href="/mapa" className={linkNav}>
-                  Mapa
-                </Link>
+                <NavLink href="/imoveis">Comprar</NavLink>
+                <NavLink href="/sonhometro">Sonhômetro</NavLink>
+                <NavLink href="/mapa">Mapa</NavLink>
                 {ehProfissional && (
                   <>
-                    <Link href="/corretor" className={linkNav}>
+                    <NavLink href="/corretor" ignorar={["/corretor/perfil"]}>
                       Painel
-                    </Link>
-                    <Link href="/comunidade" className={linkNav}>
-                      Comunidade
-                    </Link>
+                    </NavLink>
+                    <NavLink href="/comunidade">Comunidade</NavLink>
                   </>
                 )}
-                {ehCliente && (
-                  <Link href="/favoritos" className={linkNav}>
-                    Favoritos
-                  </Link>
-                )}
+                {ehCliente && <NavLink href="/favoritos">Favoritos</NavLink>}
               </nav>
             </div>
 
@@ -153,14 +140,14 @@ export default async function RootLayout({
             {sessao ? (
               <div className="flex items-center gap-2 sm:gap-3">
                 {ehCliente && (
-                  <Link href="/conta" className={`hidden sm:inline ${linkNav}`}>
+                  <NavLink href="/conta" className="hidden sm:inline">
                     Minha conta
-                  </Link>
+                  </NavLink>
                 )}
                 {ehProfissional && (
-                  <Link href="/corretor/perfil" className={`hidden sm:inline ${linkNav}`}>
+                  <NavLink href="/corretor/perfil" className="hidden sm:inline">
                     Meu perfil
-                  </Link>
+                  </NavLink>
                 )}
                 <span className="hidden max-w-[16ch] truncate text-sm text-subtle lg:inline">
                   {sessao.email}

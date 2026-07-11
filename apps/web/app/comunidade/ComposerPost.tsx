@@ -91,7 +91,11 @@ export function ComposerPost() {
         </div>
       </div>
 
-      {erro && <p className="mt-2 text-xs text-brand-strong">{erro}</p>}
+      {erro && (
+        <p role="alert" className="mt-2 text-xs text-brand-strong">
+          {erro}
+        </p>
+      )}
     </div>
   );
 }

@@ -400,7 +400,13 @@ export const obterImovel = cache(
         .eq("imovel_id", id)
         .order("identificador", { ascending: true }),
     ]);
-    if (error || !imovel) {
+    // Erro REAL de banco (transitório/permissão) NÃO pode virar 404: lança e o
+    // error boundary pt-BR assume. PGRST116 (0 ou 2+ linhas no maybeSingle) e
+    // ausência continuam null — "não existe/não visível".
+    if (error && error.code !== "PGRST116") {
+      throw new Error(`obterImovel: ${error.message}`);
+    }
+    if (!imovel) {
       return null;
     }
     return mapDetalhe(imovel, unidades ?? []);

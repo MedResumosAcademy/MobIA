@@ -7,6 +7,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { CheckCircle2 } from "lucide-react";
+import { EstadoVazio } from "@/components/EstadoVazio";
 import { obterPerfil, obterSessao } from "@/lib/auth/sessao";
 import { minhasTarefas, tarefasDaOrg } from "@/lib/dados/tarefas";
 import { ItemTarefa } from "./ItemTarefa";
@@ -65,11 +67,17 @@ export default async function PaginaTarefas({
         )}
 
         {tarefas.length === 0 ? (
-          <p className="mt-8 rounded-2xl border border-dashed border-border-strong bg-surface-card p-8 text-center text-subtle">
-            {equipe
-              ? "Nenhuma tarefa pendente na equipe. Tudo em dia! 🎉"
-              : "Você não tem tarefas pendentes. Tudo em dia! 🎉"}
-          </p>
+          <EstadoVazio
+            className="mt-8"
+            icone={<CheckCircle2 className="h-6 w-6" aria-hidden />}
+            titulo="Tudo em dia! 🎉"
+            descricao={
+              equipe
+                ? "Nenhuma tarefa pendente na equipe. Aproveite para revisar o funil e planejar os próximos passos."
+                : "Você não tem tarefas pendentes. Aproveite para avançar um negócio do funil ou agendar uma visita."
+            }
+            cta={{ href: "/corretor/negocios", rotulo: "Ver funil de negócios" }}
+          />
         ) : (
           <div className="mt-8 flex flex-col gap-8">
             {atrasadas.length > 0 && (

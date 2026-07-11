@@ -5,6 +5,8 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Flame } from "lucide-react";
+import { EstadoVazio } from "@/components/EstadoVazio";
 import { listarLeads } from "@/lib/dados/leads";
 import { plural } from "@/lib/plural";
 import { ChipTermometro } from "./termometro";
@@ -19,19 +21,28 @@ export default async function PaginaLeads() {
   return (
     <div className="flex flex-1 flex-col items-center bg-background px-6 py-16 font-sans">
       <main className="w-full max-w-4xl">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          Leads
-        </h1>
-        <p className="mt-2 text-muted">
-          Clientes que ativaram o atendimento e interagiram com seus imóveis,
-          ordenados pelo interesse.
-        </p>
+        <header>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-strong">
+            Radar de clientes
+          </p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+            Leads
+          </h1>
+          <p className="mt-1 text-muted">
+            Clientes que ativaram o atendimento e interagiram com seus imóveis,
+            ordenados pelo interesse.
+          </p>
+        </header>
 
         <ul className="mt-8 flex flex-col gap-3">
           {leads.length === 0 && (
-            <li className="rounded-2xl border border-dashed border-border-strong bg-surface-card p-8 text-center text-subtle">
-              Nenhum lead ainda — leads aparecem quando clientes que ativaram o
-              atendimento interagem com seus imóveis.
+            <li>
+              <EstadoVazio
+                icone={<Flame className="h-6 w-6" aria-hidden />}
+                titulo="Nenhum lead ainda"
+                descricao="Leads aparecem quando clientes que ativaram o atendimento interagem com seus imóveis. Capriche na vitrine para aquecer o radar."
+                cta={{ href: "/corretor/imoveis", rotulo: "Ver meus imóveis" }}
+              />
             </li>
           )}
           {leads.map((lead) => (

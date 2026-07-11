@@ -172,6 +172,7 @@ function CelulaCabecalho({ item }: { item: ItemComparacao }) {
             <img
               src={imovel.fotos[0]}
               alt={imovel.titulo}
+              loading="lazy"
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
             />
           ) : null}

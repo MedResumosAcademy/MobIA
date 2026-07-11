@@ -334,6 +334,8 @@ export default async function FichaImovel({ params }: ParamsFicha) {
                         <img
                           src={url}
                           alt={`Planta ${i + 1} — ${imovel.titulo}`}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full rounded-2xl border border-border bg-surface-card object-contain shadow-[var(--shadow-soft)]"
                         />
                       </li>

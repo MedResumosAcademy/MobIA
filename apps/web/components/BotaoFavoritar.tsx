@@ -7,8 +7,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { alternarFavoritoAction } from "@/app/favoritos/acoes";
+
+// Callback ref ESTÁVEL (fora do componente): move o foco para o popover de
+// login assim que ele monta — sem efeito, sem setState, sem re-focar a cada
+// render. O lint proíbe setState síncrono em efeito; foco via ref é o padrão.
+function focarAoMontar(el: HTMLDivElement | null) {
+  el?.focus();
+}
 
 type Props = {
   imovelId: string;
@@ -29,6 +36,13 @@ export function BotaoFavoritar({
   const [precisaLogin, setPrecisaLogin] = useState(false);
   const [falhou, setFalhou] = useState(false);
   const [, iniciar] = useTransition();
+  const botaoRef = useRef<HTMLButtonElement | null>(null);
+
+  /** Fecha o popover de login devolvendo o foco ao botão que o abriu. */
+  function fecharPopoverLogin() {
+    setPrecisaLogin(false);
+    botaoRef.current?.focus();
+  }
 
   function alternar() {
     const proximo = !favoritado;
@@ -57,6 +71,7 @@ export function BotaoFavoritar({
   return (
     <div className={naFicha ? "relative inline-flex" : "absolute right-3 top-3"}>
       <button
+        ref={botaoRef}
         type="button"
         onClick={alternar}
         aria-pressed={favoritado}
@@ -86,12 +101,21 @@ export function BotaoFavoritar({
 
       {precisaLogin && (
         <div
+          ref={focarAoMontar}
+          tabIndex={-1}
+          role="dialog"
+          aria-label="Entre para salvar favoritos"
+          onKeyDown={(evento) => {
+            if (evento.key === "Escape") {
+              evento.stopPropagation();
+              fecharPopoverLogin();
+            }
+          }}
           className={
             naFicha
-              ? "absolute left-0 top-full z-10 mt-2 w-56 rounded-xl border border-border bg-surface-card p-3 text-xs shadow-[var(--shadow-card)]"
-              : "absolute right-0 top-full z-10 mt-2 w-56 rounded-xl border border-border bg-surface-card p-3 text-xs shadow-[var(--shadow-card)]"
+              ? "absolute left-0 top-full z-10 mt-2 w-56 rounded-xl border border-border bg-surface-card p-3 text-xs shadow-[var(--shadow-card)] focus:outline-none"
+              : "absolute right-0 top-full z-10 mt-2 w-56 rounded-xl border border-border bg-surface-card p-3 text-xs shadow-[var(--shadow-card)] focus:outline-none"
           }
-          role="dialog"
         >
           <p className="text-muted">
             Entre na sua conta para salvar imóveis nos favoritos.
@@ -105,7 +129,7 @@ export function BotaoFavoritar({
             </Link>
             <button
               type="button"
-              onClick={() => setPrecisaLogin(false)}
+              onClick={fecharPopoverLogin}
               className="text-subtle"
             >
               Agora não

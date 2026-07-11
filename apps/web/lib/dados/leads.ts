@@ -228,13 +228,22 @@ export async function obterLead(leadId: string): Promise<LeadDetalhe | null> {
   };
   const lead = mapLeadPainel(l, cliente?.nome ?? null, imovel);
 
-  // Timeline: eventos do par (cliente, imóvel), cronológico. RLS já filtra.
-  const { data: eventos, error: erroEventos } = await supabase
-    .from("eventos")
-    .select("id, tipo, metadata, criado_em")
-    .eq("cliente_id", l.cliente_id)
-    .eq("imovel_id", l.imovel_id)
-    .order("criado_em", { ascending: true });
+  // Timeline (eventos do par cliente/imóvel, cronológico; RLS já filtra) e
+  // perfil do cliente são independentes entre si — rodam em paralelo.
+  const [{ data: eventos, error: erroEventos }, { data: perfilCliente }] = await Promise.all([
+    supabase
+      .from("eventos")
+      .select("id, tipo, metadata, criado_em")
+      .eq("cliente_id", l.cliente_id)
+      .eq("imovel_id", l.imovel_id)
+      .order("criado_em", { ascending: true }),
+    // Capacidade + telefone do cliente — visíveis só se consentiu (policy 0007).
+    supabase
+      .from("cliente_profiles")
+      .select("capacidade_calculada, telefone")
+      .eq("usuario_id", l.cliente_id)
+      .maybeSingle(),
+  ]);
   if (erroEventos) {
     throw new Error(`obterLead(timeline): ${erroEventos.message}`);
   }
@@ -244,13 +253,6 @@ export async function obterLead(leadId: string): Promise<LeadDetalhe | null> {
     descricao: formatarEvento(e),
     criadoEm: e.criado_em,
   }));
-
-  // Capacidade + telefone do cliente — visíveis só se consentiu (policy 0007).
-  const { data: perfilCliente } = await supabase
-    .from("cliente_profiles")
-    .select("capacidade_calculada, telefone")
-    .eq("usuario_id", l.cliente_id)
-    .maybeSingle();
 
   return {
     lead,

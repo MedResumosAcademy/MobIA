@@ -233,6 +233,9 @@ export default async function PaginaComunidade({
                       <img
                         src={m.fotoUrl}
                         alt={m.nome}
+                        width={32}
+                        height={32}
+                        loading="lazy"
                         className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-border"
                       />
                     ) : (

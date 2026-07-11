@@ -46,6 +46,42 @@ function corEscala(t: number): string {
   return `rgb(${r} ${g} ${b})`;
 }
 
+/** Nome por extenso de cada UF — para rótulos acessíveis de verdade. */
+const NOMES_UF: Record<string, string> = {
+  AC: "Acre",
+  AL: "Alagoas",
+  AP: "Amapá",
+  AM: "Amazonas",
+  BA: "Bahia",
+  CE: "Ceará",
+  DF: "Distrito Federal",
+  ES: "Espírito Santo",
+  GO: "Goiás",
+  MA: "Maranhão",
+  MT: "Mato Grosso",
+  MS: "Mato Grosso do Sul",
+  MG: "Minas Gerais",
+  PA: "Pará",
+  PB: "Paraíba",
+  PR: "Paraná",
+  PE: "Pernambuco",
+  PI: "Piauí",
+  RJ: "Rio de Janeiro",
+  RN: "Rio Grande do Norte",
+  RS: "Rio Grande do Sul",
+  RO: "Rondônia",
+  RR: "Roraima",
+  SC: "Santa Catarina",
+  SP: "São Paulo",
+  SE: "Sergipe",
+  TO: "Tocantins",
+};
+
+function rotuloUf(sigla: string, quantidade: number): string {
+  const nome = NOMES_UF[sigla] ?? sigla;
+  return `${nome} — ${quantidade} ${quantidade === 1 ? "imóvel" : "imóveis"}`;
+}
+
 /** Descobre a sigla da UF nas properties, tolerante a variações de chave. */
 function extrairSigla(props: Record<string, unknown>): string | null {
   const candidatas = ["sigla", "SIGLA", "uf", "UF", "SIGLA_UF", "abbrev", "id"];
@@ -142,10 +178,14 @@ export default function MapaBrasil({
 
   return (
     <div className="w-full">
+      {/* role="group" (e NÃO "img": img tornaria os filhos apresentacionais e
+          esconderia os links dos leitores de tela). Cada UF é um role="link"
+          focável — 27 tab stops é aceitável aqui: é a navegação principal do
+          mapa e Tab pula direto para depois do SVG quando o usuário quiser. */}
       <svg
         viewBox={`0 0 ${largura} ${altura}`}
         className="h-auto w-full"
-        role="img"
+        role="group"
         aria-label="Mapa de imóveis por estado do Brasil"
       >
         {estados.map((e) => {
@@ -153,6 +193,9 @@ export default function MapaBrasil({
           const fill = q > 0 && maxQuantidade > 0 ? corEscala(q / maxQuantidade) : COR_ZERO;
           const ativo = hover === e.key;
           const clicavel = Boolean(e.sigla);
+          const irParaUf = () => {
+            if (e.sigla) router.push(hrefUf(e.sigla));
+          };
           return (
             <path
               key={e.key}
@@ -160,14 +203,27 @@ export default function MapaBrasil({
               fill={fill}
               stroke={ativo ? "#9c4310" : "#ffffff"}
               strokeWidth={ativo ? 1.6 : 0.6}
+              className={
+                clicavel
+                  ? "focus:outline-none focus-visible:[stroke:#9c4310] focus-visible:[stroke-width:2.2]"
+                  : undefined
+              }
               style={{ cursor: clicavel ? "pointer" : "default", transition: "fill 120ms, stroke 120ms" }}
               onMouseEnter={() => setHover(e.key)}
               onMouseLeave={() => setHover((h) => (h === e.key ? null : h))}
-              onClick={() => clicavel && router.push(hrefUf(e.sigla!))}
+              onClick={() => clicavel && irParaUf()}
+              onKeyDown={(evento) => {
+                if (!clicavel) return;
+                if (evento.key === "Enter" || evento.key === " ") {
+                  evento.preventDefault();
+                  irParaUf();
+                }
+              }}
+              tabIndex={clicavel ? 0 : undefined}
               role={clicavel ? "link" : undefined}
-              aria-label={e.sigla ? `${e.sigla}: ${q} imóveis` : undefined}
+              aria-label={e.sigla ? rotuloUf(e.sigla, q) : undefined}
             >
-              {e.sigla ? <title>{`${e.sigla} — ${q} imóveis`}</title> : null}
+              {e.sigla ? <title>{rotuloUf(e.sigla, q)}</title> : null}
             </path>
           );
         })}

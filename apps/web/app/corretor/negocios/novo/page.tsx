@@ -36,9 +36,14 @@ export default async function PaginaNovoNegocio({
         >
           ← Voltar ao funil
         </Link>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
-          Novo negócio
-        </h1>
+        <header className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-strong">
+            Funil de vendas
+          </p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+            Novo negócio
+          </h1>
+        </header>
 
         {mensagemErro && (
           <p

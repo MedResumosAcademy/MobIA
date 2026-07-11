@@ -634,9 +634,10 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
         {pendente && (
           <div className="flex justify-start">
             <p
+              role="status"
               className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-border bg-surface-card px-4 py-3"
-              aria-label="A assistente está pensando"
             >
+              <span className="sr-only">A assistente está pensando…</span>
               <Pontinho atraso="0ms" />
               <Pontinho atraso="150ms" />
               <Pontinho atraso="300ms" />
@@ -703,9 +704,11 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
 
         {gravando && (
           <>
+            {/* Cronômetro só visual — o estado é anunciado pela região de
+                status abaixo do input (anunciar cada segundo seria ruído). */}
             <span
+              aria-hidden
               className="shrink-0 text-xs font-semibold tabular-nums text-brand-strong"
-              aria-label={`Gravando há ${segundos} segundos`}
             >
               {formatarTempo(segundos)}
             </span>
@@ -746,17 +749,27 @@ export function Chat({ transcricaoDisponivel = false }: { transcricaoDisponivel?
         </button>
       </form>
 
-      {/* Estados de voz abaixo do input */}
-      {gravando && (
-        <p className="px-5 pb-4 text-xs font-medium text-brand-strong" aria-live="polite">
-          {`Gravando… toque para enviar (${formatarTempo(segundos)}) — o X cancela.`}
-        </p>
-      )}
-      {transcrevendo && (
-        <p className="px-5 pb-4 text-xs font-medium text-brand-strong" aria-live="polite">
-          Transcrevendo o que você falou…
-        </p>
-      )}
+      {/* Estados de voz abaixo do input — região viva ÚNICA, sempre montada
+          (leitores de tela só anunciam mudanças em regiões já presentes).
+          O cronômetro fica num span aria-hidden dentro dela: visível, mas
+          fora do texto acessível, para não anunciar a cada segundo. */}
+      <p
+        role="status"
+        className={
+          gravando || transcrevendo
+            ? "px-5 pb-4 text-xs font-medium text-brand-strong"
+            : "sr-only"
+        }
+      >
+        {gravando ? (
+          <>
+            Gravando… toque para enviar{" "}
+            <span aria-hidden>({formatarTempo(segundos)})</span> — o X cancela.
+          </>
+        ) : transcrevendo ? (
+          "Transcrevendo o que você falou…"
+        ) : null}
+      </p>
       {!gravando && !transcrevendo && suportaVoz && mostrarDica && (
         <p className="px-5 pb-4 text-xs text-subtle">
           Toque no microfone, fale com calma e toque de novo para enviar.

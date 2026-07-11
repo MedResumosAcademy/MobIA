@@ -54,13 +54,16 @@ export default async function PaginaLead({
           ← Voltar aos leads
         </Link>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.12em] text-brand-strong">
+          Radar de clientes
+        </p>
+        <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
             {lead.clienteNome ?? "Cliente"}
           </h1>
           <ChipTermometro temperatura={lead.temperatura} />
         </div>
-        <p className="mt-2 text-muted">{lead.imovelTitulo}</p>
+        <p className="mt-1 text-muted">{lead.imovelTitulo}</p>
 
         {clienteTelefone && <ContatoCliente telefone={clienteTelefone} />}
 

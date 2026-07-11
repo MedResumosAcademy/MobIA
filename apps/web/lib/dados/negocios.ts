@@ -558,13 +558,41 @@ export async function criarNegocioDeLead(leadId: string): Promise<NegocioResumo>
     origem: "lead",
   };
 
-  return inserirNegocioComCriacao(
+  const criado = await inserirNegocioComCriacao(
     supabase,
     insert,
     usuarioId,
     orgId,
     "Negócio criado a partir do lead.",
   );
+
+  // Dedup PÓS-insert (fecha a corrida do check-then-insert no duplo-clique):
+  // se agora existem 2+ negócios ABERTOS para o lead, vence o MAIS ANTIGO
+  // (desempate por id — determinístico entre as duas requisições concorrentes).
+  // Se o vencedor não é o recém-criado, removemos o nosso (o FK de atividades
+  // é on delete cascade; a policy negocios_delete cobre o próprio corretor) e
+  // devolvemos o sobrevivente — mesmo contrato do caminho "já existia".
+  const { data: abertos, error: erroVerifica } = await supabase
+    .from("negocios")
+    .select("id")
+    .eq("lead_id", leadId)
+    .is("resultado", null)
+    .order("criado_em", { ascending: true })
+    .order("id", { ascending: true });
+  if (!erroVerifica && abertos && abertos.length > 1 && abertos[0] && abertos[0].id !== criado.id) {
+    // Carrega o sobrevivente ANTES de apagar o nosso: se esta leitura falhar,
+    // mantemos o duplicado (inofensivo) em vez de devolver uma linha apagada.
+    const { data: vencedor } = await supabase
+      .from("negocios")
+      .select(SELECT_ENRIQUECIDO)
+      .eq("id", abertos[0].id)
+      .maybeSingle();
+    if (vencedor) {
+      await supabase.from("negocios").delete().eq("id", criado.id);
+      return separarEnriquecida(vencedor as LinhaEnriquecida);
+    }
+  }
+  return criado;
 }
 
 /**
@@ -616,16 +644,20 @@ export async function moverEtapa(id: string, etapa: EtapaNegocio): Promise<Negoc
 
 /**
  * Fecha o negócio: etapa='fechamento', resultado (ganho|perdido) e motivo_perda
- * opcional. O trigger do 0011 carimba fechado_em. Registra atividade
+ * opcional. `valor` (centavos), quando informado, entra no MESMO update — uma
+ * única escrita atômica (o CHECK resultado⇒etapa='fechamento' é avaliado na
+ * linha final; o trigger do 0011 carimba fechado_em). Registra atividade
  * 'ganho'/'perdido'. Exige corretor/gestor. Lança se o negócio não é visível.
  */
 export async function definirResultado(
   id: string,
   resultado: ResultadoNegocio,
   motivo?: string,
+  valor?: number,
 ): Promise<NegocioResumo> {
   const { usuarioId, orgId } = await exigirCorretor();
   const r = resultadoNegocioSchema.parse(resultado);
+  const v = valor !== undefined ? z.number().int().nonnegative().parse(valor) : undefined;
   const supabase = await criarClienteServidor();
 
   const { data, error } = await supabase
@@ -634,6 +666,7 @@ export async function definirResultado(
       etapa: "fechamento",
       resultado: r,
       motivo_perda: r === "perdido" ? (motivo ?? null) : null,
+      ...(v !== undefined ? { valor: v } : {}),
     })
     .eq("id", id)
     .select(SELECT_ENRIQUECIDO)

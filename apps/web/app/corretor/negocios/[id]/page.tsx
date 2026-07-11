@@ -70,7 +70,10 @@ export default async function PaginaNegocio({
           ← Voltar ao funil
         </Link>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.12em] text-brand-strong">
+          Funil de vendas
+        </p>
+        <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
             {negocio.nomeContato}
           </h1>

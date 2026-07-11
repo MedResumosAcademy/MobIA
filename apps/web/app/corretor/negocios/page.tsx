@@ -11,7 +11,9 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Handshake, SearchX } from "lucide-react";
 import { formatarReais } from "@imobia/core";
+import { EstadoVazio } from "@/components/EstadoVazio";
 import type { EtapaNegocio } from "@imobia/domain";
 import {
   listarNegocios,
@@ -99,15 +101,18 @@ export default async function PaginaNegocios({
     <div className="flex flex-1 flex-col bg-background px-6 py-16 font-sans">
       <main className="mx-auto w-full max-w-6xl">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          <header>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-strong">
+              Funil de vendas
+            </p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
               Negócios
             </h1>
-            <p className="mt-2 text-muted">
+            <p className="mt-1 text-muted">
               Seu funil de vendas — arraste seus negócios pelas etapas até o
               fechamento.
             </p>
-          </div>
+          </header>
           <div className="flex items-center gap-3">
             <AlternarVista vista={vista} />
             <Link
@@ -126,17 +131,33 @@ export default async function PaginaNegocios({
         />
 
         {abertos.length === 0 && fechados.length === 0 ? (
-          <div className="mt-8 rounded-2xl border border-dashed border-border-strong bg-surface-card p-10 text-center text-subtle">
-            {temFiltro
-              ? "Nenhum negócio corresponde aos filtros. Ajuste ou limpe os filtros."
-              : "Nenhum negócio ainda. Crie o primeiro ou converta um lead em negócio."}
-          </div>
+          temFiltro ? (
+            <EstadoVazio
+              className="mt-8"
+              icone={<SearchX className="h-6 w-6" aria-hidden />}
+              titulo="Nenhum negócio corresponde aos filtros"
+              descricao="Ajuste os filtros acima ou limpe tudo para voltar a ver o funil completo."
+              cta={{ href: "/corretor/negocios", rotulo: "Limpar filtros" }}
+            />
+          ) : (
+            <EstadoVazio
+              className="mt-8"
+              icone={<Handshake className="h-6 w-6" aria-hidden />}
+              titulo="Nenhum negócio ainda"
+              descricao="Crie o primeiro negócio ou converta um lead quente — o funil mostra cada etapa até o fechamento."
+              cta={{ href: "/corretor/negocios/novo", rotulo: "Criar primeiro negócio" }}
+            />
+          )
         ) : (
           <>
             {abertos.length === 0 ? (
-              <div className="mt-6 rounded-2xl border border-dashed border-border-strong bg-surface-card p-10 text-center text-subtle">
-                Nenhum negócio aberto no momento.
-              </div>
+              <EstadoVazio
+                className="mt-6"
+                icone={<Handshake className="h-6 w-6" aria-hidden />}
+                titulo="Nenhum negócio aberto no momento"
+                descricao="Todos os seus negócios estão fechados. Que tal abrir o próximo?"
+                cta={{ href: "/corretor/negocios/novo", rotulo: "Novo negócio" }}
+              />
             ) : vista === "lista" ? (
               <ListaNegocios
                 negocios={abertos}
